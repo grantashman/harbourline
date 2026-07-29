@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/harbourline-logo.svg" width="520" alt="Harbourline - Household Money Planning" />
+</p>
+
 # Harbourline
 
 Harbourline is a private, local-first household budgeting and money-planning
@@ -7,6 +11,13 @@ browser, uses Australian dollar formatting, and stores financial data on the
 device rather than sending it to a server.
 
 **Your money. Your plan. One clear view.**
+
+## Brand Assets
+
+- `assets/harbourline-logo.svg` - primary horizontal product lockup
+- `assets/harbourline-mark.svg` - standalone application mark
+- `assets/harbourline-logo.png` and `assets/harbourline-mark.png` - high-resolution raster versions
+- `assets/favicon.svg` and `assets/favicon.png` - browser icon formats
 
 ## Highlights
 

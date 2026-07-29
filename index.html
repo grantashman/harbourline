@@ -6,7 +6,9 @@
   <meta name="theme-color" content="#132b28" />
   <meta name="application-name" content="Harbourline" />
   <meta name="description" content="Private, local-first household budgeting and financial planning in Australian dollars." />
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
   <link rel="icon" type="image/png" sizes="64x64" href="assets/favicon.png" />
+  <link rel="apple-touch-icon" href="assets/harbourline-mark.png" />
   <title>Harbourline | Household Money Planning</title>
   <script>
     try {
@@ -124,60 +126,10 @@
       width: 52px;
       height: 52px;
       border-radius: 8px;
-      background: linear-gradient(145deg, var(--mint), var(--blue));
       box-shadow: 0 14px 28px rgba(36, 105, 85, 0.24);
-      position: relative;
-      overflow: hidden;
+      display: block;
+      object-fit: contain;
       flex: 0 0 auto;
-      border: 1px solid rgba(255, 255, 255, 0.26);
-    }
-
-    .logo-mark::before {
-      content: "";
-      position: absolute;
-      left: 9px;
-      right: 9px;
-      bottom: 11px;
-      height: 15px;
-      border-radius: 50% 50% 0 0;
-      border-top: 4px solid rgba(255, 255, 255, 0.9);
-      transform: rotate(-8deg);
-    }
-
-    .logo-mark::after {
-      content: "";
-      position: absolute;
-      left: 12px;
-      right: 12px;
-      bottom: 17px;
-      height: 10px;
-      border-radius: 50% 50% 0 0;
-      border-top: 3px solid rgba(255, 255, 255, 0.62);
-      transform: rotate(-8deg);
-    }
-
-    .logo-bar {
-      position: absolute;
-      bottom: 12px;
-      width: 5px;
-      border-radius: 999px 999px 0 0;
-      background: #ffffff;
-      opacity: 0.92;
-    }
-
-    .logo-bar:nth-child(1) {
-      height: 14px;
-      left: 15px;
-    }
-
-    .logo-bar:nth-child(2) {
-      height: 22px;
-      left: 24px;
-    }
-
-    .logo-bar:nth-child(3) {
-      height: 30px;
-      left: 33px;
     }
 
     .brand-copy {
@@ -2331,34 +2283,7 @@
       width: 44px;
       height: 44px;
       border-radius: 7px;
-      background: rgba(47, 171, 130, 0.86);
-      border-color: rgba(255, 255, 255, 0.34);
       box-shadow: 0 8px 22px rgba(0, 0, 0, 0.2);
-      backdrop-filter: blur(8px);
-    }
-
-    .logo-mark::before {
-      left: 7px;
-      right: 7px;
-      bottom: 9px;
-    }
-
-    .logo-mark::after {
-      left: 10px;
-      right: 10px;
-      bottom: 15px;
-    }
-
-    .logo-bar:nth-child(1) {
-      left: 12px;
-    }
-
-    .logo-bar:nth-child(2) {
-      left: 20px;
-    }
-
-    .logo-bar:nth-child(3) {
-      left: 28px;
     }
 
     .brand-title {
@@ -3228,11 +3153,7 @@
   <main class="app">
     <header class="topbar">
       <div class="brand">
-        <div class="logo-mark" aria-hidden="true">
-          <span class="logo-bar"></span>
-          <span class="logo-bar"></span>
-          <span class="logo-bar"></span>
-        </div>
+        <img class="logo-mark" src="assets/harbourline-mark.svg" alt="" aria-hidden="true" />
         <div class="brand-copy">
           <p class="eyebrow">Household money planning</p>
           <h1 class="brand-title">Harbourline</h1>
