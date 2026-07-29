@@ -1,12 +1,12 @@
-# Pocket Harbour
+# Harbourline
 
-Pocket Harbour is a private, local-first household budgeting and financial
-planning app for Australian households. It turns paydays, bills, savings, debt
-and long-term goals into one calm financial plan. It runs entirely in the
+Harbourline is a private, local-first household budgeting and money-planning
+platform for Australian households. It brings paydays, bills, savings, debt
+and long-term goals into one clear financial plan. It runs entirely in the
 browser, uses Australian dollar formatting, and stores financial data on the
 device rather than sending it to a server.
 
-**A calmer place for your money.**
+**Your money. Your plan. One clear view.**
 
 ## Highlights
 

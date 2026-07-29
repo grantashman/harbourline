@@ -4,13 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#132b28" />
-  <meta name="application-name" content="Pocket Harbour" />
+  <meta name="application-name" content="Harbourline" />
   <meta name="description" content="Private, local-first household budgeting and financial planning in Australian dollars." />
   <link rel="icon" type="image/png" sizes="64x64" href="assets/favicon.png" />
-  <title>Pocket Harbour | Private Household Finance</title>
+  <title>Harbourline | Household Money Planning</title>
   <script>
     try {
-      if ((localStorage.getItem("pocket-harbour-theme") || localStorage.getItem("budget-studio-theme")) === "dark") {
+      if ((localStorage.getItem("harbourline-theme") || localStorage.getItem("pocket-harbour-theme") || localStorage.getItem("budget-studio-theme")) === "dark") {
         document.documentElement.dataset.theme = "dark";
       }
     } catch {}
@@ -2295,7 +2295,7 @@
       border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 8px;
       background-color: #102923;
-      background-image: url("assets/pocket-harbour-waterfront.jpg");
+      background-image: url("assets/harbourline-waterfront.jpg");
       background-position: 66% 36%;
       background-size: cover;
       box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08) inset, 0 14px 34px rgba(7, 25, 21, 0.24);
@@ -2442,7 +2442,7 @@
       padding: 28px;
       color: #f5fbf8;
       background-color: #12332b;
-      background-image: url("assets/pocket-harbour-waterfront.jpg");
+      background-image: url("assets/harbourline-waterfront.jpg");
       background-position: 61% center;
       background-size: cover;
       border-color: #17332d;
@@ -3234,8 +3234,8 @@
           <span class="logo-bar"></span>
         </div>
         <div class="brand-copy">
-          <p class="eyebrow">Private household finance</p>
-          <h1 class="brand-title">Pocket Harbour</h1>
+          <p class="eyebrow">Household money planning</p>
+          <h1 class="brand-title">Harbourline</h1>
         </div>
       </div>
       <div class="actions" aria-label="Budget actions">
@@ -3252,9 +3252,9 @@
 
     <section class="hero" aria-labelledby="heroTitle">
       <div class="hero-panel">
-        <p class="eyebrow">Budget / plan / prosper</p>
-        <h1 id="heroTitle">A calmer place for your money.</h1>
-        <p class="subhead">See the household position, stay ahead of payday and build a confident financial plan in Australian dollars. Your information stays private on this device.</p>
+        <p class="eyebrow">Budget / plan / progress</p>
+        <h1 id="heroTitle">Your money. Your plan. One clear view.</h1>
+        <p class="subhead">Bring paydays, bills, savings, debt and future goals together in one confident household plan. Your information stays private on this device.</p>
       </div>
 
       <aside class="summary-panel paycheck-card" aria-labelledby="incomeTitle">
@@ -4015,12 +4015,12 @@
 
   <script src="assets/vendor/pdf-lib.min.js"></script>
   <script>
-    const PRODUCT_NAME = "Pocket Harbour";
-    const PRODUCT_SLUG = "pocket-harbour";
-    const STORAGE_KEY = "pocket-harbour-aud-v1";
-    const LEGACY_STORAGE_KEYS = ["budget-studio-aud-v1"];
-    const THEME_KEY = "pocket-harbour-theme";
-    const LEGACY_THEME_KEYS = ["budget-studio-theme"];
+    const PRODUCT_NAME = "Harbourline";
+    const PRODUCT_SLUG = "harbourline";
+    const STORAGE_KEY = "harbourline-aud-v1";
+    const LEGACY_STORAGE_KEYS = ["pocket-harbour-aud-v1", "budget-studio-aud-v1"];
+    const THEME_KEY = "harbourline-theme";
+    const LEGACY_THEME_KEYS = ["pocket-harbour-theme", "budget-studio-theme"];
     const CURRENCY_FORMATTER = new Intl.NumberFormat("en-AU", {
       style: "currency",
       currency: "AUD"
