@@ -2265,13 +2265,16 @@
       align-items: center;
       margin-bottom: 16px;
       padding: 12px 14px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(111, 207, 173, 0.2);
       border-radius: 8px;
       background-color: #102923;
       background-image: url("assets/harbourline-waterfront.jpg");
       background-position: 66% 36%;
       background-size: cover;
-      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08) inset, 0 14px 34px rgba(7, 25, 21, 0.24);
+      box-shadow:
+        0 0 0 1px rgba(7, 31, 26, 0.3) inset,
+        0 1px 0 rgba(255, 255, 255, 0.08) inset,
+        0 14px 34px rgba(7, 25, 21, 0.24);
       overflow: hidden;
       isolation: isolate;
     }
@@ -2287,12 +2290,13 @@
     .topbar::after {
       content: "";
       position: absolute;
-      left: 0;
-      right: 0;
+      left: 12px;
+      right: 12px;
       bottom: 0;
       height: 2px;
       z-index: 0;
       background: #43c99a;
+      border-radius: 2px 2px 0 0;
     }
 
     .topbar > * {
