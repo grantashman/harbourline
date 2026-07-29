@@ -21,7 +21,7 @@ device rather than sending it to a server.
 
 ## Highlights
 
-- Multiple household income streams with pay frequencies and next-pay dates
+- Editable household income sources with saved names, pay frequencies and next-pay dates
 - Weekly, fortnightly, monthly and yearly bill planning
 - Editable expenses with categories, icons and due dates
 - Weekly set-aside amounts aligned to a salary cycle

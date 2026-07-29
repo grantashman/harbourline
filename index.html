@@ -393,8 +393,29 @@
       min-width: 0;
     }
 
-    .income-source-title span:first-child {
+    .income-name {
+      width: auto;
+      min-width: 0;
+      min-height: 36px;
+      flex: 1;
+      padding: 6px 8px;
+      border-color: transparent;
+      background: transparent;
+      color: var(--ink);
+      font-size: 1rem;
+      font-weight: 850;
+      text-transform: none;
+      letter-spacing: 0;
       overflow-wrap: anywhere;
+    }
+
+    .income-name:hover {
+      border-color: var(--line);
+      background: var(--field);
+    }
+
+    .income-name:focus {
+      background: var(--field);
     }
 
     label {
@@ -3184,9 +3205,9 @@
           <span class="badge">AUD</span>
         </div>
         <div class="income-source-grid">
-          <section class="income-source" aria-labelledby="grantIncomeTitle">
+          <section class="income-source" aria-label="Income source 1">
             <div class="income-source-title">
-              <span id="grantIncomeTitle">Grant</span>
+              <input class="income-name" id="grantIncomeTitle" data-income-id="grant" type="text" maxlength="40" autocomplete="off" spellcheck="false" aria-label="Income source 1 name" placeholder="Primary income" />
               <span class="badge">Primary</span>
             </div>
             <div class="field-grid">
@@ -3212,10 +3233,10 @@
               </label>
             </div>
           </section>
-          <section class="income-source" aria-labelledby="billieIncomeTitle">
+          <section class="income-source" aria-label="Income source 2">
             <div class="income-source-title">
-              <span id="billieIncomeTitle">Billie</span>
-              <span class="badge">Income</span>
+              <input class="income-name" id="billieIncomeTitle" data-income-id="billie" type="text" maxlength="40" autocomplete="off" spellcheck="false" aria-label="Income source 2 name" placeholder="Secondary income" />
+              <span class="badge">Secondary</span>
             </div>
             <div class="field-grid">
               <label>
@@ -3240,9 +3261,9 @@
               </label>
             </div>
           </section>
-          <section class="income-source" aria-labelledby="childSupportIncomeTitle">
+          <section class="income-source" aria-label="Income source 3">
             <div class="income-source-title">
-              <span id="childSupportIncomeTitle">Child support</span>
+              <input class="income-name" id="childSupportIncomeTitle" data-income-id="childSupport" type="text" maxlength="40" autocomplete="off" spellcheck="false" aria-label="Income source 3 name" placeholder="Additional income 1" />
               <span class="badge">Additional</span>
             </div>
             <div class="field-grid">
@@ -3268,9 +3289,9 @@
               </label>
             </div>
           </section>
-          <section class="income-source" aria-labelledby="pensionIncomeTitle">
+          <section class="income-source" aria-label="Income source 4">
             <div class="income-source-title">
-              <span id="pensionIncomeTitle">Pensions</span>
+              <input class="income-name" id="pensionIncomeTitle" data-income-id="pension" type="text" maxlength="40" autocomplete="off" spellcheck="false" aria-label="Income source 4 name" placeholder="Additional income 2" />
               <span class="badge">Additional</span>
             </div>
             <div class="field-grid">
@@ -3318,7 +3339,7 @@
       <article class="summary-panel" style="--accent: var(--blue)">
         <p class="summary-label">Monthly income</p>
         <p class="summary-value" id="summaryIncome">$0.00</p>
-        <p class="summary-note">Combined from Grant, Billie and additional income.</p>
+        <p class="summary-note" id="incomeSummaryNote">Combined household income.</p>
       </article>
       <article class="summary-panel" style="--accent: var(--amber)">
         <p class="summary-label">Monthly expenses</p>
@@ -3524,7 +3545,7 @@
         <div class="workspace-heading">
           <div>
             <h2>Household plan</h2>
-            <p>Connect goals, assets, liabilities and what-if decisions to the budget Grant and Billie use today.</p>
+            <p>Connect goals, assets, liabilities and what-if decisions to the household budget you use today.</p>
           </div>
         </div>
         <section class="workspace-section">
@@ -3546,7 +3567,7 @@
             </div>
             <form class="net-worth-form" id="netWorthForm">
               <label class="compact-label">Kind<select id="netWorthKind"><option value="asset">Asset</option><option value="liability">Liability</option></select></label>
-              <label class="compact-label">Owner<select id="netWorthOwner"><option>Household</option><option>Grant</option><option>Billie</option></select></label>
+              <label class="compact-label">Owner<select id="netWorthOwner"><option>Household</option><option>Person 1</option><option>Person 2</option></select></label>
               <label class="compact-label">Type<select id="netWorthType"><option>Savings</option><option>Super</option><option>Property</option><option>Vehicle</option><option>Investment</option><option>Mortgage</option><option>HECS/HELP</option><option>Loan</option><option>Credit card</option><option>Other</option></select></label>
               <label class="compact-label">Name<input id="netWorthName" type="text" maxlength="60" required /></label>
               <label class="compact-label">Value<input id="netWorthValue" type="number" min="0" step="0.01" required /></label>
@@ -4005,18 +4026,28 @@
     }
 
     const INCOME_SOURCES = [
-      { id: "grant", label: "Grant", defaultFrequency: "yearly", defaultAmount: 0, defaultNextPayDate: "" },
-      { id: "billie", label: "Billie", defaultFrequency: "yearly", defaultAmount: 0, defaultNextPayDate: "" },
-      { id: "childSupport", label: "Child support", defaultFrequency: "monthly", defaultAmount: 0, defaultNextPayDate: "" },
-      { id: "pension", label: "Pensions", defaultFrequency: "monthly", defaultAmount: 0, defaultNextPayDate: "" }
+      { id: "grant", defaultLabel: "Primary income", defaultFrequency: "yearly", defaultAmount: 0, defaultNextPayDate: "" },
+      { id: "billie", defaultLabel: "Secondary income", defaultFrequency: "yearly", defaultAmount: 0, defaultNextPayDate: "" },
+      { id: "childSupport", defaultLabel: "Additional income 1", defaultFrequency: "monthly", defaultAmount: 0, defaultNextPayDate: "" },
+      { id: "pension", defaultLabel: "Additional income 2", defaultFrequency: "monthly", defaultAmount: 0, defaultNextPayDate: "" }
     ];
+
+    function normaliseIncomeLabel(value, fallback = "Income") {
+      const label = String(value || "").trim().replace(/\s+/g, " ").slice(0, 40);
+      return label || fallback;
+    }
+
+    function incomeSourceLabel(source) {
+      const config = INCOME_SOURCES.find((item) => item.id === source?.id);
+      return normaliseIncomeLabel(source?.label, config?.defaultLabel || "Income");
+    }
 
     function createIncomeSources(overrides = {}) {
       return INCOME_SOURCES.map((source) => {
         const override = overrides[source.id] || {};
         return {
           id: source.id,
-          label: source.label,
+          label: normaliseIncomeLabel(override.label, source.defaultLabel),
           amount: Number(override.amount ?? source.defaultAmount) || 0,
           frequency: override.frequency || source.defaultFrequency,
           nextPayDate: String(override.nextPayDate || source.defaultNextPayDate || "")
@@ -4064,6 +4095,7 @@
     let selectedCalendarDate = todayValue();
 
     const incomeAmountInputs = document.querySelectorAll(".income-amount");
+    const incomeNameInputs = document.querySelectorAll(".income-name");
     const incomeFrequencyInputs = document.querySelectorAll(".income-frequency");
     const incomePayDateInputs = document.querySelectorAll(".income-pay-date");
     const expenseForm = document.querySelector("#expenseForm");
@@ -4361,7 +4393,8 @@
             sources: []
           };
           event.income += eventAmount;
-          if (!event.sources.includes(source.label)) event.sources.push(source.label);
+          const label = incomeSourceLabel(source);
+          if (!event.sources.includes(label)) event.sources.push(label);
           eventsByDate.set(key, event);
         });
       });
@@ -4777,7 +4810,7 @@
         const config = INCOME_SOURCES.find((income) => income.id === id);
         source = {
           id,
-          label: config?.label || id,
+          label: config?.defaultLabel || "Income",
           amount: 0,
           frequency: config?.defaultFrequency || "monthly",
           nextPayDate: ""
@@ -5164,11 +5197,17 @@
       const remaining = monthlyIncome - monthlyExpenses;
       const shortfall = Math.max(monthlyExpenses - monthlyIncome, 0);
       const ratio = monthlyIncome > 0 ? monthlyExpenses / monthlyIncome : 0;
+      const activeIncomeNames = state.incomes
+        .filter((income) => (Number(income.amount) || 0) > 0)
+        .map(incomeSourceLabel);
 
       document.querySelector("#monthlyIncome").textContent = money(monthlyIncome);
       document.querySelector("#fortnightlyIncome").textContent = money(incomeFortnightly());
       document.querySelector("#yearlyIncome").textContent = money(incomeYearly());
       document.querySelector("#summaryIncome").textContent = money(monthlyIncome);
+      document.querySelector("#incomeSummaryNote").textContent = activeIncomeNames.length
+        ? `Combined from ${activeIncomeNames.join(", ")}.`
+        : "Add one or more household income sources.";
       document.querySelector("#summaryExpenses").textContent = money(monthlyExpenses);
       document.querySelector("#summaryRemaining").textContent = money(remaining);
       document.querySelector("#summaryShortfall").textContent = money(shortfall);
@@ -5632,7 +5671,7 @@
       const insights = [];
 
       if (!monthlyIncome) {
-        insights.push(["Start with income", "Enter Grant, Billie or additional income so the budget can calculate your monthly position.", "var(--blue)"]);
+        insights.push(["Start with income", "Enter one or more household income amounts so the budget can calculate your monthly position.", "var(--blue)"]);
       } else if (shortfall > 0) {
         insights.push(["Priority 1: break even", `You need ${money(shortfall)} more income or ${money(shortfall)} less spending per month, about ${money(shortfall / 4.345)} per week.`, "var(--rose)"]);
       } else if (ratio <= 0.6) {
@@ -5700,6 +5739,13 @@
     }
 
     function renderIncomeFields() {
+      incomeNameInputs.forEach((input) => {
+        const source = incomeSource(input.dataset.incomeId);
+        const label = incomeSourceLabel(source);
+        input.value = label;
+        input.closest(".income-source")?.setAttribute("aria-label", label);
+      });
+
       incomeAmountInputs.forEach((input) => {
         const source = incomeSource(input.dataset.incomeId);
         input.value = source.amount || "";
@@ -6504,7 +6550,7 @@
         const rowNumber = incomeStart + index;
         const monthly = monthlyAmount(income.amount, income.frequency);
         incomeRows.push([
-          xText(income.label || income.id, 12),
+          xText(incomeSourceLabel(income), 12),
           xNumber(income.amount, 4),
           xText(frequencyLabel(income.frequency), 12),
           xDate(income.nextPayDate),
@@ -7158,7 +7204,7 @@
       });
       state.incomes.forEach((income, index) => {
         report.y = tableRow(report.page, report.y, [
-          income.label || income.id,
+          incomeSourceLabel(income),
           money(income.amount),
           frequencyLabel(income.frequency),
           income.nextPayDate ? dueLabel(income.nextPayDate) : "Not set",
@@ -7459,6 +7505,31 @@
       } catch {}
       applyTheme(savedTheme === "dark" ? "dark" : "light");
     }
+
+    function refreshIncomeNameViews() {
+      renderSummary();
+      renderPaydayWorkspace();
+      renderCalendar();
+    }
+
+    incomeNameInputs.forEach((input) => {
+      input.addEventListener("input", () => {
+        const source = incomeSource(input.dataset.incomeId);
+        source.label = String(input.value || "").slice(0, 40);
+        const label = incomeSourceLabel(source);
+        input.closest(".income-source")?.setAttribute("aria-label", label);
+        saveState();
+        refreshIncomeNameViews();
+      });
+
+      input.addEventListener("change", () => {
+        const source = incomeSource(input.dataset.incomeId);
+        source.label = incomeSourceLabel(source);
+        input.value = source.label;
+        saveState();
+        refreshIncomeNameViews();
+      });
+    });
 
     incomeAmountInputs.forEach((input) => {
       input.addEventListener("input", () => {
