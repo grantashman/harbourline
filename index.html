@@ -1230,6 +1230,7 @@
     }
 
     .workspace-tab {
+      flex: 1 0 150px;
       min-width: 150px;
       min-height: 48px;
       padding: 0 18px;
@@ -1259,6 +1260,16 @@
 
     .workspace-panel.active {
       display: block;
+    }
+
+    .workspace-plan-grid {
+      margin-bottom: 0;
+    }
+
+    .workspace-plan-grid .panel-title h3 {
+      margin: 0;
+      font-size: 1.02rem;
+      line-height: 1.25;
     }
 
     .workspace-heading {
@@ -2690,6 +2701,12 @@
         padding: 14px;
       }
 
+      .workspace-tab {
+        flex-basis: 132px;
+        min-width: 132px;
+        padding-inline: 14px;
+      }
+
       .workspace-heading {
         display: block;
       }
@@ -3000,6 +3017,8 @@
         <button class="workspace-tab" id="paydayTab" type="button" role="tab" aria-selected="true" aria-controls="paydayPanel" data-workspace-tab="payday">Payday</button>
         <button class="workspace-tab" id="realityTab" type="button" role="tab" aria-selected="false" aria-controls="realityPanel" data-workspace-tab="reality">Reality check</button>
         <button class="workspace-tab" id="householdTab" type="button" role="tab" aria-selected="false" aria-controls="householdPanel" data-workspace-tab="household">Household plan</button>
+        <button class="workspace-tab" id="savingsTab" type="button" role="tab" aria-selected="false" aria-controls="savingsPanel" data-workspace-tab="savings">Savings plan</button>
+        <button class="workspace-tab" id="debtTab" type="button" role="tab" aria-selected="false" aria-controls="debtPanel" data-workspace-tab="debt">Debt plan</button>
       </div>
 
       <div class="workspace-panel active" id="paydayPanel" role="tabpanel" aria-labelledby="paydayTab" data-workspace-panel="payday">
@@ -3173,6 +3192,172 @@
           </section>
         </div>
       </div>
+
+      <div class="workspace-panel" id="savingsPanel" role="tabpanel" aria-labelledby="savingsTab" data-workspace-panel="savings" hidden>
+        <div class="workspace-heading">
+          <div>
+            <h2>Savings plan</h2>
+            <p>Choose a sustainable household savings rate and see how regular contributions could compound over time.</p>
+          </div>
+          <span class="badge">Long-term plan</span>
+        </div>
+        <section class="savings-grid workspace-plan-grid" aria-label="Savings plan">
+          <article class="savings-panel" aria-labelledby="savingsPlanTitle">
+            <div class="panel-title">
+              <div>
+                <h3 id="savingsPlanTitle">Plan settings</h3>
+                <p class="chart-subtitle">Allocate a percentage of household income and test the long-term compounding effect.</p>
+              </div>
+            </div>
+            <div class="savings-controls">
+              <label>
+                Savings allocation
+                <div class="allocation-row">
+                  <input id="savingsRate" type="range" min="0" max="50" step="1" />
+                  <span class="input-wrap">
+                    <input id="savingsRateNumber" type="number" min="0" max="100" step="1" inputmode="decimal" />
+                  </span>
+                </div>
+              </label>
+              <div class="field-grid">
+                <label>
+                  Starting savings
+                  <span class="input-wrap">
+                    <span class="prefix">$</span>
+                    <input class="money-input" id="startingSavings" type="number" min="0" step="0.01" inputmode="decimal" />
+                  </span>
+                </label>
+                <label>
+                  Expected annual return
+                  <input id="annualReturn" type="number" min="0" max="30" step="0.1" inputmode="decimal" />
+                </label>
+              </div>
+              <label>
+                Plan length
+                <select id="planYears">
+                  <option value="1">1 year</option>
+                  <option value="3">3 years</option>
+                  <option value="5">5 years</option>
+                  <option value="10">10 years</option>
+                  <option value="15">15 years</option>
+                  <option value="20">20 years</option>
+                  <option value="25">25 years</option>
+                  <option value="30">30 years</option>
+                </select>
+              </label>
+            </div>
+          </article>
+
+          <article class="savings-panel" aria-labelledby="projectionTitle">
+            <div class="panel-title">
+              <div>
+                <h3 id="projectionTitle">Compound projection</h3>
+                <p class="chart-subtitle">Uses monthly contributions and monthly compounding.</p>
+              </div>
+            </div>
+            <div class="plan-metrics">
+              <div class="plan-metric">
+                <span>Monthly saving</span>
+                <strong id="planMonthlySaving">$0.00</strong>
+              </div>
+              <div class="plan-metric">
+                <span>Projected balance</span>
+                <strong id="planProjectedBalance">$0.00</strong>
+              </div>
+              <div class="plan-metric">
+                <span>Compound growth</span>
+                <strong id="planInterestEarned">$0.00</strong>
+              </div>
+            </div>
+            <p class="plan-note" id="planFeasibilityNote">Set an income and savings allocation to start planning.</p>
+            <div class="projection-chart" id="projectionChart"></div>
+          </article>
+        </section>
+      </div>
+
+      <div class="workspace-panel" id="debtPanel" role="tabpanel" aria-labelledby="debtTab" data-workspace-panel="debt" hidden>
+        <div class="workspace-heading">
+          <div>
+            <h2>Debt paydown plan</h2>
+            <p>Organise every debt into a focused repayment order and compare how extra payments change the finish line.</p>
+          </div>
+          <span class="badge">Paydown strategy</span>
+        </div>
+        <section class="debt-grid workspace-plan-grid" aria-label="Debt paydown plan">
+          <article class="debt-panel" aria-labelledby="debtPlanTitle">
+            <div class="panel-title">
+              <div>
+                <h3 id="debtPlanTitle">Strategy settings</h3>
+                <p class="chart-subtitle">Turn debt expenses into a focused repayment strategy.</p>
+              </div>
+            </div>
+            <div class="debt-controls">
+              <div class="strategy-toggle" role="radiogroup" aria-label="Debt repayment strategy">
+                <label class="strategy-option">
+                  <input type="radio" name="debtStrategy" value="avalanche" />
+                  <span>Highest interest first</span>
+                </label>
+                <label class="strategy-option">
+                  <input type="radio" name="debtStrategy" value="snowball" />
+                  <span>Smallest balance first</span>
+                </label>
+              </div>
+              <div class="extra-payment-row">
+                <label>
+                  Extra payment each month
+                  <span class="input-wrap">
+                    <span class="prefix">$</span>
+                    <input class="money-input" id="debtExtraPayment" type="number" min="0" step="10" inputmode="decimal" />
+                  </span>
+                </label>
+                <button class="btn secondary" id="useAvailableForDebt" type="button">Use available</button>
+              </div>
+              <p class="debt-budget-note" id="debtBudgetNote">Add debt details to build a payoff plan.</p>
+              <div class="debt-setup-list" id="debtSetupList"></div>
+              <p class="debt-disclaimer">Estimates use the balances, rates and regular repayments entered here. Lender calculations, fees and rate changes may differ.</p>
+            </div>
+          </article>
+
+          <article class="debt-panel" aria-labelledby="debtProjectionTitle">
+            <div class="panel-title">
+              <div>
+                <h3 id="debtProjectionTitle">Debt-free projection</h3>
+                <p class="chart-subtitle">Compare approaches and see what an affordable extra payment changes.</p>
+              </div>
+            </div>
+            <div class="debt-results">
+              <div class="debt-focus" id="debtFocus">
+                <div class="eyebrow">First focus</div>
+                <div class="debt-focus-head">
+                  <strong>Add a debt expense to begin.</strong>
+                </div>
+                <p>Choose Debt when adding an expense, then enter its balance and interest rate.</p>
+              </div>
+              <div class="debt-metrics">
+                <div class="debt-metric">
+                  <span>Total debt</span>
+                  <strong id="debtTotalBalance">$0.00</strong>
+                </div>
+                <div class="debt-metric">
+                  <span>Monthly plan</span>
+                  <strong id="debtMonthlyPlan">$0.00</strong>
+                </div>
+                <div class="debt-metric">
+                  <span>Debt-free</span>
+                  <strong id="debtFreeDate">Not set</strong>
+                </div>
+                <div class="debt-metric">
+                  <span>Interest estimate</span>
+                  <strong id="debtInterest">$0.00</strong>
+                </div>
+              </div>
+              <div class="scenario-grid" id="debtScenarioGrid"></div>
+              <p class="plan-note" id="debtAccelerationNote">Add balances and rates to compare repayment strategies.</p>
+              <div class="projection-chart" id="debtProjectionChart"></div>
+            </div>
+          </article>
+        </section>
+      </div>
     </section>
 
     <section class="charts-grid" aria-label="Budget graphs">
@@ -3207,154 +3392,6 @@
           </div>
         </div>
         <div class="bar-chart" id="topExpenseChart"></div>
-      </article>
-    </section>
-
-    <section class="savings-grid" aria-label="Savings plan">
-      <article class="savings-panel" aria-labelledby="savingsPlanTitle">
-        <div class="panel-title">
-          <div>
-            <h2 id="savingsPlanTitle">Savings plan</h2>
-            <p class="chart-subtitle">Allocate a percentage of household income and test the long-term compounding effect.</p>
-          </div>
-        </div>
-        <div class="savings-controls">
-          <label>
-            Savings allocation
-            <div class="allocation-row">
-              <input id="savingsRate" type="range" min="0" max="50" step="1" />
-              <span class="input-wrap">
-                <input id="savingsRateNumber" type="number" min="0" max="100" step="1" inputmode="decimal" />
-              </span>
-            </div>
-          </label>
-          <div class="field-grid">
-            <label>
-              Starting savings
-              <span class="input-wrap">
-                <span class="prefix">$</span>
-                <input class="money-input" id="startingSavings" type="number" min="0" step="0.01" inputmode="decimal" />
-              </span>
-            </label>
-            <label>
-              Expected annual return
-              <input id="annualReturn" type="number" min="0" max="30" step="0.1" inputmode="decimal" />
-            </label>
-          </div>
-          <label>
-            Plan length
-            <select id="planYears">
-              <option value="1">1 year</option>
-              <option value="3">3 years</option>
-              <option value="5">5 years</option>
-              <option value="10">10 years</option>
-              <option value="15">15 years</option>
-              <option value="20">20 years</option>
-              <option value="25">25 years</option>
-              <option value="30">30 years</option>
-            </select>
-          </label>
-        </div>
-      </article>
-
-      <article class="savings-panel" aria-labelledby="projectionTitle">
-        <div class="panel-title">
-          <div>
-            <h2 id="projectionTitle">Compound projection</h2>
-            <p class="chart-subtitle">Uses monthly contributions and monthly compounding.</p>
-          </div>
-        </div>
-        <div class="plan-metrics">
-          <div class="plan-metric">
-            <span>Monthly saving</span>
-            <strong id="planMonthlySaving">$0.00</strong>
-          </div>
-          <div class="plan-metric">
-            <span>Projected balance</span>
-            <strong id="planProjectedBalance">$0.00</strong>
-          </div>
-          <div class="plan-metric">
-            <span>Compound growth</span>
-            <strong id="planInterestEarned">$0.00</strong>
-          </div>
-        </div>
-        <p class="plan-note" id="planFeasibilityNote">Set an income and savings allocation to start planning.</p>
-        <div class="projection-chart" id="projectionChart"></div>
-      </article>
-    </section>
-
-    <section class="debt-grid" aria-label="Debt paydown plan">
-      <article class="debt-panel" aria-labelledby="debtPlanTitle">
-        <div class="panel-title">
-          <div>
-            <h2 id="debtPlanTitle">Debt paydown plan</h2>
-            <p class="chart-subtitle">Turn debt expenses into a focused repayment strategy.</p>
-          </div>
-        </div>
-        <div class="debt-controls">
-          <div class="strategy-toggle" role="radiogroup" aria-label="Debt repayment strategy">
-            <label class="strategy-option">
-              <input type="radio" name="debtStrategy" value="avalanche" />
-              <span>Highest interest first</span>
-            </label>
-            <label class="strategy-option">
-              <input type="radio" name="debtStrategy" value="snowball" />
-              <span>Smallest balance first</span>
-            </label>
-          </div>
-          <div class="extra-payment-row">
-            <label>
-              Extra payment each month
-              <span class="input-wrap">
-                <span class="prefix">$</span>
-                <input class="money-input" id="debtExtraPayment" type="number" min="0" step="10" inputmode="decimal" />
-              </span>
-            </label>
-            <button class="btn secondary" id="useAvailableForDebt" type="button">Use available</button>
-          </div>
-          <p class="debt-budget-note" id="debtBudgetNote">Add debt details to build a payoff plan.</p>
-          <div class="debt-setup-list" id="debtSetupList"></div>
-          <p class="debt-disclaimer">Estimates use the balances, rates and regular repayments entered here. Lender calculations, fees and rate changes may differ.</p>
-        </div>
-      </article>
-
-      <article class="debt-panel" aria-labelledby="debtProjectionTitle">
-        <div class="panel-title">
-          <div>
-            <h2 id="debtProjectionTitle">Debt-free projection</h2>
-            <p class="chart-subtitle">Compare approaches and see what an affordable extra payment changes.</p>
-          </div>
-        </div>
-        <div class="debt-results">
-          <div class="debt-focus" id="debtFocus">
-            <div class="eyebrow">First focus</div>
-            <div class="debt-focus-head">
-              <strong>Add a debt expense to begin.</strong>
-            </div>
-            <p>Choose Debt when adding an expense, then enter its balance and interest rate.</p>
-          </div>
-          <div class="debt-metrics">
-            <div class="debt-metric">
-              <span>Total debt</span>
-              <strong id="debtTotalBalance">$0.00</strong>
-            </div>
-            <div class="debt-metric">
-              <span>Monthly plan</span>
-              <strong id="debtMonthlyPlan">$0.00</strong>
-            </div>
-            <div class="debt-metric">
-              <span>Debt-free</span>
-              <strong id="debtFreeDate">Not set</strong>
-            </div>
-            <div class="debt-metric">
-              <span>Interest estimate</span>
-              <strong id="debtInterest">$0.00</strong>
-            </div>
-          </div>
-          <div class="scenario-grid" id="debtScenarioGrid"></div>
-          <p class="plan-note" id="debtAccelerationNote">Add balances and rates to compare repayment strategies.</p>
-          <div class="projection-chart" id="debtProjectionChart"></div>
-        </div>
       </article>
     </section>
 
