@@ -7,7 +7,7 @@ than sending it to a server.
 
 ## Highlights
 
-- Multiple household income streams and pay frequencies
+- Multiple household income streams with pay frequencies and next-pay dates
 - Weekly, fortnightly, monthly and yearly bill planning
 - Editable expenses with categories, icons and due dates
 - Weekly set-aside amounts aligned to a salary cycle

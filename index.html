@@ -409,6 +409,10 @@
       gap: 12px;
     }
 
+    .income-pay-date-field {
+      grid-column: 1 / -1;
+    }
+
     .income-source-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2855,6 +2859,10 @@
                   <option value="weekly">Weekly</option>
                 </select>
               </label>
+              <label class="income-pay-date-field">
+                Next pay date
+                <input class="income-pay-date" id="grantIncomePayDate" data-income-id="grant" type="date" />
+              </label>
             </div>
           </section>
           <section class="income-source" aria-labelledby="billieIncomeTitle">
@@ -2878,6 +2886,10 @@
                   <option value="fortnightly">Fortnightly</option>
                   <option value="weekly">Weekly</option>
                 </select>
+              </label>
+              <label class="income-pay-date-field">
+                Next pay date
+                <input class="income-pay-date" id="billieIncomePayDate" data-income-id="billie" type="date" />
               </label>
             </div>
           </section>
@@ -2903,6 +2915,10 @@
                   <option value="yearly">Yearly</option>
                 </select>
               </label>
+              <label class="income-pay-date-field">
+                Next pay date
+                <input class="income-pay-date" id="childSupportIncomePayDate" data-income-id="childSupport" type="date" />
+              </label>
             </div>
           </section>
           <section class="income-source" aria-labelledby="pensionIncomeTitle">
@@ -2926,6 +2942,10 @@
                   <option value="fortnightly">Fortnightly</option>
                   <option value="yearly">Yearly</option>
                 </select>
+              </label>
+              <label class="income-pay-date-field">
+                Next pay date
+                <input class="income-pay-date" id="pensionIncomePayDate" data-income-id="pension" type="date" />
               </label>
             </div>
           </section>
@@ -2992,14 +3012,14 @@
         </div>
         <div class="workspace-control-grid">
           <label>
-            Pay cycle
+            Fallback pay cycle
             <select id="payCycle">
               <option value="weekly">Weekly</option>
               <option value="fortnightly">Fortnightly</option>
             </select>
           </label>
           <label>
-            Next payday
+            Fallback pay date
             <input id="nextPayday" type="date" />
           </label>
           <label>
@@ -3014,7 +3034,7 @@
           <div class="workspace-metric">
             <span>Income this pay</span>
             <strong id="paydayIncome">$0.00</strong>
-            <small>Household average</small>
+            <small id="paydayIncomeNote">Household average</small>
           </div>
           <div class="workspace-metric">
             <span>Transfer to bills</span>
@@ -3558,10 +3578,10 @@
     }
 
     const INCOME_SOURCES = [
-      { id: "grant", label: "Grant", defaultFrequency: "yearly", defaultAmount: 0 },
-      { id: "billie", label: "Billie", defaultFrequency: "yearly", defaultAmount: 0 },
-      { id: "childSupport", label: "Child support", defaultFrequency: "monthly", defaultAmount: 0 },
-      { id: "pension", label: "Pensions", defaultFrequency: "monthly", defaultAmount: 0 }
+      { id: "grant", label: "Grant", defaultFrequency: "yearly", defaultAmount: 0, defaultNextPayDate: "" },
+      { id: "billie", label: "Billie", defaultFrequency: "yearly", defaultAmount: 0, defaultNextPayDate: "" },
+      { id: "childSupport", label: "Child support", defaultFrequency: "monthly", defaultAmount: 0, defaultNextPayDate: "" },
+      { id: "pension", label: "Pensions", defaultFrequency: "monthly", defaultAmount: 0, defaultNextPayDate: "" }
     ];
 
     function createIncomeSources(overrides = {}) {
@@ -3571,7 +3591,8 @@
           id: source.id,
           label: source.label,
           amount: Number(override.amount ?? source.defaultAmount) || 0,
-          frequency: override.frequency || source.defaultFrequency
+          frequency: override.frequency || source.defaultFrequency,
+          nextPayDate: String(override.nextPayDate || source.defaultNextPayDate || "")
         };
       });
     }
@@ -3615,6 +3636,7 @@
 
     const incomeAmountInputs = document.querySelectorAll(".income-amount");
     const incomeFrequencyInputs = document.querySelectorAll(".income-frequency");
+    const incomePayDateInputs = document.querySelectorAll(".income-pay-date");
     const expenseForm = document.querySelector("#expenseForm");
     const expenseFormTitle = document.querySelector("#expenseFormTitle");
     const expenseSubmitButton = document.querySelector("#expenseSubmitButton");
@@ -3835,23 +3857,96 @@
       return state.paydayPlan?.payCycle === "fortnightly" ? 26 : 52;
     }
 
-    function normalisedNextPayday() {
+    function normalisedFallbackPayday() {
       const today = parseDateValue(todayValue());
       let payday = parseDateValue(state.paydayPlan?.nextPayday) || today;
       while (payday < today) payday = addDays(payday, cycleDays());
       return payday;
     }
 
+    function fallbackPayDates(start, end) {
+      const dates = [];
+      let payday = normalisedFallbackPayday();
+      let guard = 0;
+      while (payday < start && guard < 200) {
+        payday = addDays(payday, cycleDays());
+        guard += 1;
+      }
+      while (payday <= end && guard < 400) {
+        dates.push(new Date(payday));
+        payday = addDays(payday, cycleDays());
+        guard += 1;
+      }
+      return dates;
+    }
+
+    function incomeOccurrences(source, start, end) {
+      const occurrences = [];
+      let payDate = parseDateValue(source.nextPayDate);
+      if (!payDate) return occurrences;
+      let guard = 0;
+      while (payDate < start && guard < 700) {
+        const advanced = advanceDueDate(payDate, source.frequency);
+        if (!advanced) return occurrences;
+        payDate = advanced;
+        guard += 1;
+      }
+      while (payDate <= end && guard < 900) {
+        occurrences.push(new Date(payDate));
+        const advanced = advanceDueDate(payDate, source.frequency);
+        if (!advanced) break;
+        payDate = advanced;
+        guard += 1;
+      }
+      return occurrences;
+    }
+
+    function sourceYearlyIncome(source) {
+      return monthlyAmount(source.amount, source.frequency) * 12;
+    }
+
+    function householdPayEvents(start, end) {
+      const eventsByDate = new Map();
+      const fallbackDates = fallbackPayDates(start, end);
+
+      (state.incomes || []).forEach((source) => {
+        const amount = Math.max(Number(source.amount) || 0, 0);
+        if (!amount) return;
+        const hasPayDate = Boolean(parseDateValue(source.nextPayDate));
+        const occurrences = hasPayDate ? incomeOccurrences(source, start, end) : fallbackDates;
+        const eventAmount = hasPayDate ? amount : sourceYearlyIncome(source) / cyclesPerYear();
+
+        occurrences.forEach((date) => {
+          const key = dateValue(date);
+          const event = eventsByDate.get(key) || {
+            date: new Date(date),
+            income: 0,
+            sources: []
+          };
+          event.income += eventAmount;
+          if (!event.sources.includes(source.label)) event.sources.push(source.label);
+          eventsByDate.set(key, event);
+        });
+      });
+
+      return [...eventsByDate.values()].sort((a, b) => a.date - b.date);
+    }
+
+    function normalisedNextPayday() {
+      const today = parseDateValue(todayValue());
+      const events = householdPayEvents(today, addDays(today, 370));
+      return events[0]?.date || normalisedFallbackPayday();
+    }
+
     function paydaysUntil(dueDate) {
       if (!dueDate) return 0;
-      let payday = normalisedNextPayday();
-      if (dueDate < payday) return 1;
-      let count = 0;
-      while (payday <= dueDate && count < 200) {
-        count += 1;
-        payday = addDays(payday, cycleDays());
-      }
-      return Math.max(count, 1);
+      const today = parseDateValue(todayValue());
+      if (dueDate < today) return 1;
+      const events = householdPayEvents(today, dueDate);
+      if (events.length) return events.length;
+      const hasIncome = (state.incomes || []).some((source) => (Number(source.amount) || 0) > 0);
+      if (hasIncome) return 1;
+      return Math.max(fallbackPayDates(today, dueDate).length, 1);
     }
 
     function billFunding(expense) {
@@ -3882,15 +3977,26 @@
     }
 
     function paydaySummary() {
-      const cycles = cyclesPerYear();
-      const income = incomeYearly() / cycles;
+      const today = parseDateValue(todayValue());
+      const nextYearEvents = householdPayEvents(today, addDays(today, 370));
+      const annualEvents = nextYearEvents.filter((event) => event.date <= addDays(today, 363));
+      const nextEvent = nextYearEvents[0] || null;
+      const cycles = annualEvents.length || (nextEvent ? 1 : cyclesPerYear());
+      const income = nextEvent?.income ?? incomeYearly() / cyclesPerYear();
       const fundings = state.expenses.map((expense) => ({ expense, ...billFunding(expense) }));
       const transfer = fundings.reduce((total, item) => total + item.requiredPerCycle, 0);
-      const savings = savingsProjection().monthlyContribution * 12 / cycles;
-      const extraDebt = Math.max(Number(state.debtPlan?.extraPayment) || 0, 0) * 12 / cycles;
+      const savingsRate = Math.max(Number(state.savingsPlan?.allocationPercent) || 0, 0) / 100;
+      const savings = income * savingsRate;
+      const annualIncome = incomeYearly();
+      const annualExtraDebt = Math.max(Number(state.debtPlan?.extraPayment) || 0, 0) * 12;
+      const extraDebt = annualIncome > 0
+        ? annualExtraDebt * (income / annualIncome)
+        : annualExtraDebt / cycles;
       return {
         cycles,
         income,
+        nextPayday: nextEvent?.date || normalisedFallbackPayday(),
+        incomeSources: nextEvent?.sources || [],
         fundings,
         transfer,
         savings,
@@ -3917,13 +4023,8 @@
     function buildPaydayForecast() {
       const summary = paydaySummary();
       const today = parseDateValue(todayValue());
-      const forecastEnd = addDays(today, 91);
-      const paydays = [];
-      let payday = normalisedNextPayday();
-      while (payday <= forecastEnd) {
-        paydays.push(new Date(payday));
-        payday = addDays(payday, cycleDays());
-      }
+      const forecastEnd = addDays(today, 90);
+      const payEvents = householdPayEvents(today, forecastEnd);
 
       const dueEvents = [];
       state.expenses.forEach((expense) => {
@@ -3937,7 +4038,9 @@
       for (let index = 0; index < 13; index += 1) {
         const start = addDays(today, index * 7);
         const end = addDays(start, 6);
-        const inflow = paydays.filter((date) => date >= start && date <= end).length * summary.transfer;
+        const weekPayEvents = payEvents.filter((event) => event.date >= start && event.date <= end);
+        const income = weekPayEvents.reduce((total, event) => total + event.income, 0);
+        const inflow = weekPayEvents.length * summary.transfer;
         const scheduledOutflow = dueEvents
           .filter((event) => event.date >= start && event.date <= end)
           .reduce((total, event) => total + event.amount, 0);
@@ -3946,7 +4049,7 @@
           .reduce((total, expense) => total + weeklyAmount(expense.amount, expense.frequency), 0);
         const outflow = scheduledOutflow + averageOutflow;
         balance += inflow - outflow;
-        weeks.push({ index, start, end, inflow, outflow, balance });
+        weeks.push({ index, start, end, income, payCount: weekPayEvents.length, inflow, outflow, balance });
       }
       return weeks;
     }
@@ -3977,7 +4080,8 @@
           id,
           label: config?.label || id,
           amount: 0,
-          frequency: config?.defaultFrequency || "monthly"
+          frequency: config?.defaultFrequency || "monthly",
+          nextPayDate: ""
         };
         state.incomes.push(source);
       }
@@ -4906,6 +5010,11 @@
         const source = incomeSource(select.dataset.incomeId);
         select.value = source.frequency;
       });
+
+      incomePayDateInputs.forEach((input) => {
+        const source = incomeSource(input.dataset.incomeId);
+        input.value = source.nextPayDate || "";
+      });
     }
 
     function renderPaydayWorkspace() {
@@ -4923,7 +5032,15 @@
       document.querySelector("#paydayTransfer").textContent = money(summary.transfer);
       document.querySelector("#paydaySafeSpend").textContent = money(summary.safeSpend);
       document.querySelector("#paydayLowPoint").textContent = money(lowPoint);
-      document.querySelector("#paydayTransferNote").textContent = `${summary.fundings.length} bill${summary.fundings.length === 1 ? "" : "s"} across this ${state.paydayPlan.payCycle} pay`;
+      const nextPayLabel = summary.nextPayday.toLocaleDateString("en-AU", {
+        weekday: "short",
+        day: "numeric",
+        month: "short"
+      });
+      document.querySelector("#paydayIncomeNote").textContent = summary.incomeSources.length
+        ? `${summary.incomeSources.join(" + ")} | ${nextPayLabel}`
+        : `Household average | ${nextPayLabel}`;
+      document.querySelector("#paydayTransferNote").textContent = `${summary.fundings.length} bill${summary.fundings.length === 1 ? "" : "s"} on the next household pay`;
       document.querySelector("#paydayLowPointNote").textContent = lowPoint < 0 ? "Funding gap appears in forecast" : "Projected bills balance";
 
       const healthBadge = document.querySelector("#paydayHealthBadge");
@@ -4956,7 +5073,7 @@
           row.querySelector("span:first-child").textContent = label;
           row.querySelector(".forecast-fill").style.width = `${width}%`;
           row.querySelector(".forecast-value").textContent = money(week.balance);
-          row.title = `${money(week.inflow)} transferred, ${money(week.outflow)} due or expected`;
+          row.title = `${money(week.income)} income, ${money(week.inflow)} transferred, ${money(week.outflow)} due or expected`;
           paydayForecast.append(row);
         });
       }
@@ -5676,7 +5793,10 @@
         [xText("Generated"), xDate(generated), xText("Currency"), xText("AUD")],
         [],
         { cells: [xText("Household income", 2)], height: 23 },
-        [xText("Source", 3), xText("Amount", 3), xText("Frequency", 3), xText("Monthly multiplier", 3), xText("Monthly equivalent", 3)]
+        [
+          xText("Source", 3), xText("Amount", 3), xText("Frequency", 3),
+          xText("Next pay date", 3), xText("Monthly multiplier", 3), xText("Monthly equivalent", 3)
+        ]
       ];
       incomes.forEach((income, index) => {
         const rowNumber = incomeStart + index;
@@ -5685,13 +5805,14 @@
           xText(income.label || income.id, 12),
           xNumber(income.amount, 4),
           xText(frequencyLabel(income.frequency), 12),
+          xDate(income.nextPayDate),
           xNumber(multiplier(income.frequency), 4),
-          xFormula(`B${rowNumber}*D${rowNumber}`, monthly, 5)
+          xFormula(`B${rowNumber}*E${rowNumber}`, monthly, 5)
         ]);
       });
       incomeRows.push([
-        xText("Total monthly income", 3), null, null, null,
-        xFormula(`SUM(E${incomeStart}:E${incomeTotalRow - 1})`, incomeMonthly(), 10)
+        xText("Total monthly income", 3), null, null, null, null,
+        xFormula(`SUM(F${incomeStart}:F${incomeTotalRow - 1})`, incomeMonthly(), 10)
       ]);
 
       const expenseRows = [
@@ -5728,7 +5849,7 @@
           : xNumber(0, 10)
       ]);
 
-      const paydayStart = 9;
+      const paydayStart = 10;
       const paydayTotalRow = paydayStart + expenses.length;
       const paydayRows = [
         { cells: [xText("Bolton Point Budget - Payday Plan", 1)], height: 30 },
@@ -5746,7 +5867,12 @@
           xText("Bills account balance", 9), xNumber(state.paydayPlan?.billsAccountBalance, 10),
           xText("13-week low point", 9), xNumber(payLowPoint, payLowPoint < 0 ? 11 : 10),
           xText("Average weekly provision", 9), xNumber(expenseWeeklyTotal(), 10),
-          xText("Next payday", 9), xDate(state.paydayPlan?.nextPayday)
+          xText("Next household pay", 9), xDate(paySummary.nextPayday ? dateValue(paySummary.nextPayday) : state.paydayPlan?.nextPayday)
+        ],
+        [
+          xText("Income sources", 9), xText(paySummary.incomeSources.join(", ") || "Household average", 12),
+          xText("Scheduled pay date", 9), xDate(paySummary.nextPayday ? dateValue(paySummary.nextPayday) : state.paydayPlan?.nextPayday),
+          xText("Pay events per year", 9), xNumber(paySummary.cycles, 4)
         ],
         [
           xText("Expense", 3), xText("Category", 3), xText("Bill amount", 3), xText("Bill frequency", 3),
@@ -5978,9 +6104,9 @@
 
       const sheets = [
         { name: "Dashboard", rows: dashboardRows, widths: [28, 18, 28, 18, 30, 18, 24, 18], merges: ["A1:H2", "A5:H5", "A9:H9", "A13:H13", "A17:H17"], freezeRows: 5 },
-        { name: "Income", rows: incomeRows, widths: [25, 16, 18, 20, 22], merges: ["A1:E2", "A5:E5"], freezeRows: 6, autoFilter: `A6:E${Math.max(incomeTotalRow - 1, 6)}` },
+        { name: "Income", rows: incomeRows, widths: [25, 16, 18, 18, 20, 22], merges: ["A1:F2", "A5:F5"], freezeRows: 6, autoFilter: `A6:F${Math.max(incomeTotalRow - 1, 6)}` },
         { name: "Expenses", rows: expenseRows, widths: [28, 18, 16, 18, 20, 16, 22, 18, 16, 18], merges: ["A1:J2", "A5:J5"], freezeRows: 6, autoFilter: `A6:J${Math.max(expenseTotalRow - 1, 6)}` },
-        { name: "Payday Plan", rows: paydayRows, widths: [27, 18, 17, 18, 16, 20, 18, 20, 18, 15], merges: ["A1:J2", "A5:J5"], freezeRows: 8, autoFilter: `A8:J${Math.max(paydayTotalRow - 1, 8)}` },
+        { name: "Payday Plan", rows: paydayRows, widths: [27, 18, 17, 18, 16, 20, 18, 20, 18, 15], merges: ["A1:J2", "A5:J5"], freezeRows: 9, autoFilter: `A9:J${Math.max(paydayTotalRow - 1, 9)}` },
         { name: "Transactions", rows: transactionRows, widths: [16, 32, 14, 18, 17, 25, 14], merges: ["A1:G2", "A5:G5"], freezeRows: 6, autoFilter: `A6:G${Math.max(6 + transactionRowsData.length, 6)}` },
         { name: "Goals", rows: goalRows, widths: [28, 18, 18, 18, 16, 18, 14], merges: ["A1:G2", "A5:G5"], freezeRows: 6, autoFilter: `A6:G${Math.max(6 + goalRowsData.length, 6)}` },
         { name: "Savings Plan", rows: savingsRows, widths: [30, 22, 22, 22], merges: ["A1:D2", "A5:D5", "A14:D14"], freezeRows: 5 },
@@ -6220,6 +6346,9 @@
       const paySummary = paydaySummary();
       const payForecast = buildPaydayForecast();
       const payLowPoint = payForecast.length ? Math.min(...payForecast.map((week) => week.balance)) : 0;
+      const paySummaryNote = `${
+        paySummary.incomeSources.length ? paySummary.incomeSources.join(" + ") : "Household average"
+      } | ${paySummary.nextPayday.toLocaleDateString("en-AU", { day: "numeric", month: "short" })}`;
       const reportMonth = todayValue().slice(0, 7);
       const reportTransactions = transactionMonthRows(reportMonth).filter((transaction) => transaction.type === "expense");
       const actualSpend = reportTransactions.reduce((total, transaction) => total + Number(transaction.amount || 0), 0);
@@ -6321,22 +6450,23 @@
 
       report = addPage("Income and spending");
       report.y = sectionHeading(report.page, "Household income", report.y);
-      const incomeWidths = [205, 92, 92, 122];
-      report.y = tableRow(report.page, report.y, ["Source", "Amount", "Frequency", "Monthly"], incomeWidths, {
-        height: 24, fill: colours.green, bold: true, colour: colours.white, right: [1, 3]
+      const incomeWidths = [130, 78, 82, 96, 125];
+      report.y = tableRow(report.page, report.y, ["Source", "Amount", "Frequency", "Next pay", "Monthly"], incomeWidths, {
+        height: 24, fill: colours.green, bold: true, colour: colours.white, right: [1, 4]
       });
       state.incomes.forEach((income, index) => {
         report.y = tableRow(report.page, report.y, [
           income.label || income.id,
           money(income.amount),
           frequencyLabel(income.frequency),
+          income.nextPayDate ? dueLabel(income.nextPayDate) : "Not set",
           money(monthlyAmount(income.amount, income.frequency))
         ], incomeWidths, {
-          fill: index % 2 ? colours.pale : null, right: [1, 3]
+          fill: index % 2 ? colours.pale : null, right: [1, 4]
         });
       });
-      report.y = tableRow(report.page, report.y, ["Total monthly income", "", "", money(monthlyIncome)], incomeWidths, {
-        height: 25, fill: colours.pale, bold: true, right: [3]
+      report.y = tableRow(report.page, report.y, ["Total monthly income", "", "", "", money(monthlyIncome)], incomeWidths, {
+        height: 25, fill: colours.pale, bold: true, right: [4]
       }) - 18;
 
       report.y = sectionHeading(report.page, "Largest spending categories", report.y);
@@ -6364,7 +6494,7 @@
       });
 
       report = addPage("Payday and reality check");
-      metricCard(report.page, margin, report.y, cardWidth, "Income this pay", money(paySummary.income), colours.blue, state.paydayPlan?.payCycle || "weekly");
+      metricCard(report.page, margin, report.y, cardWidth, "Income this pay", money(paySummary.income), colours.blue, paySummaryNote);
       metricCard(report.page, margin + cardWidth + cardGap, report.y, cardWidth, "Transfer to bills", money(paySummary.transfer), colours.mint, "Due-date funding included");
       report.y -= 77;
       metricCard(report.page, margin, report.y, cardWidth, "Safe to spend", money(paySummary.safeSpend), paySummary.safeSpend >= 0 ? colours.mint : colours.rose, "After savings and extra debt");
@@ -6638,6 +6768,7 @@
         renderAdvisorSnapshot();
         renderInsights();
         renderPaydayWorkspace();
+        renderExpenses();
         renderScenario();
       });
     });
@@ -6654,7 +6785,18 @@
         renderAdvisorSnapshot();
         renderInsights();
         renderPaydayWorkspace();
+        renderExpenses();
         renderScenario();
+      });
+    });
+
+    incomePayDateInputs.forEach((input) => {
+      input.addEventListener("change", () => {
+        const source = incomeSource(input.dataset.incomeId);
+        source.nextPayDate = input.value || "";
+        saveState();
+        renderPaydayWorkspace();
+        renderExpenses();
       });
     });
 
