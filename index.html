@@ -1371,6 +1371,319 @@
       margin-bottom: 11px;
     }
 
+    .calendar-toolbar,
+    .calendar-toolbar-actions,
+    .calendar-nav,
+    .calendar-filters,
+    .calendar-legend {
+      display: flex;
+      align-items: center;
+    }
+
+    .calendar-toolbar {
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+
+    .calendar-toolbar-actions,
+    .calendar-nav,
+    .calendar-filters,
+    .calendar-legend {
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .calendar-nav-button {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      padding: 0;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--field);
+      color: var(--ink);
+      font-size: 1rem;
+      font-weight: 900;
+    }
+
+    .calendar-nav-button:hover {
+      border-color: var(--mint);
+      background: var(--panel-soft);
+    }
+
+    .calendar-month-label {
+      min-width: 154px;
+      text-align: center;
+      font-size: 1rem;
+    }
+
+    .calendar-filters {
+      margin-bottom: 14px;
+    }
+
+    .calendar-filter {
+      display: inline-flex;
+      gap: 7px;
+      align-items: center;
+      min-height: 34px;
+      padding: 6px 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--field-muted);
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .calendar-filter input {
+      width: 15px;
+      height: 15px;
+      margin: 0;
+      accent-color: var(--mint);
+    }
+
+    .calendar-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(270px, 0.55fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .calendar-board {
+      min-width: 0;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--field);
+    }
+
+    .calendar-weekdays,
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+    }
+
+    .calendar-weekdays {
+      border-bottom: 1px solid var(--line);
+      background: var(--field-muted);
+    }
+
+    .calendar-weekdays span {
+      padding: 9px 5px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 0.64rem;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .calendar-day {
+      min-width: 0;
+      min-height: 106px;
+      padding: 7px;
+      border: 0;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      background: transparent;
+      color: var(--ink);
+      text-align: left;
+    }
+
+    .calendar-day:nth-child(7n) {
+      border-right: 0;
+    }
+
+    .calendar-day:nth-last-child(-n + 7) {
+      border-bottom: 0;
+    }
+
+    .calendar-day:hover {
+      background: var(--panel-soft);
+    }
+
+    .calendar-day.outside {
+      background: var(--field-muted);
+      color: var(--muted);
+      opacity: 0.68;
+    }
+
+    .calendar-day.selected {
+      background: var(--panel-soft);
+      box-shadow: inset 0 0 0 2px var(--mint);
+    }
+
+    .calendar-day.today .calendar-day-number {
+      color: var(--panel);
+      background: var(--mint-dark);
+    }
+
+    .calendar-day-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 4px;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .calendar-day-number {
+      display: grid;
+      width: 24px;
+      height: 24px;
+      place-items: center;
+      border-radius: 50%;
+      font-size: 0.7rem;
+      font-weight: 900;
+    }
+
+    .calendar-day-net {
+      min-width: 0;
+      color: var(--muted);
+      font-size: 0.62rem;
+      font-weight: 850;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .calendar-day-net.positive {
+      color: var(--mint-dark);
+    }
+
+    .calendar-day-net.negative {
+      color: var(--rose);
+    }
+
+    .calendar-events {
+      display: grid;
+      gap: 4px;
+    }
+
+    .calendar-event {
+      min-width: 0;
+      padding: 3px 5px;
+      overflow: hidden;
+      border-left: 3px solid currentColor;
+      border-radius: 3px;
+      background: var(--field-muted);
+      font-size: 0.61rem;
+      font-weight: 800;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .calendar-event.income,
+    .calendar-legend-dot.income,
+    .calendar-agenda-marker.income {
+      color: var(--mint-dark);
+    }
+
+    .calendar-event.bill,
+    .calendar-legend-dot.bill,
+    .calendar-agenda-marker.bill {
+      color: var(--rose);
+    }
+
+    .calendar-event.actual-income,
+    .calendar-legend-dot.actual-income,
+    .calendar-agenda-marker.actual-income {
+      color: var(--blue);
+    }
+
+    .calendar-event.actual-expense,
+    .calendar-legend-dot.actual-expense,
+    .calendar-agenda-marker.actual-expense {
+      color: var(--amber);
+    }
+
+    .calendar-more {
+      color: var(--muted);
+      font-size: 0.61rem;
+      font-weight: 850;
+    }
+
+    .calendar-agenda {
+      min-width: 0;
+      padding-left: 16px;
+      border-left: 1px solid var(--line);
+    }
+
+    .calendar-agenda-list {
+      display: grid;
+      gap: 7px;
+    }
+
+    .calendar-agenda-item {
+      display: grid;
+      grid-template-columns: 10px minmax(0, 1fr) auto;
+      gap: 9px;
+      align-items: center;
+      min-width: 0;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--field);
+    }
+
+    .calendar-agenda-marker,
+    .calendar-legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .calendar-agenda-copy {
+      min-width: 0;
+    }
+
+    .calendar-agenda-copy strong,
+    .calendar-agenda-copy span {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .calendar-agenda-copy strong {
+      font-size: 0.76rem;
+    }
+
+    .calendar-agenda-copy span {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 0.65rem;
+    }
+
+    .calendar-agenda-amount {
+      font-size: 0.76rem;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .calendar-agenda-amount.inflow {
+      color: var(--mint-dark);
+    }
+
+    .calendar-agenda-amount.outflow {
+      color: var(--rose);
+    }
+
+    .calendar-legend {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 0.64rem;
+      font-weight: 800;
+    }
+
+    .calendar-legend span {
+      display: inline-flex;
+      gap: 5px;
+      align-items: center;
+    }
+
     .forecast-list,
     .upcoming-list,
     .comparison-list,
@@ -2618,6 +2931,17 @@
         grid-template-columns: 1fr;
       }
 
+      .calendar-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .calendar-agenda {
+        padding-top: 14px;
+        padding-left: 0;
+        border-top: 1px solid var(--line);
+        border-left: 0;
+      }
+
       .reality-form {
         grid-template-columns: repeat(3, minmax(0, 1fr));
       }
@@ -2711,6 +3035,71 @@
         display: block;
       }
 
+      .calendar-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .calendar-toolbar-actions {
+        justify-content: space-between;
+      }
+
+      .calendar-nav {
+        justify-content: space-between;
+      }
+
+      .calendar-month-label {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .calendar-day {
+        min-height: 62px;
+        padding: 4px;
+      }
+
+      .calendar-day-head {
+        justify-content: center;
+        margin-bottom: 4px;
+      }
+
+      .calendar-day-net,
+      .calendar-event {
+        display: none;
+      }
+
+      .calendar-events {
+        display: flex;
+        justify-content: center;
+        gap: 3px;
+        min-height: 8px;
+      }
+
+      .calendar-events::before {
+        content: "";
+      }
+
+      .calendar-day.has-income .calendar-events::before,
+      .calendar-day.has-bill .calendar-events::after {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--mint-dark);
+      }
+
+      .calendar-day.has-bill .calendar-events::after {
+        content: "";
+        background: var(--rose);
+      }
+
+      .calendar-day.has-actual {
+        box-shadow: inset 0 -3px 0 var(--blue);
+      }
+
+      .calendar-day.selected {
+        box-shadow: inset 0 0 0 2px var(--mint);
+      }
+
       .workspace-control-grid,
       .workspace-metrics,
       .reality-form,
@@ -2728,6 +3117,24 @@
 
       .workspace-metric:first-child {
         border-top: 0;
+      }
+
+      #calendarPanel .workspace-metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      #calendarPanel .workspace-metric,
+      #calendarPanel .workspace-metric:first-child {
+        border-top: 1px solid var(--line);
+        border-left: 1px solid var(--line);
+      }
+
+      #calendarPanel .workspace-metric:nth-child(-n + 2) {
+        border-top: 0;
+      }
+
+      #calendarPanel .workspace-metric:nth-child(odd) {
+        border-left: 0;
       }
 
       .forecast-row {
@@ -3015,6 +3422,7 @@
     <section class="planning-workspace" aria-label="Household planning workspace">
       <div class="workspace-tabs" role="tablist" aria-label="Planning views">
         <button class="workspace-tab" id="paydayTab" type="button" role="tab" aria-selected="true" aria-controls="paydayPanel" data-workspace-tab="payday">Payday</button>
+        <button class="workspace-tab" id="calendarTab" type="button" role="tab" aria-selected="false" aria-controls="calendarPanel" data-workspace-tab="calendar">Calendar</button>
         <button class="workspace-tab" id="realityTab" type="button" role="tab" aria-selected="false" aria-controls="realityPanel" data-workspace-tab="reality">Reality check</button>
         <button class="workspace-tab" id="householdTab" type="button" role="tab" aria-selected="false" aria-controls="householdPanel" data-workspace-tab="household">Household plan</button>
         <button class="workspace-tab" id="savingsTab" type="button" role="tab" aria-selected="false" aria-controls="savingsPanel" data-workspace-tab="savings">Savings plan</button>
@@ -3086,6 +3494,61 @@
             </div>
             <div class="upcoming-list" id="upcomingBills"></div>
           </section>
+        </div>
+      </div>
+
+      <div class="workspace-panel" id="calendarPanel" role="tabpanel" aria-labelledby="calendarTab" data-workspace-panel="calendar" hidden>
+        <div class="workspace-heading">
+          <div>
+            <h2>Cash-flow calendar</h2>
+            <p>See expected paydays, recurring bills and actual transactions together in one monthly view.</p>
+          </div>
+          <span class="badge">AUD timeline</span>
+        </div>
+        <div class="calendar-toolbar">
+          <div class="calendar-nav" aria-label="Calendar month navigation">
+            <button class="calendar-nav-button" id="calendarPrevious" type="button" aria-label="Previous month" title="Previous month">&#8592;</button>
+            <strong class="calendar-month-label" id="calendarMonthLabel"></strong>
+            <button class="calendar-nav-button" id="calendarNext" type="button" aria-label="Next month" title="Next month">&#8594;</button>
+            <button class="btn secondary" id="calendarToday" type="button">Today</button>
+          </div>
+          <div class="calendar-toolbar-actions">
+            <button class="btn secondary" id="calendarExport" type="button" title="Export the next 12 months for Google Calendar or another calendar app">Export .ics</button>
+            <span class="badge">Google Calendar compatible</span>
+          </div>
+        </div>
+        <div class="calendar-filters" aria-label="Calendar event filters">
+          <label class="calendar-filter"><input id="calendarShowPlanned" type="checkbox" checked />Planned cash flow</label>
+          <label class="calendar-filter"><input id="calendarShowActual" type="checkbox" checked />Actual transactions</label>
+        </div>
+        <div class="workspace-metrics">
+          <div class="workspace-metric"><span>Planned income</span><strong id="calendarPlannedIncome">$0.00</strong><small>Scheduled this month</small></div>
+          <div class="workspace-metric"><span>Planned bills</span><strong id="calendarPlannedOutflow">$0.00</strong><small>With a due date</small></div>
+          <div class="workspace-metric"><span>Planned movement</span><strong id="calendarPlannedNet">$0.00</strong><small>Income less scheduled bills</small></div>
+          <div class="workspace-metric"><span>Actual movement</span><strong id="calendarActualNet">$0.00</strong><small>Recorded transactions</small></div>
+        </div>
+        <div class="calendar-layout">
+          <div>
+            <div class="calendar-board">
+              <div class="calendar-weekdays" aria-hidden="true">
+                <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+              </div>
+              <div class="calendar-grid" id="calendarGrid" role="grid" aria-labelledby="calendarMonthLabel"></div>
+            </div>
+            <div class="calendar-legend" aria-label="Calendar legend">
+              <span><i class="calendar-legend-dot income"></i>Planned income</span>
+              <span><i class="calendar-legend-dot bill"></i>Planned bill</span>
+              <span><i class="calendar-legend-dot actual-income"></i>Actual income</span>
+              <span><i class="calendar-legend-dot actual-expense"></i>Actual expense</span>
+            </div>
+          </div>
+          <aside class="calendar-agenda" aria-labelledby="calendarSelectedDate">
+            <div class="workspace-section-head">
+              <h3 id="calendarSelectedDate">Selected day</h3>
+              <span class="badge" id="calendarDayBalance">$0.00 net</span>
+            </div>
+            <div class="calendar-agenda-list" id="calendarAgenda"></div>
+          </aside>
         </div>
       </div>
 
@@ -3670,6 +4133,8 @@
 
     let state = loadState();
     let editingExpenseId = null;
+    let calendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    let selectedCalendarDate = todayValue();
 
     const incomeAmountInputs = document.querySelectorAll(".income-amount");
     const incomeFrequencyInputs = document.querySelectorAll(".income-frequency");
@@ -3704,6 +4169,10 @@
     const expenseReservedAmount = document.querySelector("#expenseReservedAmount");
     const workspaceTabs = document.querySelectorAll("[data-workspace-tab]");
     const workspacePanels = document.querySelectorAll("[data-workspace-panel]");
+    const calendarGrid = document.querySelector("#calendarGrid");
+    const calendarAgenda = document.querySelector("#calendarAgenda");
+    const calendarShowPlanned = document.querySelector("#calendarShowPlanned");
+    const calendarShowActual = document.querySelector("#calendarShowActual");
     const payCycle = document.querySelector("#payCycle");
     const nextPayday = document.querySelector("#nextPayday");
     const billsAccountBalance = document.querySelector("#billsAccountBalance");
@@ -4055,6 +4524,268 @@
         guard += 1;
       }
       return occurrences;
+    }
+
+    function calendarEventsForRange(start, end) {
+      const events = [];
+
+      householdPayEvents(start, end).forEach((event) => {
+        const key = dateValue(event.date);
+        events.push({
+          id: `planned-income-${key}`,
+          date: key,
+          title: event.sources.join(" + ") || "Household income",
+          meta: "Scheduled household income",
+          amount: event.income,
+          direction: "in",
+          type: "income",
+          planned: true
+        });
+      });
+
+      state.expenses.forEach((expense) => {
+        expenseOccurrences(expense, start, end).forEach((date) => {
+          const key = dateValue(date);
+          events.push({
+            id: `planned-bill-${expense.id}-${key}`,
+            date: key,
+            title: expense.name,
+            meta: `${expense.category || "Other"} | ${frequencyLabel(expense.frequency)}`,
+            amount: Math.max(Number(expense.amount) || 0, 0),
+            direction: "out",
+            type: "bill",
+            planned: true
+          });
+        });
+      });
+
+      (state.transactions || []).forEach((transaction) => {
+        const date = parseDateValue(transaction.date);
+        if (!date || date < start || date > end) return;
+        const isIncome = transaction.type === "income";
+        events.push({
+          id: `actual-${transaction.id}`,
+          date: dateValue(date),
+          title: transaction.description || (isIncome ? "Income" : "Expense"),
+          meta: `Actual ${isIncome ? "income" : "expense"} | ${transaction.category || "Other"}`,
+          amount: Math.max(Number(transaction.amount) || 0, 0),
+          direction: isIncome ? "in" : "out",
+          type: isIncome ? "actual-income" : "actual-expense",
+          planned: false
+        });
+      });
+
+      return events.sort((a, b) => (
+        a.date.localeCompare(b.date)
+        || Number(a.planned) - Number(b.planned)
+        || (a.direction === b.direction ? 0 : a.direction === "in" ? -1 : 1)
+        || a.title.localeCompare(b.title)
+      ));
+    }
+
+    function calendarMonthBounds() {
+      return {
+        start: new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1),
+        end: new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 0)
+      };
+    }
+
+    function calendarEventAmount(event) {
+      return `${event.direction === "in" ? "+" : "-"}${money(event.amount)}`;
+    }
+
+    function renderCalendarAgenda(events) {
+      const selected = parseDateValue(selectedCalendarDate) || calendarMonth;
+      document.querySelector("#calendarSelectedDate").textContent = selected.toLocaleDateString("en-AU", {
+        weekday: "long",
+        day: "numeric",
+        month: "long"
+      });
+
+      const dayEvents = events.filter((event) => event.date === selectedCalendarDate);
+      const dayNet = dayEvents.reduce((total, event) => (
+        total + (event.direction === "in" ? event.amount : -event.amount)
+      ), 0);
+      const dayBalance = document.querySelector("#calendarDayBalance");
+      dayBalance.textContent = `${money(dayNet)} net`;
+      dayBalance.style.color = dayNet < 0 ? "var(--rose)" : dayNet > 0 ? "var(--mint-dark)" : "";
+
+      calendarAgenda.innerHTML = "";
+      if (!dayEvents.length) {
+        calendarAgenda.innerHTML = '<div class="empty-workspace">No cash-flow items scheduled for this day.</div>';
+        return;
+      }
+
+      dayEvents.forEach((event) => {
+        const item = document.createElement("div");
+        item.className = "calendar-agenda-item";
+        item.innerHTML = `
+          <i class="calendar-agenda-marker"></i>
+          <div class="calendar-agenda-copy"><strong></strong><span></span></div>
+          <div class="calendar-agenda-amount"></div>
+        `;
+        item.querySelector(".calendar-agenda-marker").classList.add(event.type);
+        item.querySelector("strong").textContent = event.title;
+        item.querySelector(".calendar-agenda-copy span").textContent = event.meta;
+        const amount = item.querySelector(".calendar-agenda-amount");
+        amount.classList.add(event.direction === "in" ? "inflow" : "outflow");
+        amount.textContent = calendarEventAmount(event);
+        calendarAgenda.append(item);
+      });
+    }
+
+    function renderCalendar() {
+      const { start, end } = calendarMonthBounds();
+      const allEvents = calendarEventsForRange(start, end);
+      const visibleEvents = allEvents.filter((event) => (
+        (event.planned && calendarShowPlanned.checked)
+        || (!event.planned && calendarShowActual.checked)
+      ));
+      const eventsByDate = visibleEvents.reduce((map, event) => {
+        if (!map.has(event.date)) map.set(event.date, []);
+        map.get(event.date).push(event);
+        return map;
+      }, new Map());
+
+      document.querySelector("#calendarMonthLabel").textContent = calendarMonth.toLocaleDateString("en-AU", {
+        month: "long",
+        year: "numeric"
+      });
+
+      const plannedIncome = allEvents
+        .filter((event) => event.planned && event.direction === "in")
+        .reduce((total, event) => total + event.amount, 0);
+      const plannedOutflow = allEvents
+        .filter((event) => event.planned && event.direction === "out")
+        .reduce((total, event) => total + event.amount, 0);
+      const actualNet = allEvents
+        .filter((event) => !event.planned)
+        .reduce((total, event) => total + (event.direction === "in" ? event.amount : -event.amount), 0);
+      const plannedNet = plannedIncome - plannedOutflow;
+      document.querySelector("#calendarPlannedIncome").textContent = money(plannedIncome);
+      document.querySelector("#calendarPlannedOutflow").textContent = money(plannedOutflow);
+      document.querySelector("#calendarPlannedNet").textContent = money(plannedNet);
+      document.querySelector("#calendarPlannedNet").style.color = plannedNet < 0 ? "var(--rose)" : "var(--mint-dark)";
+      document.querySelector("#calendarActualNet").textContent = money(actualNet);
+      document.querySelector("#calendarActualNet").style.color = actualNet < 0 ? "var(--rose)" : actualNet > 0 ? "var(--mint-dark)" : "";
+
+      const monthKey = dateValue(start).slice(0, 7);
+      if (!selectedCalendarDate.startsWith(monthKey)) selectedCalendarDate = dateValue(start);
+      const offset = (start.getDay() + 6) % 7;
+      const gridStart = addDays(start, -offset);
+      calendarGrid.innerHTML = "";
+
+      for (let index = 0; index < 42; index += 1) {
+        const date = addDays(gridStart, index);
+        const key = dateValue(date);
+        const dayEvents = eventsByDate.get(key) || [];
+        const dayNet = dayEvents.reduce((total, event) => (
+          total + (event.direction === "in" ? event.amount : -event.amount)
+        ), 0);
+        const button = document.createElement("button");
+        button.className = "calendar-day";
+        button.type = "button";
+        button.dataset.date = key;
+        if (date.getMonth() !== calendarMonth.getMonth()) button.classList.add("outside");
+        if (key === todayValue()) button.classList.add("today");
+        if (key === selectedCalendarDate) button.classList.add("selected");
+        if (dayEvents.some((event) => event.type === "income")) button.classList.add("has-income");
+        if (dayEvents.some((event) => event.type === "bill")) button.classList.add("has-bill");
+        if (dayEvents.some((event) => !event.planned)) button.classList.add("has-actual");
+        button.setAttribute("aria-label", `${dueLabel(key)}, ${dayEvents.length} cash-flow item${dayEvents.length === 1 ? "" : "s"}`);
+        button.innerHTML = `
+          <span class="calendar-day-head">
+            <span class="calendar-day-number"></span>
+            <span class="calendar-day-net"></span>
+          </span>
+          <span class="calendar-events"></span>
+        `;
+        button.querySelector(".calendar-day-number").textContent = String(date.getDate());
+        const net = button.querySelector(".calendar-day-net");
+        if (dayEvents.length) {
+          net.textContent = calendarEventAmount({ direction: dayNet >= 0 ? "in" : "out", amount: Math.abs(dayNet) });
+          net.classList.add(dayNet < 0 ? "negative" : "positive");
+        }
+        const eventList = button.querySelector(".calendar-events");
+        dayEvents.slice(0, 3).forEach((event) => {
+          const chip = document.createElement("span");
+          chip.className = `calendar-event ${event.type}`;
+          chip.textContent = `${event.direction === "in" ? "+" : "-"} ${event.title}`;
+          eventList.append(chip);
+        });
+        if (dayEvents.length > 3) {
+          const more = document.createElement("span");
+          more.className = "calendar-more";
+          more.textContent = `+${dayEvents.length - 3} more`;
+          eventList.append(more);
+        }
+        button.addEventListener("click", () => {
+          selectedCalendarDate = key;
+          if (date.getMonth() !== calendarMonth.getMonth()) {
+            calendarMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+          }
+          renderCalendar();
+        });
+        calendarGrid.append(button);
+      }
+
+      renderCalendarAgenda(visibleEvents);
+    }
+
+    function escapeCalendarText(value) {
+      return String(value || "")
+        .replace(/\\/g, "\\\\")
+        .replace(/\n/g, "\\n")
+        .replace(/,/g, "\\,")
+        .replace(/;/g, "\\;");
+    }
+
+    function exportCalendarFile() {
+      const start = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1);
+      const end = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 12, 0);
+      const events = calendarEventsForRange(start, end).filter((event) => event.planned);
+      if (!events.length) {
+        showToast("Add pay dates or bill due dates before exporting");
+        return;
+      }
+
+      const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+      const lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//Bolton Point Budget//Cash Flow Calendar//EN",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH",
+        "X-WR-CALNAME:Bolton Point Budget"
+      ];
+      events.forEach((event) => {
+        const date = event.date.replace(/-/g, "");
+        const nextDate = dateValue(addDays(parseDateValue(event.date), 1)).replace(/-/g, "");
+        const summary = event.direction === "in" ? `Income: ${event.title}` : `Bill: ${event.title}`;
+        lines.push(
+          "BEGIN:VEVENT",
+          `UID:${escapeCalendarText(event.id)}@bolton-point-budget`,
+          `DTSTAMP:${stamp}`,
+          `DTSTART;VALUE=DATE:${date}`,
+          `DTEND;VALUE=DATE:${nextDate}`,
+          `SUMMARY:${escapeCalendarText(summary)}`,
+          `DESCRIPTION:${escapeCalendarText(`${calendarEventAmount(event)} AUD | ${event.meta}`)}`,
+          "TRANSP:TRANSPARENT",
+          "END:VEVENT"
+        );
+      });
+      lines.push("END:VCALENDAR");
+
+      const blob = new Blob([`${lines.join("\r\n")}\r\n`], { type: "text/calendar;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `bolton-point-budget-calendar-${dateValue(start)}.ics`;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      showToast(`Exported ${events.length} planned calendar items`);
     }
 
     function buildPaydayForecast() {
@@ -5261,6 +5992,7 @@
             if (selectedExpense) transaction.category = selectedExpense.category;
             saveState();
             renderRealityWorkspace();
+            renderCalendar();
             showToast(selectedExpense ? "Transaction matched" : "Transaction match cleared");
           });
           item.querySelector(".transaction-category").textContent = transaction.category || "Other";
@@ -5271,6 +6003,7 @@
             state.transactions = state.transactions.filter((row) => row.id !== transaction.id);
             saveState();
             renderRealityWorkspace();
+            renderCalendar();
             showToast("Transaction removed");
           });
           transactionList.append(item);
@@ -5547,6 +6280,7 @@
       renderInsights();
       renderExpenses();
       renderPaydayWorkspace();
+      renderCalendar();
       renderRealityWorkspace();
       renderHouseholdWorkspace();
     }
@@ -6807,6 +7541,7 @@
         renderPaydayWorkspace();
         renderExpenses();
         renderScenario();
+        renderCalendar();
       });
     });
 
@@ -6824,6 +7559,7 @@
         renderPaydayWorkspace();
         renderExpenses();
         renderScenario();
+        renderCalendar();
       });
     });
 
@@ -6834,6 +7570,7 @@
         saveState();
         renderPaydayWorkspace();
         renderExpenses();
+        renderCalendar();
       });
     });
 
@@ -6921,8 +7658,32 @@
           panel.classList.toggle("active", active);
           panel.hidden = !active;
         });
+        if (selected === "calendar") renderCalendar();
       });
     });
+
+    document.querySelector("#calendarPrevious").addEventListener("click", () => {
+      calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1);
+      selectedCalendarDate = dateValue(calendarMonth);
+      renderCalendar();
+    });
+
+    document.querySelector("#calendarNext").addEventListener("click", () => {
+      calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1);
+      selectedCalendarDate = dateValue(calendarMonth);
+      renderCalendar();
+    });
+
+    document.querySelector("#calendarToday").addEventListener("click", () => {
+      const today = parseDateValue(todayValue());
+      calendarMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      selectedCalendarDate = todayValue();
+      renderCalendar();
+    });
+
+    calendarShowPlanned.addEventListener("change", renderCalendar);
+    calendarShowActual.addEventListener("change", renderCalendar);
+    document.querySelector("#calendarExport").addEventListener("click", exportCalendarFile);
 
     function updatePaydayPlan() {
       state.paydayPlan = {
@@ -6935,6 +7696,7 @@
       saveState();
       renderPaydayWorkspace();
       renderExpenses();
+      renderCalendar();
     }
 
     payCycle.addEventListener("change", updatePaydayPlan);
@@ -6961,6 +7723,7 @@
       transactionMatch.value = "";
       saveState();
       renderRealityWorkspace();
+      renderCalendar();
       showToast("Transaction added");
     });
 
@@ -6971,6 +7734,7 @@
         const count = importTransactionsFromCsv(await file.text());
         saveState();
         renderRealityWorkspace();
+        renderCalendar();
         showToast(`${count} transaction${count === 1 ? "" : "s"} imported`);
       } catch (error) {
         console.error(error);
