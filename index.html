@@ -4,11 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#132b28" />
+  <meta name="application-name" content="Pocket Harbour" />
+  <meta name="description" content="Private, local-first household budgeting and financial planning in Australian dollars." />
   <link rel="icon" type="image/png" sizes="64x64" href="assets/favicon.png" />
-  <title>Bolton Point Budget</title>
+  <title>Pocket Harbour | Private Household Finance</title>
   <script>
     try {
-      if (localStorage.getItem("budget-studio-theme") === "dark") {
+      if ((localStorage.getItem("pocket-harbour-theme") || localStorage.getItem("budget-studio-theme")) === "dark") {
         document.documentElement.dataset.theme = "dark";
       }
     } catch {}
@@ -2293,7 +2295,7 @@
       border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 8px;
       background-color: #102923;
-      background-image: url("assets/bolton-waterfront-v1.jpg");
+      background-image: url("assets/pocket-harbour-waterfront.jpg");
       background-position: 66% 36%;
       background-size: cover;
       box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08) inset, 0 14px 34px rgba(7, 25, 21, 0.24);
@@ -2440,7 +2442,7 @@
       padding: 28px;
       color: #f5fbf8;
       background-color: #12332b;
-      background-image: url("assets/bolton-waterfront-v1.jpg");
+      background-image: url("assets/pocket-harbour-waterfront.jpg");
       background-position: 61% center;
       background-size: cover;
       border-color: #17332d;
@@ -3233,7 +3235,7 @@
         </div>
         <div class="brand-copy">
           <p class="eyebrow">Private household finance</p>
-          <h1 class="brand-title">Bolton Point Budget</h1>
+          <h1 class="brand-title">Pocket Harbour</h1>
         </div>
       </div>
       <div class="actions" aria-label="Budget actions">
@@ -3250,9 +3252,9 @@
 
     <section class="hero" aria-labelledby="heroTitle">
       <div class="hero-panel">
-        <p class="eyebrow">Budget / savings / debt</p>
-        <h1 id="heroTitle">A clearer plan for every dollar.</h1>
-        <p class="subhead">See the household position, plan ahead and make confident decisions in Australian dollars. Your information stays private on this device.</p>
+        <p class="eyebrow">Budget / plan / prosper</p>
+        <h1 id="heroTitle">A calmer place for your money.</h1>
+        <p class="subhead">See the household position, stay ahead of payday and build a confident financial plan in Australian dollars. Your information stays private on this device.</p>
       </div>
 
       <aside class="summary-panel paycheck-card" aria-labelledby="incomeTitle">
@@ -4013,8 +4015,12 @@
 
   <script src="assets/vendor/pdf-lib.min.js"></script>
   <script>
-    const STORAGE_KEY = "budget-studio-aud-v1";
-    const THEME_KEY = "budget-studio-theme";
+    const PRODUCT_NAME = "Pocket Harbour";
+    const PRODUCT_SLUG = "pocket-harbour";
+    const STORAGE_KEY = "pocket-harbour-aud-v1";
+    const LEGACY_STORAGE_KEYS = ["budget-studio-aud-v1"];
+    const THEME_KEY = "pocket-harbour-theme";
+    const LEGACY_THEME_KEYS = ["budget-studio-theme"];
     const CURRENCY_FORMATTER = new Intl.NumberFormat("en-AU", {
       style: "currency",
       currency: "AUD"
@@ -4268,7 +4274,11 @@
 
     function loadState() {
       try {
-        const saved = localStorage.getItem(STORAGE_KEY);
+        const saved = localStorage.getItem(STORAGE_KEY)
+          || LEGACY_STORAGE_KEYS.map((key) => localStorage.getItem(key)).find(Boolean);
+        if (saved && !localStorage.getItem(STORAGE_KEY)) {
+          localStorage.setItem(STORAGE_KEY, saved);
+        }
         return saved ? normaliseState(JSON.parse(saved)) : createDefaultState();
       } catch {
         return createDefaultState();
@@ -4753,10 +4763,10 @@
       const lines = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
-        "PRODID:-//Bolton Point Budget//Cash Flow Calendar//EN",
+        `PRODID:-//${PRODUCT_NAME}//Cash Flow Calendar//EN`,
         "CALSCALE:GREGORIAN",
         "METHOD:PUBLISH",
-        "X-WR-CALNAME:Bolton Point Budget"
+        `X-WR-CALNAME:${PRODUCT_NAME}`
       ];
       events.forEach((event) => {
         const date = event.date.replace(/-/g, "");
@@ -4764,7 +4774,7 @@
         const summary = event.direction === "in" ? `Income: ${event.title}` : `Bill: ${event.title}`;
         lines.push(
           "BEGIN:VEVENT",
-          `UID:${escapeCalendarText(event.id)}@bolton-point-budget`,
+          `UID:${escapeCalendarText(event.id)}@${PRODUCT_SLUG}`,
           `DTSTAMP:${stamp}`,
           `DTSTART;VALUE=DATE:${date}`,
           `DTEND;VALUE=DATE:${nextDate}`,
@@ -4780,7 +4790,7 @@
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `bolton-point-budget-calendar-${dateValue(start)}.ics`;
+      link.download = `${PRODUCT_SLUG}-calendar-${dateValue(start)}.ics`;
       document.body.append(link);
       link.click();
       link.remove();
@@ -6087,7 +6097,7 @@
 
     function exportDataBackup() {
       const backup = {
-        format: "Bolton Point Budget Backup",
+        format: `${PRODUCT_NAME} Backup`,
         version: 3,
         exportedAt: new Date().toISOString(),
         locale: "en-AU",
@@ -6095,7 +6105,7 @@
         state
       };
       const date = todayValue();
-      downloadBlob(new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" }), `bolton-point-budget-backup-${date}.json`);
+      downloadBlob(new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" }), `${PRODUCT_SLUG}-backup-${date}.json`);
       showToast("Restorable backup downloaded");
     }
 
@@ -6559,7 +6569,7 @@
       const multiplier = (frequency) => FREQUENCY_MULTIPLIERS[frequency] || 1;
 
       const incomeRows = [
-        { cells: [xText("Bolton Point Budget - Income", 1)], height: 30 },
+        { cells: [xText(`${PRODUCT_NAME} - Income`, 1)], height: 30 },
         [],
         [xText("Generated"), xDate(generated), xText("Currency"), xText("AUD")],
         [],
@@ -6587,7 +6597,7 @@
       ]);
 
       const expenseRows = [
-        { cells: [xText("Bolton Point Budget - Expenses", 1)], height: 30 },
+        { cells: [xText(`${PRODUCT_NAME} - Expenses`, 1)], height: 30 },
         [],
         [xText("Generated"), xDate(generated), xText("Currency"), xText("AUD")],
         [],
@@ -6623,7 +6633,7 @@
       const paydayStart = 10;
       const paydayTotalRow = paydayStart + expenses.length;
       const paydayRows = [
-        { cells: [xText("Bolton Point Budget - Payday Plan", 1)], height: 30 },
+        { cells: [xText(`${PRODUCT_NAME} - Payday Plan`, 1)], height: 30 },
         [],
         [xText("Generated"), xDate(generated), xText("Currency"), xText("AUD")],
         [],
@@ -6680,7 +6690,7 @@
       ]);
 
       const savingsRows = [
-        { cells: [xText("Bolton Point Budget - Savings Plan", 1)], height: 30 },
+        { cells: [xText(`${PRODUCT_NAME} - Savings Plan`, 1)], height: 30 },
         [],
         [xText("Generated"), xDate(generated), xText("Currency"), xText("AUD")],
         [],
@@ -6708,7 +6718,7 @@
       savingsRows.push([], [xText("Planning estimate only. Actual returns can vary and are not guaranteed.", 8)]);
 
       const debtRows = [
-        { cells: [xText("Bolton Point Budget - Debt Plan", 1)], height: 30 },
+        { cells: [xText(`${PRODUCT_NAME} - Debt Plan`, 1)], height: 30 },
         [],
         [xText("Generated"), xDate(generated), xText("Currency"), xText("AUD")],
         [],
@@ -6742,7 +6752,7 @@
 
       const transactionRowsData = state.transactions || [];
       const transactionRows = [
-        { cells: [xText("Bolton Point Budget - Actual Transactions", 1)], height: 30 },
+        { cells: [xText(`${PRODUCT_NAME} - Actual Transactions`, 1)], height: 30 },
         [],
         [xText("Generated"), xDate(generated), xText("Currency"), xText("AUD")],
         [],
@@ -6765,7 +6775,7 @@
 
       const goalRowsData = state.goals || [];
       const goalRows = [
-        { cells: [xText("Bolton Point Budget - Savings Goals", 1)], height: 30 },
+        { cells: [xText(`${PRODUCT_NAME} - Savings Goals`, 1)], height: 30 },
         [],
         [xText("Generated"), xDate(generated), xText("Currency"), xText("AUD")],
         [],
@@ -6789,7 +6799,7 @@
 
       const netWorthRowsData = state.netWorthItems || [];
       const netWorthRows = [
-        { cells: [xText("Bolton Point Budget - Net Worth", 1)], height: 30 },
+        { cells: [xText(`${PRODUCT_NAME} - Net Worth`, 1)], height: 30 },
         [],
         [xText("Generated"), xDate(generated), xText("Currency"), xText("AUD")],
         [],
@@ -6819,7 +6829,7 @@
       const shortfall = Math.max(-remaining, 0);
       const ratio = incomeMonthly() > 0 ? expenseMonthlyTotal() / incomeMonthly() : 0;
       const dashboardRows = [
-        { cells: [xText("Bolton Point Budget - Household Dashboard", 1)], height: 34 },
+        { cells: [xText(`${PRODUCT_NAME} - Household Dashboard`, 1)], height: 34 },
         [],
         [xText("Generated"), xDate(generated), xText("Currency"), xText("AUD"), xText("Local device report", 8)],
         [],
@@ -6871,7 +6881,7 @@
           xNumber(expenseMonthlyTotal() > 0 ? category.value / expenseMonthlyTotal() : 0, 6)
         ]);
       });
-      dashboardRows.push([], [xText("Figures are planning estimates generated from the data saved in Bolton Point Budget.", 8)]);
+      dashboardRows.push([], [xText(`Figures are planning estimates generated from the data saved in ${PRODUCT_NAME}.`, 8)]);
 
       const sheets = [
         { name: "Dashboard", rows: dashboardRows, widths: [28, 18, 28, 18, 30, 18, 24, 18], merges: ["A1:H2", "A5:H5", "A9:H9", "A13:H13", "A17:H17"], freezeRows: 5 },
@@ -6907,11 +6917,11 @@
         },
         {
           name: "docProps/core.xml",
-          data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>Bolton Point Budget Household Report</dc:title><dc:creator>Bolton Point Budget</dc:creator><dcterms:created xsi:type="dcterms:W3CDTF">${created}</dcterms:created><dcterms:modified xsi:type="dcterms:W3CDTF">${created}</dcterms:modified></cp:coreProperties>`
+          data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>${PRODUCT_NAME} Household Report</dc:title><dc:creator>${PRODUCT_NAME}</dc:creator><dcterms:created xsi:type="dcterms:W3CDTF">${created}</dcterms:created><dcterms:modified xsi:type="dcterms:W3CDTF">${created}</dcterms:modified></cp:coreProperties>`
         },
         {
           name: "docProps/app.xml",
-          data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"><Application>Bolton Point Budget</Application><DocSecurity>0</DocSecurity><ScaleCrop>false</ScaleCrop><HeadingPairs><vt:vector size="2" baseType="variant"><vt:variant><vt:lpstr>Worksheets</vt:lpstr></vt:variant><vt:variant><vt:i4>${sheets.length}</vt:i4></vt:variant></vt:vector></HeadingPairs><TitlesOfParts><vt:vector size="${sheets.length}" baseType="lpstr">${sheets.map((sheet) => `<vt:lpstr>${xmlEscape(sheet.name)}</vt:lpstr>`).join("")}</vt:vector></TitlesOfParts></Properties>`
+          data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"><Application>${PRODUCT_NAME}</Application><DocSecurity>0</DocSecurity><ScaleCrop>false</ScaleCrop><HeadingPairs><vt:vector size="2" baseType="variant"><vt:variant><vt:lpstr>Worksheets</vt:lpstr></vt:variant><vt:variant><vt:i4>${sheets.length}</vt:i4></vt:variant></vt:vector></HeadingPairs><TitlesOfParts><vt:vector size="${sheets.length}" baseType="lpstr">${sheets.map((sheet) => `<vt:lpstr>${xmlEscape(sheet.name)}</vt:lpstr>`).join("")}</vt:vector></TitlesOfParts></Properties>`
         },
         {
           name: "xl/workbook.xml",
@@ -6935,7 +6945,7 @@
 
     function exportSpreadsheet() {
       const date = new Date().toISOString().slice(0, 10);
-      downloadBlob(buildSpreadsheetWorkbook(), `bolton-point-budget-${date}.xlsx`);
+      downloadBlob(buildSpreadsheetWorkbook(), `${PRODUCT_SLUG}-${date}.xlsx`);
       showToast("Excel workbook downloaded");
     }
 
@@ -6956,11 +6966,11 @@
 
       const { PDFDocument, StandardFonts, rgb } = window.PDFLib;
       const pdfDoc = await PDFDocument.create();
-      pdfDoc.setTitle("Bolton Point Budget Household Report");
-      pdfDoc.setAuthor("Bolton Point Budget");
+      pdfDoc.setTitle(`${PRODUCT_NAME} Household Report`);
+      pdfDoc.setAuthor(PRODUCT_NAME);
       pdfDoc.setSubject("Household budget, savings and debt planning report");
-      pdfDoc.setCreator("Bolton Point Budget");
-      pdfDoc.setProducer("Bolton Point Budget");
+      pdfDoc.setCreator(PRODUCT_NAME);
+      pdfDoc.setProducer(PRODUCT_NAME);
 
       const regular = await pdfDoc.embedFont(StandardFonts.Helvetica);
       const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
@@ -7125,7 +7135,7 @@
       const actualSpend = reportTransactions.reduce((total, transaction) => total + Number(transaction.amount || 0), 0);
       const netTotals = netWorthTotals();
 
-      let report = addPage("Bolton Point Budget");
+      let report = addPage(PRODUCT_NAME);
       report.page.drawText("Your household position at a glance", {
         x: margin, y: report.y, size: 19, font: bold, color: colours.green
       });
@@ -7486,7 +7496,7 @@
       }
 
       pages.forEach((page, index) => {
-        const footer = `Bolton Point Budget  |  Page ${index + 1} of ${pages.length}`;
+        const footer = `${PRODUCT_NAME}  |  Page ${index + 1} of ${pages.length}`;
         page.drawLine({
           start: { x: margin, y: 35 },
           end: { x: pageSize[0] - margin, y: 35 },
@@ -7506,7 +7516,7 @@
 
       const bytes = await pdfDoc.save();
       const date = new Date().toISOString().slice(0, 10);
-      downloadBlob(new Blob([bytes], { type: "application/pdf" }), `bolton-point-budget-report-${date}.pdf`);
+      downloadBlob(new Blob([bytes], { type: "application/pdf" }), `${PRODUCT_SLUG}-report-${date}.pdf`);
       showToast("PDF report downloaded");
     }
 
@@ -7522,7 +7532,9 @@
     function loadTheme() {
       let savedTheme = "light";
       try {
-        savedTheme = localStorage.getItem(THEME_KEY) || "light";
+        savedTheme = localStorage.getItem(THEME_KEY)
+          || LEGACY_THEME_KEYS.map((key) => localStorage.getItem(key)).find(Boolean)
+          || "light";
       } catch {}
       applyTheme(savedTheme === "dark" ? "dark" : "light");
     }

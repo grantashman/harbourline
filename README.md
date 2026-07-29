@@ -1,9 +1,12 @@
-# Bolton Point Budget
+# Pocket Harbour
 
-Bolton Point Budget is a private, local-first household budgeting and financial
-planning app for Australian households. It runs entirely in the browser, uses
-Australian dollar formatting, and stores financial data on the device rather
-than sending it to a server.
+Pocket Harbour is a private, local-first household budgeting and financial
+planning app for Australian households. It turns paydays, bills, savings, debt
+and long-term goals into one calm financial plan. It runs entirely in the
+browser, uses Australian dollar formatting, and stores financial data on the
+device rather than sending it to a server.
+
+**A calmer place for your money.**
 
 ## Highlights
 
@@ -15,6 +18,7 @@ than sending it to a server.
 - Savings allocation and compound-growth projections
 - Debt payoff planning and repayment scenarios
 - Payday planning, a 13-week forecast and sinking funds
+- Monthly cash-flow calendar with Google Calendar-compatible export
 - Transaction reality checks and CSV import
 - Household goals, net worth and scenario planning
 - Spreadsheet, PDF and data-backup exports
@@ -22,8 +26,8 @@ than sending it to a server.
 
 ## Use It
 
-Open `index.html` directly for the fully offline version, or use the published
-GitHub Pages site.
+Open `index.html` directly for the fully offline version. The same files can
+also be deployed to any static web host when an online edition is needed.
 
 No account is required. Budget information is stored with browser
 `localStorage`, so the local-file version and the hosted version keep separate
