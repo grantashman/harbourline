@@ -370,7 +370,8 @@
 
     .pricing-grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: minmax(0, 640px);
+      justify-content: center;
       gap: 14px;
     }
 
@@ -404,9 +405,15 @@
       color: var(--muted);
     }
 
+    li {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+    }
+
     li::before {
-      content: "\\2713";
-      margin-right: 9px;
+      content: "\2713";
+      flex: 0 0 auto;
       color: var(--mint);
       font-weight: 950;
     }
