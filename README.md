@@ -45,20 +45,23 @@ No account is required. Budget information is stored with browser
 copies of the data. Use the app's backup and restore controls when moving a
 budget between browsers or devices.
 
-## Release 1 Foundation
+## Release 2
 
-The original offline application remains the stable edition at the repository
-root. Release 1 adds the product foundation beside it:
+The original Harbourline interface remains the product interface. Release 2
+adds optional secure accounts and shared-household sync behind the matching
+Account panel without replacing the existing layout:
 
-- `apps/web` - responsive React and TypeScript PWA shell
+- `apps/web` - TypeScript account, household and sync layer for the original page
 - `packages/domain` - tested financial calculations and data migrations
+- `packages/sync` - deterministic state hashing, conflict decisions and mutation queue rules
+- `supabase` - authentication, household database, row-level security and account deletion
 - `docs` - product, architecture, security and release decisions
 - `.github/workflows/ci.yml` - automated validation on every push and pull request
 
-The PWA stores household data in IndexedDB with a localStorage fallback. It
-does not send financial information to a server. It can import data from the
-existing browser edition when both versions share an origin, and it supports
-versioned JSON backup import and export.
+Opening `index.html` directly remains fully offline and account-free. A hosted
+build connected to Supabase can register an account, create or join a
+household, explicitly choose the first budget copy, queue edits while offline,
+and resolve simultaneous edits without silent last-write-wins.
 
 ## Development
 
@@ -70,12 +73,13 @@ pnpm check
 pnpm dev
 ```
 
-`pnpm check` runs strict type checking, 14 financial-domain tests and the
-production PWA build. `pnpm dev` starts the foundation preview.
+`pnpm check` runs strict type checking, 21 domain and sync tests, a database
+security guard and the production PWA build. `pnpm dev` starts the exact
+original Harbourline interface with the Release 2 account layer.
 
-See `docs/PRODUCT.md`, `docs/ARCHITECTURE.md`, `docs/SECURITY.md` and
-`docs/RELEASES.md` for the path from this release to accounts, household sync
-and paid subscriptions.
+Copy `.env.example` to `.env.local` only after creating a Supabase project.
+Use the public publishable key in the browser build, never a secret or
+service-role key. See `docs/RELEASE_2_DEPLOYMENT.md` for activation.
 
 ## Privacy
 
@@ -84,6 +88,6 @@ budget information entered into the app is not committed to this repository.
 
 ## Technology
 
-The stable edition is dependency-light HTML, CSS and JavaScript with a local
-copy of `pdf-lib`. The product foundation uses React, TypeScript, Vite and a
-small pure TypeScript financial engine in a pnpm workspace.
+The interface is dependency-light HTML, CSS and JavaScript with a local copy of
+`pdf-lib`. The hosted account layer uses TypeScript, Vite, Supabase and small
+pure TypeScript domain and sync packages in a pnpm workspace.

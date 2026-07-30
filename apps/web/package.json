@@ -1,6 +1,6 @@
 {
   "name": "@harbourline/web",
-  "version": "0.1.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,15 +10,11 @@
   },
   "dependencies": {
     "@harbourline/domain": "workspace:*",
-    "lucide-react": "^1.27.0",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
-    "workbox-window": "^7.4.1"
+    "@harbourline/sync": "workspace:*",
+    "@supabase/supabase-js": "^2.57.4"
   },
   "devDependencies": {
-    "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^5.1.1",
+    "@types/node": "^24.10.1",
     "typescript": "5.9.3",
     "vite": "^7.2.4",
     "vite-plugin-pwa": "^1.3.0"

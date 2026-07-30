@@ -23,14 +23,34 @@ Verification:
 
 ## Release 2: Accounts and household sync
 
-- Supabase project in Sydney
-- account registration and recovery
-- optional user MFA
-- households and member invitations
-- row-level security and policy tests
-- explicit local-to-cloud migration
-- offline mutation queue and conflict handling
-- account export and deletion
+Status: implementation complete; cloud activation pending
+
+- preserve the exact original Harbourline interface
+- email/password registration, sign-in and email sign-in links
+- optional user TOTP MFA
+- households and expiring member invitations
+- row-level security and owner/member/outsider policy tests
+- explicit device-copy or household-copy migration
+- IndexedDB offline mutation queue
+- revision conflicts with deliberate version selection
+- realtime household update notifications
+- account export and authenticated deletion
+- installable PWA build using the original application
+
+Verification:
+
+- strict TypeScript checks across domain, sync and web packages
+- 14 financial-domain tests and 7 sync tests
+- static database security guard
+- successful production PWA and service-worker build
+- local-mode desktop and mobile browser review
+
+Activation gate:
+
+- create the production Supabase project in an Australian region
+- apply the migration and run pgTAP policy tests
+- deploy and test the account deletion function
+- configure production email, URLs, backup restoration and incident ownership
 
 ## Release 3: Paid beta
 

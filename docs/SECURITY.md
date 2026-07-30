@@ -9,10 +9,11 @@ confidential personal information.
 Harbourline does not need bank passwords, card numbers or government
 identifiers. Those values must never be collected.
 
-## Release 1 controls
+## Local controls
 
 - Financial calculations execute locally.
-- The new application stores its budget in IndexedDB.
+- The budget document remains in localStorage for direct-file compatibility.
+- Pending cloud mutations and sync metadata use IndexedDB.
 - Import requires a deliberate file selection.
 - Export produces a user-controlled JSON backup.
 - No analytics, remote logging or third-party scripts receive budget values.
@@ -20,21 +21,25 @@ identifiers. Those values must never be collected.
 - Dependency versions are locked.
 - Type checking, unit tests and a production build run in CI.
 
-## Cloud-release controls
+## Release 2 cloud controls
 
-Before any customer financial data is stored remotely:
+- Every exposed table has row-level security.
+- Anonymous access is explicitly revoked.
+- Household members can read only households they belong to.
+- Budget writes are denied directly and must use the revision-checked
+  `sync_budget` function.
+- Invitation tokens are random, expiring and stored only as SHA-256 hashes.
+- Browser builds accept only a Supabase publishable key.
+- TOTP authenticator enrolment is available to users.
+- Account export is authorised in the database.
+- Account deletion runs in an authenticated Edge Function and refuses to
+  orphan an owned household.
+- Policy tests include owner, member and unrelated-user paths.
+- Financial values are excluded from application telemetry.
 
-- use an Australian database region
-- enable row-level security on every exposed table
-- test positive and negative authorisation paths
-- keep privileged service credentials out of all browser bundles
-- require MFA for administrative accounts
-- encrypt all network traffic
-- record administrative access and entitlement changes
-- provide account export, correction and deletion
-- implement data retention and backup restoration procedures
-- maintain an incident and notifiable-data-breach response plan
-- scrub personal and financial values from telemetry
+Production still requires an Australian Supabase region, backup restoration
+rehearsal, administrative MFA, operational access logging and an incident
+response owner.
 
 ## Payment controls
 
@@ -69,4 +74,3 @@ A cloud release cannot ship until:
 - dependency and secret scanning pass
 - the privacy notice matches actual data flows
 - an incident owner and escalation path are documented
-

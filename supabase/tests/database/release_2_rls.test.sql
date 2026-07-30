@@ -1,0 +1,208 @@
+begin;
+
+create extension if not exists pgtap with schema extensions;
+
+select plan(19);
+
+select has_table('public', 'households', 'households table exists');
+select has_table('public', 'household_members', 'household membership table exists');
+select has_table('public', 'household_invites', 'household invitations table exists');
+select has_table('public', 'budget_documents', 'budget documents table exists');
+
+select ok(
+  (select relrowsecurity from pg_class where oid = 'public.profiles'::regclass),
+  'profiles has RLS enabled'
+);
+select ok(
+  (select relrowsecurity from pg_class where oid = 'public.households'::regclass),
+  'households has RLS enabled'
+);
+select ok(
+  (select relrowsecurity from pg_class where oid = 'public.household_members'::regclass),
+  'household_members has RLS enabled'
+);
+select ok(
+  (select relrowsecurity from pg_class where oid = 'public.household_invites'::regclass),
+  'household_invites has RLS enabled'
+);
+select ok(
+  (select relrowsecurity from pg_class where oid = 'public.budget_documents'::regclass),
+  'budget_documents has RLS enabled'
+);
+select ok(
+  (select relrowsecurity from pg_class where oid = 'public.sync_mutations'::regclass),
+  'sync_mutations has RLS enabled'
+);
+
+insert into auth.users (
+  id,
+  instance_id,
+  aud,
+  role,
+  email,
+  encrypted_password,
+  email_confirmed_at,
+  raw_app_meta_data,
+  raw_user_meta_data,
+  created_at,
+  updated_at
+)
+values
+  (
+    '10000000-0000-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000000',
+    'authenticated',
+    'authenticated',
+    'owner@example.com',
+    extensions.crypt('not-used', extensions.gen_salt('bf')),
+    now(),
+    '{"provider":"email","providers":["email"]}',
+    '{}',
+    now(),
+    now()
+  ),
+  (
+    '10000000-0000-0000-0000-000000000002',
+    '00000000-0000-0000-0000-000000000000',
+    'authenticated',
+    'authenticated',
+    'member@example.com',
+    extensions.crypt('not-used', extensions.gen_salt('bf')),
+    now(),
+    '{"provider":"email","providers":["email"]}',
+    '{}',
+    now(),
+    now()
+  ),
+  (
+    '10000000-0000-0000-0000-000000000003',
+    '00000000-0000-0000-0000-000000000000',
+    'authenticated',
+    'authenticated',
+    'outsider@example.com',
+    extensions.crypt('not-used', extensions.gen_salt('bf')),
+    now(),
+    '{"provider":"email","providers":["email"]}',
+    '{}',
+    now(),
+    now()
+  );
+
+insert into public.households (id, name, created_by)
+values (
+  '20000000-0000-0000-0000-000000000001',
+  'Test household',
+  '10000000-0000-0000-0000-000000000001'
+);
+
+insert into public.household_members (household_id, user_id, role)
+values
+  (
+    '20000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000001',
+    'owner'
+  ),
+  (
+    '20000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000002',
+    'member'
+  );
+
+insert into public.budget_documents (
+  household_id,
+  revision,
+  schema_version,
+  state,
+  updated_by
+)
+values (
+  '20000000-0000-0000-0000-000000000001',
+  0,
+  3,
+  '{"expenses":[]}',
+  '10000000-0000-0000-0000-000000000001'
+);
+
+set local role authenticated;
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000001","email":"owner@example.com","role":"authenticated"}',
+  true
+);
+
+select is(
+  (select count(*) from public.households),
+  1::bigint,
+  'owner sees their household'
+);
+select is(
+  (select count(*) from public.household_members),
+  2::bigint,
+  'owner sees household members'
+);
+select lives_ok(
+  $$select public.create_household_invite(
+    '20000000-0000-0000-0000-000000000001',
+    'new-member@example.com',
+    24
+  )$$,
+  'owner can create an invitation'
+);
+
+set local "request.jwt.claims" =
+  '{"sub":"10000000-0000-0000-0000-000000000002","email":"member@example.com","role":"authenticated"}';
+
+select is(
+  (select count(*) from public.budget_documents),
+  1::bigint,
+  'member can read the household budget'
+);
+select throws_ok(
+  $$update public.budget_documents
+    set state = '{"tampered":true}'
+    where household_id = '20000000-0000-0000-0000-000000000001'$$,
+  '42501',
+  null,
+  'member cannot bypass revisioned sync with a direct update'
+);
+select lives_ok(
+  $$select public.sync_budget(
+    '20000000-0000-0000-0000-000000000001',
+    '30000000-0000-0000-0000-000000000001',
+    0,
+    3,
+    '{"expenses":[{"name":"Rent"}]}',
+    'fnv1a-test'
+  )$$,
+  'member can use the guarded sync function'
+);
+
+set local "request.jwt.claims" =
+  '{"sub":"10000000-0000-0000-0000-000000000003","email":"outsider@example.com","role":"authenticated"}';
+
+select is(
+  (select count(*) from public.households),
+  0::bigint,
+  'outsider cannot see the household'
+);
+select is(
+  (select count(*) from public.budget_documents),
+  0::bigint,
+  'outsider cannot see the budget document'
+);
+select throws_ok(
+  $$select public.sync_budget(
+    '20000000-0000-0000-0000-000000000001',
+    '30000000-0000-0000-0000-000000000002',
+    1,
+    3,
+    '{"expenses":[]}',
+    'fnv1a-outsider'
+  )$$,
+  '42501',
+  'Household membership required',
+  'outsider cannot invoke household sync'
+);
+
+select * from finish();
+rollback;

@@ -1,14 +1,34 @@
+import { fileURLToPath, URL } from "node:url";
 import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
+const repositoryRoot = fileURLToPath(new URL("../..", import.meta.url));
+const outputRoot = fileURLToPath(new URL("./dist", import.meta.url));
+
 export default defineConfig({
+  root: repositoryRoot,
   base: "./",
   plugins: [
-    react(),
+    {
+      name: "harbourline-release-2-entry",
+      transformIndexHtml: {
+        order: "pre",
+        handler(html) {
+          return html.replace(
+            "</body>",
+            '  <script type="module" src="/apps/web/src/release2.ts"></script>\n</body>'
+          );
+        }
+      }
+    },
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.svg"],
+      includeAssets: [
+        "favicon.ico",
+        "favicon.svg",
+        "assets/harbourline-mark.svg",
+        "assets/harbourline-logo.svg"
+      ],
       manifest: {
         name: "Harbourline",
         short_name: "Harbourline",
@@ -19,7 +39,7 @@ export default defineConfig({
         start_url: "./",
         icons: [
           {
-            src: "favicon.svg",
+            src: "assets/harbourline-mark.svg",
             sizes: "any",
             type: "image/svg+xml",
             purpose: "any maskable"
@@ -30,6 +50,14 @@ export default defineConfig({
         globPatterns: ["**/*.{js,css,html,svg,png,jpg,webp}"]
       }
     })
-  ]
+  ],
+  build: {
+    outDir: outputRoot,
+    emptyOutDir: true
+  },
+  server: {
+    fs: {
+      allow: [repositoryRoot]
+    }
+  }
 });
-
