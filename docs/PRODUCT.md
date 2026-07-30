@@ -53,8 +53,8 @@ The only plan includes:
 - advanced plan comparisons
 - priority support during the introductory release
 
-Introductory pricing is A$2 per month for the first 3 months, then A$5 per
-month thereafter. Account creation is requested from the public GitHub Pages
+Introductory pricing is A$2 for the first month, then A$5 per month thereafter.
+Account creation is requested from the public GitHub Pages
 homepage; the hosted application does not create accounts.
 
 ### Bank connectivity

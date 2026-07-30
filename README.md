@@ -47,7 +47,7 @@ Harbourline uses Supabase accounts as its only account model. Account creation i
 
 Single-plan subscription positioning:
 
-- One Harbourline plan: A$2/month for the first 3 months, then A$5/month thereafter
+- One Harbourline plan: A$2 for the first month, then A$5/month thereafter
 - Included: secure Supabase sign-in, household sync, payday planning, reports, savings and debt tools
 
 The introductory price is the only planned offer at this stage. Billing, onboarding, privacy terms and support will be completed before broad public launch.
