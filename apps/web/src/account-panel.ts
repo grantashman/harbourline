@@ -90,6 +90,7 @@ export class AccountPanel {
   async initialise(): Promise<void> {
     await this.sync.initialise();
     this.state.metadata = this.sync.metadata;
+    const shouldOpenAccount = this.consumeAccountRedirect();
     this.accountButton.addEventListener("click", () => {
       this.render();
       this.dialog.showModal();
@@ -102,6 +103,7 @@ export class AccountPanel {
 
     if (!this.cloud.configured) {
       this.render();
+      if (shouldOpenAccount) this.dialog.showModal();
       return;
     }
 
@@ -120,6 +122,15 @@ export class AccountPanel {
       }
     });
     await this.refreshAccount();
+    if (shouldOpenAccount && !this.dialog.open) this.dialog.showModal();
+  }
+
+  private consumeAccountRedirect(): boolean {
+    const url = new URL(location.href);
+    if (url.searchParams.get("account") !== "signin") return false;
+    url.searchParams.delete("account");
+    history.replaceState(history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    return true;
   }
 
   private consumeRecoveryRedirect(): boolean {
