@@ -88,6 +88,30 @@ Keep its `connect-src` limited to the production Supabase project, and review
 the policy before adding analytics, payment widgets or any other third-party
 browser integration.
 
+## 7. Activate customer signup and billing
+
+The public homepage creates accounts. Enable and brand the Google and Azure
+(Microsoft) providers in the Harbourline authentication settings, and add the
+GitHub Pages URL and hosted app URL to the provider redirect allowlists.
+
+Create one recurring Stripe price for A$5/month and a one-month A$3 discount
+coupon. Store these values only as Edge Function secrets:
+
+```text
+STRIPE_SECRET_KEY
+STRIPE_PRICE_ID
+STRIPE_FIRST_MONTH_COUPON_ID
+STRIPE_WEBHOOK_SECRET
+HARBOURLINE_APP_URL
+```
+
+Deploy `create-checkout-session` and `stripe-webhook`, then register the
+webhook endpoint for checkout completion and subscription create, update and
+delete events. Confirm the webhook signature and replay handling in Stripe's
+test mode before enabling live payments. The app currently exposes the secure
+payment handoff; the final paid-access gate should be enabled after the first
+end-to-end test account has a recorded active subscription.
+
 ## Existing migration history
 
 The Release 2 schema was originally applied through the SQL editor. Its deployed

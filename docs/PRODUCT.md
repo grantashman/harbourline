@@ -30,7 +30,7 @@ On payday, a household should be able to answer:
 
 ## Product principles
 
-- Account-based: hosted access requires a Supabase account and an internet connection.
+- Account-based: hosted access requires a Harbourline account and an internet connection.
 - Household-first: plans belong to a household, not a single device or person.
 - Explainable: every projection exposes the inputs and calculation behind it.
 - Australian by default: AUD, en-AU dates and Australian pay cycles.
@@ -54,8 +54,9 @@ The only plan includes:
 - priority support during the introductory release
 
 Introductory pricing is A$2 for the first month, then A$5 per month thereafter.
-Account creation is requested from the public GitHub Pages
-homepage; the hosted application does not create accounts.
+Account creation is available from the public Harbourline homepage only. The
+hosted application provides sign-in and payment handoff, but does not expose
+registration.
 
 ### Bank connectivity
 

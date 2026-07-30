@@ -9,7 +9,7 @@ import type {
 } from "./release2-types";
 
 const INITIAL_STATUS: Release2Status = {
-  message: "Saved on this device.",
+  message: "Sign in and subscribe to enable Harbourline.",
   tone: "neutral",
   queued: 0,
   online: navigator.onLine
@@ -48,6 +48,7 @@ export class AccountPanel {
   private state: AccountState;
   private notice = "";
   private busy = false;
+  private subscriptionActive: boolean | null = null;
   private recoveryMode = false;
   private pendingRecoveryRedirect = false;
   private inviteToken = "";
@@ -85,6 +86,7 @@ export class AccountPanel {
     });
     this.accountButton = this.createAccountButton();
     this.dialog = this.createDialog();
+    this.updateAccessGate();
   }
 
   async initialise(): Promise<void> {
@@ -194,22 +196,25 @@ export class AccountPanel {
   private async refreshAccount(): Promise<void> {
     if (!this.state.session) {
       this.state.households = [];
+      this.subscriptionActive = null;
       this.mfa = { verifiedCount: 0, currentLevel: null, nextLevel: null, enrollment: null };
       this.render();
       return;
     }
     try {
-      const [households, mfa] = await Promise.all([
+      const [households, mfa, subscriptionActive] = await Promise.all([
         this.cloud.listHouseholds(),
-        this.cloud.getMfaState()
+        this.cloud.getMfaState(),
+        this.cloud.hasActiveSubscription()
       ]);
       this.state.households = households;
+      this.subscriptionActive = subscriptionActive;
       this.state.metadata = this.sync.metadata;
       this.mfa.verifiedCount = mfa.verified.length;
       this.mfa.currentLevel = mfa.currentLevel;
       this.mfa.nextLevel = mfa.nextLevel;
       const linked = this.state.metadata?.householdId;
-      if (linked && households.some((household) => household.id === linked)) {
+      if (subscriptionActive && linked && households.some((household) => household.id === linked)) {
         await this.sync.resumeForHousehold(linked);
       }
     } catch (error) {
@@ -219,6 +224,7 @@ export class AccountPanel {
   }
 
   private render(): void {
+    this.updateAccessGate();
     const body = this.dialog.querySelector(".release2-dialog-body");
     if (!body) return;
     body.innerHTML = !this.state.configured
@@ -228,6 +234,37 @@ export class AccountPanel {
         : this.state.session
         ? this.renderSignedIn()
         : this.renderSignedOut();
+  }
+
+  private updateAccessGate(): void {
+    const active = Boolean(this.state.session && this.subscriptionActive);
+    let gate = document.querySelector<HTMLElement>("#release2-access-gate");
+    if (active) {
+      gate?.remove();
+      return;
+    }
+    if (!gate) {
+      gate = document.createElement("section");
+      gate.id = "release2-access-gate";
+      gate.className = "release2-access-gate";
+      gate.addEventListener("click", (event) => {
+        const target = event.target;
+        if (!(target instanceof Element) || !target.closest("[data-action='open-account']")) return;
+        this.render();
+        if (!this.dialog.open) this.dialog.showModal();
+      });
+      document.body.append(gate);
+    }
+    gate.innerHTML = `
+      <div class="release2-access-gate-card">
+        <span class="eyebrow">Harbourline</span>
+        <h1>${this.state.session ? "Complete your Harbourline plan" : "Your money plan starts here"}</h1>
+        <p>${this.state.session
+          ? "Your account is ready. Continue to secure payment to unlock your household planning workspace and cloud sync."
+          : "Sign in or create your Harbourline account to access the hosted planning workspace."}</p>
+        <button class="btn" type="button" data-action="open-account">${this.state.session ? "Continue to payment" : "Sign in to continue"}</button>
+      </div>
+    `;
   }
 
   private renderNotice(): string {
@@ -242,14 +279,14 @@ export class AccountPanel {
       <section class="release2-section release2-intro">
         <span class="release2-status-dot"></span>
         <div>
-          <h3>Supabase account required</h3>
-          <p>This hosted Harbourline build uses Supabase accounts for secure sign-in and household sync. Connect the production account settings before using the hosted experience.</p>
+          <h3>Harbourline account required</h3>
+          <p>This hosted build uses secure Harbourline accounts for sign-in and household sync. Connect the production account settings before using the hosted experience.</p>
         </div>
       </section>
       <section class="release2-section">
         <h3>Hosted account protection</h3>
         <div class="release2-fact-grid">
-          <div><span>Authentication</span><strong>Supabase</strong></div>
+          <div><span>Account</span><strong>Harbourline</strong></div>
           <div><span>Registration</span><strong>Homepage only</strong></div>
           <div><span>Currency</span><strong>AUD</strong></div>
         </div>
@@ -264,7 +301,7 @@ export class AccountPanel {
         <span class="release2-status-dot"></span>
         <div>
           <h3>Sign in to Harbourline</h3>
-          <p>Harbourline uses Supabase accounts for secure access and household sync. New account requests are handled on the public product homepage, not inside the app.</p>
+          <p>Sign in securely to access your household plan across supported devices. New accounts are created on the public Harbourline homepage.</p>
         </div>
       </section>
       <div class="release2-auth-grid">
@@ -282,8 +319,8 @@ export class AccountPanel {
           <div class="release2-section-heading">
             <div><span>New accounts</span><h3>Join from the homepage</h3></div>
           </div>
-          <p class="release2-empty">Account creation is disabled in the app. Visit the Harbourline homepage to request access or join the current introductory offer.</p>
-          <a class="btn secondary" href="https://grantashman.github.io/harbourline/#early-access" target="_blank" rel="noreferrer">Open Harbourline homepage</a>
+          <p class="release2-empty">Account creation is handled on the Harbourline homepage. Create your account there, then return here to sign in and continue to secure payment.</p>
+          <a class="btn secondary" href="https://grantashman.github.io/harbourline/#early-access" target="_blank" rel="noreferrer">Create account on homepage</a>
         </section>
       </div>
     `;
@@ -296,7 +333,7 @@ export class AccountPanel {
         <span class="release2-status-dot"></span>
         <div>
           <h3>Choose a new password</h3>
-          <p>Use at least eight characters. Your household budget and device copy will stay connected.</p>
+          <p>Use at least eight characters. Your Harbourline account will stay connected across supported devices.</p>
         </div>
       </section>
       <form class="release2-section" data-form="update-password">
@@ -326,6 +363,18 @@ export class AccountPanel {
           <div><span>Signed in as</span><h3>${escapeHtml(this.state.user?.email)}</h3></div>
           <button class="btn secondary" type="button" data-action="sign-out">Sign out</button>
         </div>
+      </section>
+      <section class="release2-section">
+        <div class="release2-section-heading">
+          <div><span>Harbourline plan</span><h3>A$2 first month, then A$5/month</h3></div>
+          <span class="badge">One plan</span>
+        </div>
+        <p class="release2-empty">${this.subscriptionActive
+          ? "Your Harbourline plan is active. Household sync is available across supported devices."
+          : "Secure payment is handled by Stripe. Your financial information stays in Harbourline and your card details are never stored here."}</p>
+        ${this.subscriptionActive
+          ? `<span class="badge">Active</span>`
+          : `<button class="btn" type="button" data-action="start-checkout" ${this.busy ? "disabled" : ""}>Continue to secure payment</button>`}
       </section>
       <section class="release2-section">
         <div class="release2-section-heading">
@@ -529,6 +578,9 @@ export class AccountPanel {
         await this.cloud.unsubscribeFromBudget();
         await this.cloud.signOut();
         this.notice = "Signed out. The cached budget remains on this device.";
+      } else if (action === "start-checkout") {
+        const checkoutUrl = await this.cloud.createCheckoutSession();
+        window.location.assign(checkoutUrl);
       } else if (action === "link-device" || action === "link-household") {
         const householdId = button.dataset.household;
         if (!householdId) return;

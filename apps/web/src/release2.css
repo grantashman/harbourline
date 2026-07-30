@@ -14,6 +14,38 @@
   top: 7px;
 }
 
+.release2-access-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(4, 15, 13, 0.96);
+}
+
+.release2-access-gate-card {
+  width: min(560px, 100%);
+  padding: 34px;
+  border: 1px solid rgba(92, 224, 179, 0.28);
+  border-radius: 12px;
+  background: linear-gradient(145deg, rgba(17, 40, 36, 0.98), rgba(9, 23, 20, 0.98));
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.42);
+}
+
+.release2-access-gate-card h1 {
+  margin: 14px 0 12px;
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  line-height: 1;
+}
+
+.release2-access-gate-card p {
+  margin: 0 0 24px;
+  color: var(--muted, #adc5bd);
+  font-size: 1.05rem;
+  line-height: 1.55;
+}
+
 .release2-dialog {
   width: min(760px, calc(100vw - 32px));
   max-width: 760px;
@@ -468,4 +500,3 @@
     width: 100%;
   }
 }
-

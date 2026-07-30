@@ -49,7 +49,7 @@ export class SyncController {
     });
     window.addEventListener("online", () => void this.flush());
     window.addEventListener("offline", () => void this.report("Changes are queued until you are online.", "warning"));
-    await this.report(this.metadata ? "Ready to sync." : "Saved on this device.", "neutral");
+    await this.report(this.metadata ? "Ready to sync." : "Sign in and subscribe to enable Harbourline sync.", "neutral");
   }
 
   async linkDevice(householdId: string, choice: "device" | "household"): Promise<void> {
@@ -88,7 +88,7 @@ export class SyncController {
     await clearSyncMetadata();
     this.metadata = null;
     this.setConflict(null);
-    await this.report("Cloud sync disconnected. The device copy remains available.", "neutral");
+    await this.report("Harbourline sync disconnected.", "neutral");
   }
 
   async keepDeviceVersion(): Promise<void> {

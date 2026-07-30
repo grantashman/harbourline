@@ -467,6 +467,52 @@
       outline: none;
     }
 
+    .auth-options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .auth-options .button {
+      width: 100%;
+      gap: 9px;
+    }
+
+    .provider-icon {
+      width: 18px;
+      height: 18px;
+      flex: 0 0 18px;
+      display: block;
+    }
+
+    .auth-divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 16px 0 0;
+      color: var(--muted);
+      font-size: 0.76rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .auth-divider::before,
+    .auth-divider::after {
+      content: "";
+      height: 1px;
+      flex: 1;
+      background: var(--line);
+    }
+
+    .form-note {
+      min-height: 1.4em;
+    }
+
+    .form-note[data-tone="success"] { color: var(--mint); }
+    .form-note[data-tone="error"] { color: var(--rose); }
+
     input:focus,
     select:focus {
       border-color: rgba(92, 224, 179, 0.76);
@@ -522,7 +568,8 @@
       .trust-row,
       .feature-grid,
       .pricing-grid,
-      .field-row {
+      .field-row,
+      .auth-options {
         grid-template-columns: 1fr;
       }
 
@@ -611,7 +658,7 @@
     <section id="pricing">
       <div class="section-head">
         <h2>Pricing designed for real households.</h2>
-        <p>One straightforward plan for households. New accounts are requested from this homepage; account creation is not available inside the app.</p>
+        <p>One straightforward plan for households. Create your account here, then continue securely in Harbourline.</p>
       </div>
       <div class="pricing-grid">
         <article class="price-card featured">
@@ -633,22 +680,37 @@
       <div class="signup-wrap">
         <div class="signup-card">
           <span class="eyebrow">Sign up</span>
-          <h2>Request your Harbourline account.</h2>
-          <p>Start with A$2 for your first month, then continue at A$5/month thereafter. Submit your details here to request your Harbourline account.</p>
+          <h2>Create your Harbourline account.</h2>
+          <p>Start with A$2 for your first month, then continue at A$5/month thereafter. Your plan and payment stay under your control.</p>
         </div>
         <div class="signup-card">
           <form id="earlyAccessForm">
-            <div class="field-row">
-              <label>Name<input id="name" name="name" autocomplete="name" required /></label>
-              <label>Email<input id="email" name="email" type="email" autocomplete="email" required /></label>
+            <label>Name<input id="name" name="name" autocomplete="name" required /></label>
+            <label>Email<input id="email" name="email" type="email" autocomplete="email" required /></label>
+            <label>Password<input id="password" name="password" type="password" autocomplete="new-password" minlength="8" required /></label>
+            <button class="button" type="submit">Create account</button>
+            <div class="auth-divider">or continue with</div>
+            <div class="auth-options">
+              <button class="button secondary" type="button" data-provider="google">
+                <svg class="provider-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path fill="#4285F4" d="M21.35 12.23c0-.7-.06-1.37-.18-2.02H12v3.82h5.24a4.48 4.48 0 0 1-1.94 2.94v2.44h3.14c1.84-1.7 2.91-4.2 2.91-7.18Z"/>
+                  <path fill="#34A853" d="M12 21.6c2.63 0 4.84-.87 6.45-2.35l-3.14-2.44c-.87.58-1.98.92-3.31.92-2.54 0-4.69-1.72-5.46-4.03H3.3v2.52A9.74 9.74 0 0 0 12 21.6Z"/>
+                  <path fill="#FBBC05" d="M6.54 13.7a5.86 5.86 0 0 1 0-3.4V7.78H3.3a9.6 9.6 0 0 0 0 8.44l3.24-2.52Z"/>
+                  <path fill="#EA4335" d="M12 6.27c1.43 0 2.71.49 3.72 1.45l2.79-2.79C16.84 3.37 14.63 2.4 12 2.4a9.74 9.74 0 0 0-8.7 5.38l3.24 2.52C7.31 7.99 9.46 6.27 12 6.27Z"/>
+                </svg>
+                Google
+              </button>
+              <button class="button secondary" type="button" data-provider="azure">
+                <svg class="provider-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path fill="#F35325" d="M2 2h9.5v9.5H2z"/>
+                  <path fill="#81BC06" d="M12.5 2H22v9.5h-9.5z"/>
+                  <path fill="#05A6F0" d="M2 12.5h9.5V22H2z"/>
+                  <path fill="#FFBA08" d="M12.5 12.5H22V22h-9.5z"/>
+                </svg>
+                Microsoft
+              </button>
             </div>
-            <label>Plan
-              <select id="plan" name="plan">
-                <option>Harbourline - A$2 for the first month, then A$5/month</option>
-              </select>
-            </label>
-            <button class="button" type="submit">Request account access</button>
-            <p id="formNote">This opens your email client with a pre-filled account request. No financial data is collected on this page.</p>
+            <p id="formNote" class="form-note" role="status">Already registered? <a href="https://harbourline-zeta.vercel.app/?account=signin">Sign in to Harbourline</a>.</p>
           </form>
         </div>
       </div>
@@ -660,15 +722,48 @@
     <span>Clearer money planning for everyday households.</span>
   </footer>
 
-  <script>
-    document.querySelector("#earlyAccessForm").addEventListener("submit", (event) => {
+  <script src="config.js"></script>
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+    const config = window.HARBOURLINE_AUTH_CONFIG;
+    const form = document.querySelector("#earlyAccessForm");
+    const note = document.querySelector("#formNote");
+    const client = config?.supabaseUrl && config?.publishableKey
+      ? createClient(config.supabaseUrl, config.publishableKey)
+      : null;
+
+    function setNote(message, tone = "") {
+      note.textContent = message;
+      note.dataset.tone = tone;
+    }
+
+    form.addEventListener("submit", async (event) => {
       event.preventDefault();
-      const name = encodeURIComponent(document.querySelector("#name").value.trim());
-      const email = encodeURIComponent(document.querySelector("#email").value.trim());
-      const plan = encodeURIComponent(document.querySelector("#plan").value);
-      const subject = encodeURIComponent("Harbourline early access request");
-      const body = encodeURIComponent(`Hi,\n\nI'd like early access to Harbourline.\n\nName: ${decodeURIComponent(name)}\nEmail: ${decodeURIComponent(email)}\nInterest: ${decodeURIComponent(plan)}\n\nThanks.`);
-      window.location.href = `mailto:grant@ashman.net.au?subject=${subject}&body=${body}`;
+      if (!client) return setNote("Account creation is temporarily unavailable. Please try again shortly.", "error");
+      const data = new FormData(form);
+      const { error } = await client.auth.signUp({
+        email: String(data.get("email") || "").trim(),
+        password: String(data.get("password") || ""),
+        options: {
+          data: { display_name: String(data.get("name") || "").trim() },
+          emailRedirectTo: `${config.appUrl}?account=signin`
+        }
+      });
+      if (error) return setNote(error.message, "error");
+      form.reset();
+      setNote("Your account is ready to confirm. Check your email, then sign in to Harbourline.", "success");
+    });
+
+    document.querySelectorAll("[data-provider]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        if (!client) return setNote("Account creation is temporarily unavailable. Please try again shortly.", "error");
+        const { error } = await client.auth.signInWithOAuth({
+          provider: button.dataset.provider,
+          options: { redirectTo: `${config.appUrl}?account=signin` }
+        });
+        if (error) setNote(error.message, "error");
+      });
     });
   </script>
 </body>

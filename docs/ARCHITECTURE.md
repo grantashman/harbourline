@@ -67,7 +67,9 @@ Supabase owns:
 - idempotent mutation receipts
 - account export and authenticated deletion
 
-Release 3 will add Stripe Checkout, the Customer Portal and verified webhooks.
+Release 3 adds a server-side Stripe Checkout handoff and verified, idempotent
+webhooks. The browser sees only the payment URL and a read-only subscription
+summary; Stripe secrets remain in Supabase Edge Function secrets.
 
 ## Data ownership
 

@@ -110,6 +110,23 @@ export class HarbourlineCloud {
     if (error) throw error;
   }
 
+  async createCheckoutSession(): Promise<string> {
+    const { data, error } = await this.requireClient().functions.invoke("create-checkout-session", {
+      method: "POST",
+      body: {}
+    });
+    if (error) throw error;
+    const url = (data as { url?: string } | null)?.url;
+    if (!url) throw new Error("Checkout could not be started.");
+    return url;
+  }
+
+  async hasActiveSubscription(): Promise<boolean> {
+    const { data, error } = await this.requireClient().rpc("has_active_subscription");
+    if (error) throw error;
+    return Boolean(data);
+  }
+
   async listHouseholds(): Promise<HouseholdSummary[]> {
     const client = this.requireClient();
     const { data: membershipData, error: membershipError } = await client
