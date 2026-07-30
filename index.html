@@ -3413,6 +3413,7 @@
         <button class="workspace-tab" id="householdTab" type="button" role="tab" aria-selected="false" aria-controls="householdPanel" data-workspace-tab="household">Household plan</button>
         <button class="workspace-tab" id="savingsTab" type="button" role="tab" aria-selected="false" aria-controls="savingsPanel" data-workspace-tab="savings">Savings plan</button>
         <button class="workspace-tab" id="debtTab" type="button" role="tab" aria-selected="false" aria-controls="debtPanel" data-workspace-tab="debt">Debt plan</button>
+        <button class="workspace-tab" id="coachTab" type="button" role="tab" aria-selected="false" aria-controls="coachPanel" data-workspace-tab="coach">Financial coach</button>
       </div>
 
       <div class="workspace-panel active" id="paydayPanel" role="tabpanel" aria-labelledby="paydayTab" data-workspace-panel="payday">
@@ -3807,6 +3808,42 @@
           </article>
         </section>
       </div>
+
+      <div class="workspace-panel" id="coachPanel" role="tabpanel" aria-labelledby="coachTab" data-workspace-panel="coach" hidden>
+        <section class="insight-panel" aria-labelledby="insightsTitle">
+          <div class="panel-title">
+            <div>
+              <h2 id="insightsTitle">Financial coach</h2>
+              <p class="chart-subtitle">Planning guidance based on the numbers entered here.</p>
+            </div>
+          </div>
+          <div class="advisor-callout">
+            <div class="advisor-priority">
+              <span>Next best move</span>
+              <strong id="advisorPriority">Add income and expenses to get a recommendation.</strong>
+            </div>
+            <div class="advisor-mini-grid">
+              <div class="advisor-mini">
+                <span>3-month buffer</span>
+                <strong id="advisorThreeMonthTarget">$0.00</strong>
+              </div>
+              <div class="advisor-mini">
+                <span>Buffer gap</span>
+                <strong id="advisorBufferGap">$0.00</strong>
+              </div>
+            </div>
+          </div>
+          <div class="progress-wrap" aria-label="Expense ratio">
+            <div class="progress-fill" id="ratioFill"></div>
+          </div>
+          <div class="progress-scale">
+            <span>0%</span>
+            <span>50%</span>
+            <span>100%+</span>
+          </div>
+          <div class="insights" id="insights"></div>
+        </section>
+      </div>
     </section>
 
     <section class="charts-grid" aria-label="Budget graphs">
@@ -3927,39 +3964,6 @@
           </form>
         </section>
 
-        <section class="insight-panel" aria-labelledby="insightsTitle">
-          <div class="panel-title">
-            <div>
-              <h2 id="insightsTitle">Financial coach</h2>
-              <p class="chart-subtitle">Planning guidance based on the numbers entered here.</p>
-            </div>
-          </div>
-          <div class="advisor-callout">
-            <div class="advisor-priority">
-              <span>Next best move</span>
-              <strong id="advisorPriority">Add income and expenses to get a recommendation.</strong>
-            </div>
-            <div class="advisor-mini-grid">
-              <div class="advisor-mini">
-                <span>3-month buffer</span>
-                <strong id="advisorThreeMonthTarget">$0.00</strong>
-              </div>
-              <div class="advisor-mini">
-                <span>Buffer gap</span>
-                <strong id="advisorBufferGap">$0.00</strong>
-              </div>
-            </div>
-          </div>
-          <div class="progress-wrap" aria-label="Expense ratio">
-            <div class="progress-fill" id="ratioFill"></div>
-          </div>
-          <div class="progress-scale">
-            <span>0%</span>
-            <span>50%</span>
-            <span>100%+</span>
-          </div>
-          <div class="insights" id="insights"></div>
-        </section>
       </div>
 
       <section class="list-panel" aria-labelledby="expenseListTitle">
