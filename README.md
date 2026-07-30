@@ -45,6 +45,38 @@ No account is required. Budget information is stored with browser
 copies of the data. Use the app's backup and restore controls when moving a
 budget between browsers or devices.
 
+## Release 1 Foundation
+
+The original offline application remains the stable edition at the repository
+root. Release 1 adds the product foundation beside it:
+
+- `apps/web` - responsive React and TypeScript PWA shell
+- `packages/domain` - tested financial calculations and data migrations
+- `docs` - product, architecture, security and release decisions
+- `.github/workflows/ci.yml` - automated validation on every push and pull request
+
+The PWA stores household data in IndexedDB with a localStorage fallback. It
+does not send financial information to a server. It can import data from the
+existing browser edition when both versions share an origin, and it supports
+versioned JSON backup import and export.
+
+## Development
+
+Use Node.js 22 and pnpm 11.9:
+
+```text
+pnpm install --frozen-lockfile
+pnpm check
+pnpm dev
+```
+
+`pnpm check` runs strict type checking, 14 financial-domain tests and the
+production PWA build. `pnpm dev` starts the foundation preview.
+
+See `docs/PRODUCT.md`, `docs/ARCHITECTURE.md`, `docs/SECURITY.md` and
+`docs/RELEASES.md` for the path from this release to accounts, household sync
+and paid subscriptions.
+
 ## Privacy
 
 The repository contains only the application source and visual assets. Personal
@@ -52,5 +84,6 @@ budget information entered into the app is not committed to this repository.
 
 ## Technology
 
-The app is intentionally dependency-light: HTML, CSS and JavaScript are bundled
-for offline use, with a local copy of `pdf-lib` for PDF generation.
+The stable edition is dependency-light HTML, CSS and JavaScript with a local
+copy of `pdf-lib`. The product foundation uses React, TypeScript, Vite and a
+small pure TypeScript financial engine in a pnpm workspace.

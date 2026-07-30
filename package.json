@@ -1,0 +1,13 @@
+{
+  "name": "harbourline",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "pnpm@11.9.0",
+  "scripts": {
+    "dev": "pnpm --filter @harbourline/web dev",
+    "build": "pnpm --recursive --workspace-concurrency=1 build",
+    "typecheck": "pnpm --recursive typecheck",
+    "test": "pnpm --filter @harbourline/domain test",
+    "check": "pnpm typecheck && pnpm test && pnpm build"
+  }
+}
