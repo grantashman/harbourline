@@ -11,7 +11,12 @@ const securedHandler = withSupabase({ auth: "user" }, async (request, context) =
     return Response.json({ message: "Method not allowed" }, { status: 405 });
   }
 
-  const userId = context.userClaims?.sub;
+  const body = await request.json().catch(() => null);
+  if (body?.confirmation !== "DELETE MY HARBOURLINE ACCOUNT") {
+    return Response.json({ message: "Account deletion was not confirmed" }, { status: 400 });
+  }
+
+  const userId = context.userClaims?.id;
   if (!userId) {
     return Response.json({ message: "Authentication required" }, { status: 401 });
   }
