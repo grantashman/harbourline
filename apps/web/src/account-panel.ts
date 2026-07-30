@@ -49,6 +49,7 @@ export class AccountPanel {
   private notice = "";
   private busy = false;
   private recoveryMode = false;
+  private pendingRecoveryRedirect = false;
   private inviteToken = "";
   private mfa: {
     verifiedCount: number;
@@ -104,17 +105,15 @@ export class AccountPanel {
       return;
     }
 
-    const recoveryRedirect = this.consumeRecoveryRedirect();
+    this.pendingRecoveryRedirect = this.consumeRecoveryRedirect();
     this.applySession(await this.cloud.getSession());
-    if (recoveryRedirect && this.state.session) {
-      this.openRecoveryMode();
-      this.dialog.showModal();
-    }
+    this.openPendingRecoveryIfReady();
     this.cloud.onAuthChange((event, session) => {
       if (event === "PASSWORD_RECOVERY") {
         this.openRecoveryMode();
       }
       this.applySession(session);
+      this.openPendingRecoveryIfReady();
       void this.refreshAccount();
       if (event === "PASSWORD_RECOVERY" && !this.dialog.open) {
         this.dialog.showModal();
@@ -134,6 +133,13 @@ export class AccountPanel {
   private openRecoveryMode(): void {
     this.recoveryMode = true;
     this.notice = "Your recovery link is verified. Choose a new password.";
+  }
+
+  private openPendingRecoveryIfReady(): void {
+    if (!this.pendingRecoveryRedirect || !this.state.session) return;
+    this.pendingRecoveryRedirect = false;
+    this.openRecoveryMode();
+    if (!this.dialog.open) this.dialog.showModal();
   }
 
   private createAccountButton(): HTMLButtonElement {
