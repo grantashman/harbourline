@@ -81,6 +81,11 @@ Copy `.env.example` to `.env.local` only after creating a Supabase project.
 Use the public publishable key in the browser build, never a secret or
 service-role key. See `docs/RELEASE_2_DEPLOYMENT.md` for activation.
 
+The current Supabase project is approved for a controlled Asia-Pacific beta.
+Its Tokyo data-residency limitation must be disclosed and reassessed before a
+wider launch. Production changes use the guarded GitHub Actions deployment in
+`docs/PRODUCTION_ACTIVATION.md`.
+
 ## Privacy
 
 The repository contains only the application source and visual assets. Personal

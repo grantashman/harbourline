@@ -23,7 +23,7 @@ Verification:
 
 ## Release 2: Accounts and household sync
 
-Status: implementation complete; cloud activation pending
+Status: test deployment complete; controlled Asia-Pacific beta activation pending
 
 - preserve the exact original Harbourline interface
 - email/password registration, sign-in and email sign-in links
@@ -47,10 +47,15 @@ Verification:
 
 Activation gate:
 
-- create the production Supabase project in an Australian region
+- approve and document the Supabase region for the controlled beta
 - apply the migration and run pgTAP policy tests
 - deploy and test the account deletion function
 - configure production email, URLs, backup restoration and incident ownership
+
+The Tokyo deployment passed authenticated owner, member and outsider isolation,
+sync, invitation, export and deletion tests on 30 July 2026. It is approved for
+a controlled beta while its non-Australian data residency is documented and
+reviewed. See `PRODUCTION_ACTIVATION.md`.
 
 ## Release 3: Paid beta
 
