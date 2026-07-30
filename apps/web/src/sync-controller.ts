@@ -58,7 +58,7 @@ export class SyncController {
       this.applyRemote(remote);
       await this.recordRemote(remote);
       await clearPendingMutations();
-      this.cloud.subscribeToBudget(householdId, () => void this.receiveRemoteChange());
+      await this.cloud.subscribeToBudget(householdId, () => void this.receiveRemoteChange());
       await this.report("Household budget downloaded to this device.", "good");
       return;
     }
@@ -72,12 +72,12 @@ export class SyncController {
     await setSyncMetadata(this.metadata);
     await clearPendingMutations();
     await this.queueState(this.bridge.read(), true);
-    this.cloud.subscribeToBudget(householdId, () => void this.receiveRemoteChange());
+    await this.cloud.subscribeToBudget(householdId, () => void this.receiveRemoteChange());
   }
 
   async resumeForHousehold(householdId: string): Promise<void> {
     if (this.metadata?.householdId !== householdId) return;
-    this.cloud.subscribeToBudget(householdId, () => void this.receiveRemoteChange());
+    await this.cloud.subscribeToBudget(householdId, () => void this.receiveRemoteChange());
     await this.flush();
   }
 

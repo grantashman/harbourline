@@ -48,6 +48,7 @@ export class AccountPanel {
   private state: AccountState;
   private notice = "";
   private busy = false;
+  private recoveryMode = false;
   private inviteToken = "";
   private mfa: {
     verifiedCount: number;
@@ -104,9 +105,16 @@ export class AccountPanel {
     }
 
     this.applySession(await this.cloud.getSession());
-    this.cloud.onAuthChange((_event, session) => {
+    this.cloud.onAuthChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY") {
+        this.recoveryMode = true;
+        this.notice = "Your recovery link is verified. Choose a new password.";
+      }
       this.applySession(session);
       void this.refreshAccount();
+      if (event === "PASSWORD_RECOVERY" && !this.dialog.open) {
+        this.dialog.showModal();
+      }
     });
     await this.refreshAccount();
   }
@@ -181,7 +189,9 @@ export class AccountPanel {
     if (!body) return;
     body.innerHTML = !this.state.configured
       ? this.renderUnconfigured()
-      : this.state.session
+      : this.recoveryMode && this.state.session
+        ? this.renderRecovery()
+        : this.state.session
         ? this.renderSignedIn()
         : this.renderSignedOut();
   }
@@ -232,6 +242,7 @@ export class AccountPanel {
           <label>Password<input name="password" type="password" autocomplete="current-password" minlength="8" required /></label>
           <button class="btn" type="submit" ${this.busy ? "disabled" : ""}>Sign in</button>
           <button class="btn secondary" type="button" data-action="magic-link" ${this.busy ? "disabled" : ""}>Email a sign-in link</button>
+          <button class="btn secondary" type="button" data-action="password-reset" ${this.busy ? "disabled" : ""}>Forgot password?</button>
         </form>
         <form class="release2-section" data-form="sign-up">
           <div class="release2-section-heading">
@@ -243,6 +254,24 @@ export class AccountPanel {
           <button class="btn" type="submit" ${this.busy ? "disabled" : ""}>Create account</button>
         </form>
       </div>
+    `;
+  }
+
+  private renderRecovery(): string {
+    return `
+      ${this.renderNotice()}
+      <section class="release2-section release2-intro">
+        <span class="release2-status-dot"></span>
+        <div>
+          <h3>Choose a new password</h3>
+          <p>Use at least eight characters. Your household budget and device copy will stay connected.</p>
+        </div>
+      </section>
+      <form class="release2-section" data-form="update-password">
+        <label>New password<input name="password" type="password" autocomplete="new-password" minlength="8" required /></label>
+        <label>Confirm new password<input name="confirmation" type="password" autocomplete="new-password" minlength="8" required /></label>
+        <button class="btn" type="submit" ${this.busy ? "disabled" : ""}>Update password</button>
+      </form>
     `;
   }
 
@@ -407,6 +436,15 @@ export class AccountPanel {
           formValue(form, "password"),
           formValue(form, "displayName")
         );
+      } else if (action === "update-password") {
+        const password = formValue(form, "password");
+        if (password !== formValue(form, "confirmation")) {
+          throw new Error("The passwords do not match.");
+        }
+        await this.cloud.updatePassword(password);
+        this.recoveryMode = false;
+        this.notice = "Password updated. You are signed in.";
+        await this.refreshAccount();
       } else if (action === "create-household") {
         const householdId = await this.cloud.createHousehold(formValue(form, "name"));
         await this.refreshAccount();
@@ -454,6 +492,13 @@ export class AccountPanel {
         if (!email) throw new Error("Enter your email address first.");
         await this.cloud.sendMagicLink(email);
         this.notice = "Check your email for a secure sign-in link.";
+      } else if (action === "password-reset") {
+        const form = button.closest("form");
+        if (!(form instanceof HTMLFormElement)) return;
+        const email = formValue(form, "email");
+        if (!email) throw new Error("Enter your email address first.");
+        await this.cloud.sendPasswordReset(email);
+        this.notice = "Check your email for a password recovery link.";
       } else if (action === "sign-out") {
         await this.cloud.unsubscribeFromBudget();
         await this.cloud.signOut();

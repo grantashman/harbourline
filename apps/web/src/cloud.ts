@@ -36,6 +36,8 @@ export class HarbourlineCloud {
   readonly configured: boolean;
   readonly client: SupabaseClient | null;
   private realtimeChannel: RealtimeChannel | null = null;
+  private realtimeHouseholdId: string | null = null;
+  private realtimeSetup: Promise<void> = Promise.resolve();
 
   constructor() {
     const url = import.meta.env.VITE_SUPABASE_URL?.trim();
@@ -99,6 +101,19 @@ export class HarbourlineCloud {
         shouldCreateUser: false
       }
     });
+    if (error) throw error;
+  }
+
+  async sendPasswordReset(email: string): Promise<void> {
+    const redirectTo = `${location.origin}${location.pathname}`;
+    const { error } = await this.requireClient().auth.resetPasswordForEmail(email, {
+      redirectTo
+    });
+    if (error) throw error;
+  }
+
+  async updatePassword(password: string): Promise<void> {
+    const { error } = await this.requireClient().auth.updateUser({ password });
     if (error) throw error;
   }
 
@@ -205,29 +220,40 @@ export class HarbourlineCloud {
     return data as SyncResult;
   }
 
-  subscribeToBudget(householdId: string, callback: () => void): void {
-    const client = this.requireClient();
-    void this.unsubscribeFromBudget();
-    this.realtimeChannel = client
-      .channel(`budget:${householdId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "budget_documents",
-          filter: `household_id=eq.${householdId}`
-        },
-        callback
-      )
-      .subscribe();
+  subscribeToBudget(householdId: string, callback: () => void): Promise<void> {
+    this.realtimeSetup = this.realtimeSetup.then(async () => {
+      if (this.realtimeChannel && this.realtimeHouseholdId === householdId) return;
+      await this.removeRealtimeChannel();
+      const client = this.requireClient();
+      this.realtimeChannel = client
+        .channel(`budget:${householdId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "budget_documents",
+            filter: `household_id=eq.${householdId}`
+          },
+          callback
+        )
+        .subscribe();
+      this.realtimeHouseholdId = householdId;
+    });
+    return this.realtimeSetup;
   }
 
-  async unsubscribeFromBudget(): Promise<void> {
+  unsubscribeFromBudget(): Promise<void> {
+    this.realtimeSetup = this.realtimeSetup.then(() => this.removeRealtimeChannel());
+    return this.realtimeSetup;
+  }
+
+  private async removeRealtimeChannel(): Promise<void> {
     if (this.client && this.realtimeChannel) {
       await this.client.removeChannel(this.realtimeChannel);
       this.realtimeChannel = null;
     }
+    this.realtimeHouseholdId = null;
   }
 
   async exportAccount(): Promise<unknown> {
