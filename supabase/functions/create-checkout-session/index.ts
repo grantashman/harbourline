@@ -36,8 +36,7 @@ Deno.serve(async (request) => {
     "line_items[0][price]": stripeValue(priceId),
     "line_items[0][quantity]": "1",
     "subscription_data[metadata][user_id]": user.id,
-    "metadata[user_id]": user.id,
-    "allow_promotion_codes": "false"
+    "metadata[user_id]": user.id
   });
   if (couponId) form.set("discounts[0][coupon]", stripeValue(couponId));
 

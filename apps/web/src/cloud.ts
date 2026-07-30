@@ -115,7 +115,11 @@ export class HarbourlineCloud {
       method: "POST",
       body: {}
     });
-    if (error) throw error;
+    if (error) {
+      const response = (error as { context?: Response }).context;
+      const detail = response ? await response.text() : "";
+      throw new Error(detail || error.message);
+    }
     const url = (data as { url?: string } | null)?.url;
     if (!url) throw new Error("Checkout could not be started.");
     return url;
