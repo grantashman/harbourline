@@ -105,7 +105,7 @@ export class HarbourlineCloud {
   }
 
   async sendPasswordReset(email: string): Promise<void> {
-    const redirectTo = `${location.origin}${location.pathname}`;
+    const redirectTo = `${location.origin}${location.pathname}?recovery=1`;
     const { error } = await this.requireClient().auth.resetPasswordForEmail(email, {
       redirectTo
     });

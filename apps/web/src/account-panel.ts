@@ -104,11 +104,14 @@ export class AccountPanel {
       return;
     }
 
+    const recoveryRedirect = this.consumeRecoveryRedirect();
     this.applySession(await this.cloud.getSession());
+    if (recoveryRedirect && this.state.session) {
+      this.openRecoveryMode();
+    }
     this.cloud.onAuthChange((event, session) => {
       if (event === "PASSWORD_RECOVERY") {
-        this.recoveryMode = true;
-        this.notice = "Your recovery link is verified. Choose a new password.";
+        this.openRecoveryMode();
       }
       this.applySession(session);
       void this.refreshAccount();
@@ -117,6 +120,19 @@ export class AccountPanel {
       }
     });
     await this.refreshAccount();
+  }
+
+  private consumeRecoveryRedirect(): boolean {
+    const url = new URL(location.href);
+    if (url.searchParams.get("recovery") !== "1") return false;
+    url.searchParams.delete("recovery");
+    history.replaceState(history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    return true;
+  }
+
+  private openRecoveryMode(): void {
+    this.recoveryMode = true;
+    this.notice = "Your recovery link is verified. Choose a new password.";
   }
 
   private createAccountButton(): HTMLButtonElement {
