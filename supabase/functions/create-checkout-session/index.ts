@@ -28,18 +28,32 @@ Deno.serve(async (request) => {
   const appUrl = Deno.env.get("HARBOURLINE_APP_URL") ?? "https://harbourline-zeta.vercel.app/";
   if (!stripeSecret || !priceId) return new Response("Billing is not configured", { status: 503, headers: corsHeaders });
 
+  const { data: existingBilling, error: billingError } = await supabase
+    .from("billing_subscriptions")
+    .select("stripe_customer_id, status")
+    .maybeSingle();
+  if (billingError) return new Response("Billing status could not be checked", { status: 500, headers: corsHeaders });
+  if (existingBilling && ["active", "trialing", "past_due", "unpaid", "incomplete"].includes(existingBilling.status)) {
+    return new Response("An existing subscription needs to be managed from the billing portal.", { status: 409, headers: corsHeaders });
+  }
+
   const form = new URLSearchParams({
     mode: "subscription",
     success_url: `${appUrl}?billing=success&account=signin`,
     cancel_url: `${appUrl}?billing=cancelled&account=signin`,
-    customer_email: user.email ?? "",
     "line_items[0][price]": stripeValue(priceId),
     "line_items[0][quantity]": "1",
     "subscription_data[metadata][user_id]": user.id,
     "metadata[user_id]": user.id,
+    client_reference_id: user.id,
     "managed_payments[enabled]": "false"
   });
-  if (couponId) form.set("discounts[0][coupon]", stripeValue(couponId));
+  if (existingBilling?.stripe_customer_id) {
+    form.set("customer", existingBilling.stripe_customer_id);
+  } else if (user.email) {
+    form.set("customer_email", user.email);
+  }
+  if (couponId && !existingBilling?.stripe_customer_id) form.set("discounts[0][coupon]", stripeValue(couponId));
 
   const response = await fetch("https://api.stripe.com/v1/checkout/sessions", {
     method: "POST",

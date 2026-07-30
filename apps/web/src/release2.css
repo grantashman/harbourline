@@ -386,6 +386,10 @@
   margin: 4px 0 0 !important;
 }
 
+.release2-plan-actions {
+  margin-top: 14px;
+}
+
 .release2-invite-token {
   display: grid;
   min-width: 0;

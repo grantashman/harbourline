@@ -32,6 +32,13 @@ interface BudgetRow {
   updated_at: string;
 }
 
+export interface BillingSubscription {
+  stripe_customer_id: string | null;
+  status: string;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean;
+}
+
 export class HarbourlineCloud {
   readonly configured: boolean;
   readonly client: SupabaseClient | null;
@@ -123,6 +130,30 @@ export class HarbourlineCloud {
     const url = (data as { url?: string } | null)?.url;
     if (!url) throw new Error("Checkout could not be started.");
     return url;
+  }
+
+  async createBillingPortalSession(): Promise<string> {
+    const { data, error } = await this.requireClient().functions.invoke("create-billing-portal", {
+      method: "POST",
+      body: {}
+    });
+    if (error) {
+      const response = (error as { context?: Response }).context;
+      const detail = response ? await response.text() : "";
+      throw new Error(detail || error.message);
+    }
+    const url = (data as { url?: string } | null)?.url;
+    if (!url) throw new Error("Billing could not be opened.");
+    return url;
+  }
+
+  async getBillingSubscription(): Promise<BillingSubscription | null> {
+    const { data, error } = await this.requireClient()
+      .from("billing_subscriptions")
+      .select("stripe_customer_id, status, current_period_end, cancel_at_period_end")
+      .maybeSingle();
+    if (error) throw error;
+    return data as BillingSubscription | null;
   }
 
   async hasActiveSubscription(): Promise<boolean> {

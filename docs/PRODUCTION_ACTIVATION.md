@@ -5,6 +5,10 @@ Asia-Pacific beta environment. Sydney remains the preferred long-term region.
 The beta currently uses Tokyo and that limitation must be recorded in the
 privacy notice before external customers are invited.
 
+For the commercial launch sequence, member-level cost model and profitability
+thresholds, see
+[`PRODUCTION_AND_PROFITABILITY.md`](PRODUCTION_AND_PROFITABILITY.md).
+
 ## 1. Confirm the beta project
 
 The existing project may be used for the controlled beta with:
@@ -108,9 +112,18 @@ HARBOURLINE_APP_URL
 Deploy `create-checkout-session` and `stripe-webhook`, then register the
 webhook endpoint for checkout completion and subscription create, update and
 delete events. Confirm the webhook signature and replay handling in Stripe's
-test mode before enabling live payments. The app currently exposes the secure
-payment handoff; the final paid-access gate should be enabled after the first
-end-to-end test account has a recorded active subscription.
+test mode before enabling live payments.
+
+The sandbox checkout and paid-access gate have now passed an end-to-end test.
+The application now includes a Stripe Customer Portal handoff. Before testing
+it, enable payment-method updates, invoice history and cancellation at period
+end in the Stripe Customer Portal configuration. Deploy
+`create-billing-portal` with the same server-side Stripe secret and configure
+the portal's allowed return URL as the hosted Harbourline application.
+
+The remaining release work is a sandbox test of customer self-service, renewal,
+failed payment, refund, cancellation, replay safety and a complete live-mode
+rehearsal.
 
 ## Existing migration history
 

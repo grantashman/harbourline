@@ -1,6 +1,6 @@
 import type { Session } from "@supabase/supabase-js";
 import type { HouseholdSummary, RemoteBudgetDocument } from "@harbourline/sync";
-import { HarbourlineCloud } from "./cloud";
+import { HarbourlineCloud, type BillingSubscription } from "./cloud";
 import { SyncController } from "./sync-controller";
 import type {
   AccountState,
@@ -40,6 +40,14 @@ function formValue(form: HTMLFormElement, name: string): string {
   return String(new FormData(form).get(name) ?? "").trim();
 }
 
+function formatBillingDate(value: string | null): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? null
+    : new Intl.DateTimeFormat("en-AU", { dateStyle: "medium" }).format(date);
+}
+
 export class AccountPanel {
   private readonly cloud = new HarbourlineCloud();
   private readonly sync: SyncController;
@@ -49,6 +57,7 @@ export class AccountPanel {
   private notice = "";
   private busy = false;
   private subscriptionActive: boolean | null = null;
+  private billingSubscription: BillingSubscription | null = null;
   private recoveryMode = false;
   private pendingRecoveryRedirect = false;
   private inviteToken = "";
@@ -93,6 +102,7 @@ export class AccountPanel {
     await this.sync.initialise();
     this.state.metadata = this.sync.metadata;
     const shouldOpenAccount = this.consumeAccountRedirect();
+    const billingRedirect = this.consumeBillingRedirect();
     this.accountButton.addEventListener("click", () => {
       this.render();
       this.dialog.showModal();
@@ -124,7 +134,8 @@ export class AccountPanel {
       }
     });
     await this.refreshAccount();
-    if (shouldOpenAccount && !this.dialog.open) this.dialog.showModal();
+    this.handleBillingRedirect(billingRedirect);
+    if ((shouldOpenAccount || billingRedirect) && !this.dialog.open) this.dialog.showModal();
   }
 
   private consumeAccountRedirect(): boolean {
@@ -141,6 +152,48 @@ export class AccountPanel {
     url.searchParams.delete("recovery");
     history.replaceState(history.state, "", `${url.pathname}${url.search}${url.hash}`);
     return true;
+  }
+
+  private consumeBillingRedirect(): "success" | "cancelled" | "portal" | null {
+    const url = new URL(location.href);
+    const billing = url.searchParams.get("billing");
+    if (billing !== "success" && billing !== "cancelled" && billing !== "portal") return null;
+    url.searchParams.delete("billing");
+    history.replaceState(history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    return billing;
+  }
+
+  private handleBillingRedirect(billing: "success" | "cancelled" | "portal" | null): void {
+    if (billing === "cancelled") {
+      this.notice = "Payment was not completed. Your account has not been charged.";
+      return;
+    }
+    if (billing === "portal") {
+      this.notice = "Your billing details have been updated.";
+      return;
+    }
+    if (billing === "success") {
+      this.notice = this.subscriptionActive
+        ? "Payment confirmed. Your Harbourline plan is active."
+        : "Payment received. Confirming your plan now.";
+      if (!this.subscriptionActive) this.waitForSubscriptionConfirmation();
+    }
+  }
+
+  private waitForSubscriptionConfirmation(attempt = 1): void {
+    window.setTimeout(async () => {
+      if (!this.state.session || this.subscriptionActive) return;
+      await this.refreshAccount();
+      if (this.subscriptionActive) {
+        this.notice = "Payment confirmed. Your Harbourline plan is active.";
+        this.render();
+      } else if (attempt < 5) {
+        this.waitForSubscriptionConfirmation(attempt + 1);
+      } else {
+        this.notice = "Payment is still being confirmed. Refresh shortly, or contact support if access does not open.";
+        this.render();
+      }
+    }, attempt * 1500);
   }
 
   private openRecoveryMode(): void {
@@ -197,18 +250,21 @@ export class AccountPanel {
     if (!this.state.session) {
       this.state.households = [];
       this.subscriptionActive = null;
+      this.billingSubscription = null;
       this.mfa = { verifiedCount: 0, currentLevel: null, nextLevel: null, enrollment: null };
       this.render();
       return;
     }
     try {
-      const [households, mfa, subscriptionActive] = await Promise.all([
+      const [households, mfa, subscriptionActive, billingSubscription] = await Promise.all([
         this.cloud.listHouseholds(),
         this.cloud.getMfaState(),
-        this.cloud.hasActiveSubscription()
+        this.cloud.hasActiveSubscription(),
+        this.cloud.getBillingSubscription()
       ]);
       this.state.households = households;
       this.subscriptionActive = subscriptionActive;
+      this.billingSubscription = billingSubscription;
       this.state.metadata = this.sync.metadata;
       this.mfa.verifiedCount = mfa.verified.length;
       this.mfa.currentLevel = mfa.currentLevel;
@@ -348,6 +404,22 @@ export class AccountPanel {
     const linkedId = this.sync.metadata?.householdId;
     const linkedHousehold = this.state.households.find((household) => household.id === linkedId);
     const status = this.state.status;
+    const billing = this.billingSubscription;
+    const periodEnd = formatBillingDate(billing?.current_period_end ?? null);
+    const paymentNeedsAttention = billing && ["incomplete", "past_due", "unpaid"].includes(billing.status);
+    const hasBillingPortal = Boolean(billing?.stripe_customer_id);
+    const planMessage = this.subscriptionActive
+      ? billing?.cancel_at_period_end
+        ? `Your plan is active until ${periodEnd ?? "the end of the current billing period"}. Cancellation is scheduled after that date.`
+        : `Your Harbourline plan is active${periodEnd ? ` until ${periodEnd}` : ""}. Household sync is available across supported devices.`
+      : paymentNeedsAttention
+        ? "A payment needs attention. Update your payment method or manage your subscription to restore access."
+        : "Secure payment is handled by our payment provider. Your card details are never stored in Harbourline.";
+    const planAction = this.subscriptionActive || paymentNeedsAttention
+      ? hasBillingPortal
+        ? `<div class="release2-button-row"><span class="badge">${this.subscriptionActive ? "Active" : "Payment needed"}</span><button class="btn secondary" type="button" data-action="open-billing-portal" ${this.busy ? "disabled" : ""}>Manage plan</button></div>`
+        : `<span class="badge">${this.subscriptionActive ? "Active" : "Payment needed"}</span>`
+      : `<button class="btn" type="button" data-action="start-checkout" ${this.busy ? "disabled" : ""}>Continue to secure payment</button>`;
     return `
       ${this.renderNotice()}
       <section class="release2-sync-status release2-tone-${status.tone}">
@@ -369,12 +441,8 @@ export class AccountPanel {
           <div><span>Harbourline plan</span><h3>A$2 first month, then A$5/month</h3></div>
           <span class="badge">One plan</span>
         </div>
-        <p class="release2-empty">${this.subscriptionActive
-          ? "Your Harbourline plan is active. Household sync is available across supported devices."
-          : "Secure payment is handled by Stripe. Your financial information stays in Harbourline and your card details are never stored here."}</p>
-        ${this.subscriptionActive
-          ? `<span class="badge">Active</span>`
-          : `<button class="btn" type="button" data-action="start-checkout" ${this.busy ? "disabled" : ""}>Continue to secure payment</button>`}
+        <p class="release2-empty">${planMessage}</p>
+        <div class="release2-plan-actions">${planAction}</div>
       </section>
       <section class="release2-section">
         <div class="release2-section-heading">
@@ -581,6 +649,9 @@ export class AccountPanel {
       } else if (action === "start-checkout") {
         const checkoutUrl = await this.cloud.createCheckoutSession();
         window.location.assign(checkoutUrl);
+      } else if (action === "open-billing-portal") {
+        const portalUrl = await this.cloud.createBillingPortalSession();
+        window.location.assign(portalUrl);
       } else if (action === "link-device" || action === "link-household") {
         const householdId = button.dataset.household;
         if (!householdId) return;

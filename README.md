@@ -66,6 +66,12 @@ Harbourline is source-controlled as a small monorepo:
 
 The live app is deployed on Vercel. The public product homepage is deployed separately to GitHub Pages so the repository homepage can market Harbourline without replacing the application.
 
+## Production And Profitability
+
+The current launch gates, cost model, member scaling, break-even assumptions
+and recommended execution order are maintained in
+[`docs/PRODUCTION_AND_PROFITABILITY.md`](docs/PRODUCTION_AND_PROFITABILITY.md).
+
 ## Development
 
 Use Node.js 22 and pnpm 11.9.
