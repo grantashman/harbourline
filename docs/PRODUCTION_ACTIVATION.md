@@ -83,6 +83,11 @@ Build the production PWA and verify registration, confirmation, sign-in,
 first-copy selection, offline queueing, conflict handling, invitations,
 export and account deletion.
 
+The Vercel deployment applies the response security policy in `vercel.json`.
+Keep its `connect-src` limited to the production Supabase project, and review
+the policy before adding analytics, payment widgets or any other third-party
+browser integration.
+
 ## Existing migration history
 
 The Release 2 schema was originally applied through the SQL editor. Its deployed
