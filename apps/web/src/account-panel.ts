@@ -108,6 +108,7 @@ export class AccountPanel {
     this.applySession(await this.cloud.getSession());
     if (recoveryRedirect && this.state.session) {
       this.openRecoveryMode();
+      this.dialog.showModal();
     }
     this.cloud.onAuthChange((event, session) => {
       if (event === "PASSWORD_RECOVERY") {
