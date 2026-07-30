@@ -1,8 +1,8 @@
 # Harbourline
 
-Harbourline is a household money-planning application for people who want a clear, practical view of paydays, bills, debt, savings and future goals.
+Harbourline is a Supabase-backed household money-planning application for people who want a clear, practical view of paydays, bills, debt, savings and future goals.
 
-It began as a private Australian-dollar budget planner and is evolving into a web, desktop and mobile-ready subscription product. The product direction is simple: help households move from "what did we spend?" to "what should we do next?"
+It began as an Australian-dollar budget planner and is evolving into a web, desktop and mobile-ready subscription product. The product direction is simple: help households move from "what did we spend?" to "what should we do next?"
 
 ## Links
 
@@ -38,30 +38,29 @@ The current application includes:
 - Goals, net worth tracking and scenario modelling
 - CSV import for transactions
 - Excel workbook, CSV, PDF and JSON backup exports
-- Dark mode, responsive layout and local browser persistence
-- Optional Supabase-backed accounts, household sync and password recovery for hosted builds
+- Dark mode, responsive layout and local browser caching for continuity
+- Supabase accounts, household sync and password recovery for the hosted product
 
 ## Commercial Direction
 
-Harbourline is being prepared for a controlled demo/trial release before public self-serve registration.
+Harbourline uses Supabase accounts as its only account model. Account creation is intentionally unavailable inside the app; the public product homepage is the only signup and access-request entry point.
 
-Planned subscription positioning:
+Single-plan subscription positioning:
 
-- Free / Local: single-device planning, manual backup and core budget tools
-- Household: cloud sync, shared household plans, payday command centre and reports
-- Plus: advisor insights, deeper debt/savings plans, calendar integrations and automation
+- One Harbourline plan: A$2/month for the first 3 months, then A$5/month thereafter
+- Included: secure Supabase sign-in, household sync, payday planning, reports, savings and debt tools
 
-Public registration is intentionally paused until the demo/trial flow, onboarding, billing, privacy terms and support model are ready.
+The introductory price is the only planned offer at this stage. Billing, onboarding, privacy terms and support will be completed before broad public launch.
 
 ## Architecture
 
 Harbourline is source-controlled as a small monorepo:
 
-- `index.html` - the core app interface and local-first budgeting experience
+- `index.html` - the core budget interface and browser continuity layer
 - `apps/web` - Vite/TypeScript hosted app wrapper, account panel and sync integration
 - `packages/domain` - pure financial calculations and migrations
 - `packages/sync` - deterministic document hashing, mutation queues and conflict handling
-- `supabase` - authentication, household data model, row-level security and account lifecycle functions
+- `supabase` - required authentication, household data model, row-level security and account lifecycle functions
 - `marketing` - GitHub Pages product homepage
 - `docs` - release, deployment, security and product planning notes
 
@@ -90,14 +89,14 @@ Only use the Supabase publishable browser key in the frontend. Never commit serv
 
 ## Privacy And Security
 
-Harbourline is designed around local-first planning and explicit cloud sync.
+Harbourline is designed around Supabase-authenticated planning with a local browser cache for continuity.
 
-- Local budgets stay in browser storage until the user chooses cloud sync.
-- Hosted household sync uses Supabase authentication and row-level security.
+- A browser cache keeps the current working copy available between sessions.
+- Hosted household sync uses required Supabase authentication and row-level security.
 - Production responses include security headers through Vercel.
 - Repository source does not include personal budget history.
 - Public GitHub Pages content is marketing-only and does not store financial data.
 
 ## Status
 
-Harbourline is in active product development. The current priority is moving from a personal project to a polished subscription-ready application with a controlled demo/trial funnel, clear onboarding, and robust account safety.
+Harbourline is in active product development. The current priority is a polished single-plan subscription release with homepage-led signup, clear onboarding, billing, and robust account safety.

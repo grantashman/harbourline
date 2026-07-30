@@ -55,14 +55,14 @@ next merge.
 - disable SMTP link tracking
 - brand confirmation, magic-link and recovery emails
 - set sensible password, OTP and rate-limit controls
-- enable CAPTCHA before a public signup launch
+- enable CAPTCHA before homepage-led account requests and signup launch
 - enforce MFA for Supabase and GitHub administrators
 
 ## 5. Rehearse recovery
 
 Before inviting customers:
 
-- upgrade from the Free plan so production cannot be paused for inactivity
+- use a Supabase production plan that cannot be paused for inactivity
 - confirm the backup retention available on the selected plan
 - take and restore a test backup
 - document who owns an incident and how customers are notified

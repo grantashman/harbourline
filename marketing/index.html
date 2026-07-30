@@ -537,7 +537,7 @@
     <nav class="nav-links" aria-label="Main navigation">
       <a href="#features">Features</a>
       <a href="#pricing">Pricing</a>
-      <a href="#early-access">Early access</a>
+      <a href="#early-access">Sign up</a>
       <a class="button secondary" href="https://harbourline-zeta.vercel.app/">Open app</a>
     </nav>
   </header>
@@ -549,13 +549,13 @@
         <h1>Your household money plan, finally in one clear view.</h1>
         <p>Harbourline brings income, bills, savings, debt and future goals together so households can see what is coming, what is safe to spend, and what needs attention.</p>
         <div class="hero-actions">
-          <a class="button" href="#early-access">Join early access</a>
+          <a class="button" href="#early-access">Sign up from the homepage</a>
           <a class="button secondary" href="#pricing">See pricing</a>
         </div>
         <div class="trust-row" aria-label="Product highlights">
           <div><strong>AUD</strong><span>Built for Australian households first</span></div>
           <div><strong>13 wk</strong><span>Payday and bills forecast</span></div>
-          <div><strong>Private</strong><span>Local-first by design</span></div>
+          <div><strong>Secure</strong><span>Supabase account protection</span></div>
         </div>
       </div>
 
@@ -593,47 +593,26 @@
         <article class="section-card"><span class="icon">OK</span><h3>Debt and savings plans</h3><p>Model savings growth, debt payoff order and realistic monthly trade-offs.</p></article>
         <article class="section-card"><span class="icon">CAL</span><h3>Calendar visibility</h3><p>View planned income, bills and actual transactions in a monthly cash-flow calendar.</p></article>
         <article class="section-card"><span class="icon">PDF</span><h3>Reports and exports</h3><p>Download Excel, CSV, PDF and backup files for review, advice or record keeping.</p></article>
-        <article class="section-card"><span class="icon">SYNC</span><h3>Household sync</h3><p>Optional account sync is designed for shared household planning when cloud features are enabled.</p></article>
+        <article class="section-card"><span class="icon">SYNC</span><h3>Household sync</h3><p>Supabase-backed accounts keep the shared household plan available across supported devices.</p></article>
       </div>
     </section>
 
     <section id="pricing">
       <div class="section-head">
         <h2>Pricing designed for real households.</h2>
-        <p>These tiers are planned for the demo and trial phase. Public billing will launch once onboarding, support and account safety are production-ready.</p>
+        <p>One straightforward plan for households. New accounts are requested from this homepage; account creation is not available inside the app.</p>
       </div>
       <div class="pricing-grid">
-        <article class="price-card">
-          <span class="eyebrow">Local</span>
-          <h3>Starter</h3>
-          <div class="price">Free</div>
-          <p>Single-device planning for households who want the core budget and forecast tools.</p>
-          <ul>
-            <li>Local budget storage</li>
-            <li>Income and bills</li>
-            <li>Excel, CSV and PDF exports</li>
-          </ul>
-        </article>
         <article class="price-card featured">
-          <span class="eyebrow">Most likely</span>
-          <h3>Household</h3>
-          <div class="price">$9<span> / month target</span></div>
-          <p>Shared planning, secure sync and the payday command centre for the whole household.</p>
+          <span class="eyebrow">Introductory offer</span>
+          <h3>Harbourline</h3>
+          <div class="price">$2<span> AUD / month for 3 months</span></div>
+          <p>Then A$5/month thereafter. One plan with the complete Harbourline household planning experience.</p>
           <ul>
+            <li>Supabase account and secure sign-in</li>
             <li>Household sync</li>
-            <li>Payday and bill forecasting</li>
-            <li>Calendar exports and reports</li>
-          </ul>
-        </article>
-        <article class="price-card">
-          <span class="eyebrow">Future</span>
-          <h3>Plus</h3>
-          <div class="price">$15<span> / month target</span></div>
-          <p>Deeper guidance for households actively working through debt, savings and financial goals.</p>
-          <ul>
-            <li>Advisor-style insights</li>
-            <li>Advanced payoff modelling</li>
-            <li>Automation and integrations</li>
+            <li>Payday, bills, savings and debt planning</li>
+            <li>Calendar, Excel, CSV and PDF reports</li>
           </ul>
         </article>
       </div>
@@ -642,9 +621,9 @@
     <section id="early-access">
       <div class="signup-wrap">
         <div class="signup-card">
-          <span class="eyebrow">Early access</span>
-          <h2>Join the Harbourline demo list.</h2>
-          <p>Public registrations are paused while Harbourline is prepared for controlled demo and trial access. Register your interest and we will use that feedback to shape onboarding, pricing and the next release.</p>
+          <span class="eyebrow">Sign up</span>
+          <h2>Request your Harbourline account.</h2>
+          <p>Account creation happens from this public homepage. Submit your details to request access to the Supabase-backed Harbourline plan at the introductory A$2/month price for 3 months, then A$5/month thereafter.</p>
         </div>
         <div class="signup-card">
           <form id="earlyAccessForm">
@@ -652,15 +631,13 @@
               <label>Name<input id="name" name="name" autocomplete="name" required /></label>
               <label>Email<input id="email" name="email" type="email" autocomplete="email" required /></label>
             </div>
-            <label>Best fit
+            <label>Plan
               <select id="plan" name="plan">
-                <option>Household trial</option>
-                <option>Local budget user</option>
-                <option>Advisor / partner</option>
+                <option>Harbourline - A$2/month for 3 months, then A$5/month</option>
               </select>
             </label>
-            <button class="button" type="submit">Request early access</button>
-            <p id="formNote">This opens your email client with a pre-filled early access request. No financial data is collected on this page.</p>
+            <button class="button" type="submit">Request account access</button>
+            <p id="formNote">This opens your email client with a pre-filled account request. No financial data is collected on this page.</p>
           </form>
         </div>
       </div>
@@ -669,7 +646,7 @@
 
   <footer class="page footer">
     <span>&copy; 2026 Harbourline</span>
-    <span>Local-first household money planning.</span>
+    <span>Supabase-backed household money planning.</span>
   </footer>
 
   <script>

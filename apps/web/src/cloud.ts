@@ -75,18 +75,6 @@ export class HarbourlineCloud {
     return () => data.subscription.unsubscribe();
   }
 
-  async signUp(email: string, password: string, displayName: string): Promise<string> {
-    const { data, error } = await this.requireClient().auth.signUp({
-      email,
-      password,
-      options: { data: { display_name: displayName.trim() } }
-    });
-    if (error) throw error;
-    return data.session
-      ? "Account created and signed in."
-      : "Check your email to confirm the account, then sign in.";
-  }
-
   async signIn(email: string, password: string): Promise<void> {
     const { error } = await this.requireClient().auth.signInWithPassword({ email, password });
     if (error) throw error;

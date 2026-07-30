@@ -30,25 +30,20 @@ On payday, a household should be able to answer:
 
 ## Product principles
 
-- Local-first: the app remains useful without an account or internet access.
+- Account-based: hosted access requires a Supabase account and an internet connection.
 - Household-first: plans belong to a household, not a single device or person.
 - Explainable: every projection exposes the inputs and calculation behind it.
 - Australian by default: AUD, en-AU dates and Australian pay cycles.
 - No advertising or sale of financial data.
 - Portable: users can export and delete their data at any time.
-- Progressive: an account adds continuity and collaboration rather than
-  removing the usefulness of the local edition.
+- Focused: every supported customer uses the same Supabase-backed product and
+  receives the same core planning experience.
 
 ## Commercial model
 
-### Local
+### Harbourline
 
-The local edition remains free and includes manual planning, backup, reports
-and the core financial calculations.
-
-### Harbourline Plus
-
-The first paid plan is expected to include:
+The only plan includes:
 
 - secure cloud backup
 - multi-device synchronisation
@@ -56,10 +51,11 @@ The first paid plan is expected to include:
 - household member invitations
 - reminders and history
 - advanced plan comparisons
-- priority support
+- priority support during the introductory release
 
-Initial pricing hypothesis: A$12 monthly or A$120 annually, with a 30-day trial
-that does not require a payment card.
+Introductory pricing is A$2 per month for the first 3 months, then A$5 per
+month thereafter. Account creation is requested from the public GitHub Pages
+homepage; the hosted application does not create accounts.
 
 ### Bank connectivity
 
@@ -83,4 +79,3 @@ Right integration path.
 - financial product comparison
 - open-ended AI advice
 - native app-store billing
-

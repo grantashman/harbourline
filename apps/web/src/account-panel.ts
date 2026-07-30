@@ -228,18 +228,18 @@ export class AccountPanel {
   private renderUnconfigured(): string {
     return `
       ${this.renderNotice()}
-      <section class="release2-section release2-local-only">
+      <section class="release2-section release2-intro">
         <span class="release2-status-dot"></span>
         <div>
-          <h3>Local mode</h3>
-          <p>Your complete Harbourline budget remains private in this browser. Online accounts and household sync will appear here when this deployment is connected.</p>
+          <h3>Supabase account required</h3>
+          <p>This hosted Harbourline build uses Supabase accounts for secure sign-in and household sync. Connect the production account settings before using the hosted experience.</p>
         </div>
       </section>
       <section class="release2-section">
-        <h3>Your current protection</h3>
+        <h3>Hosted account protection</h3>
         <div class="release2-fact-grid">
-          <div><span>Storage</span><strong>This device</strong></div>
-          <div><span>Internet required</span><strong>No</strong></div>
+          <div><span>Authentication</span><strong>Supabase</strong></div>
+          <div><span>Registration</span><strong>Homepage only</strong></div>
           <div><span>Currency</span><strong>AUD</strong></div>
         </div>
       </section>
@@ -252,8 +252,8 @@ export class AccountPanel {
       <section class="release2-section release2-intro">
         <span class="release2-status-dot"></span>
         <div>
-          <h3>Your budget stays yours</h3>
-          <p>Create an account to sync this device and share one household plan. Nothing is uploaded until you choose a household and approve the first copy.</p>
+          <h3>Sign in to Harbourline</h3>
+          <p>Harbourline uses Supabase accounts for secure access and household sync. New account requests are handled on the public product homepage, not inside the app.</p>
         </div>
       </section>
       <div class="release2-auth-grid">
@@ -269,9 +269,10 @@ export class AccountPanel {
         </form>
         <section class="release2-section">
           <div class="release2-section-heading">
-            <div><span>Demo/trial mode</span><h3>Registrations paused</h3></div>
+            <div><span>New accounts</span><h3>Join from the homepage</h3></div>
           </div>
-          <p class="release2-empty">New account registration is temporarily disabled while Harbourline is prepared for demo and trial access.</p>
+          <p class="release2-empty">Account creation is disabled in the app. Visit the Harbourline homepage to request access or join the current introductory offer.</p>
+          <a class="btn secondary" href="https://grantashman.github.io/harbourline/#early-access" target="_blank" rel="noreferrer">Open Harbourline homepage</a>
         </section>
       </div>
     `;
@@ -450,8 +451,6 @@ export class AccountPanel {
       if (action === "sign-in") {
         await this.cloud.signIn(formValue(form, "email"), formValue(form, "password"));
         this.notice = "Signed in.";
-      } else if (action === "sign-up") {
-        throw new Error("New registrations are paused for now.");
       } else if (action === "update-password") {
         const password = formValue(form, "password");
         if (password !== formValue(form, "confirmation")) {
@@ -518,7 +517,7 @@ export class AccountPanel {
       } else if (action === "sign-out") {
         await this.cloud.unsubscribeFromBudget();
         await this.cloud.signOut();
-        this.notice = "Signed out. The local budget remains on this device.";
+        this.notice = "Signed out. The cached budget remains on this device.";
       } else if (action === "link-device" || action === "link-household") {
         const householdId = button.dataset.household;
         if (!householdId) return;
@@ -532,7 +531,7 @@ export class AccountPanel {
       } else if (action === "use-household") {
         await this.sync.useHouseholdVersion();
       } else if (action === "disconnect-sync") {
-        if (!confirm("Disconnect cloud sync on this device? Your local budget will remain available.")) return;
+        if (!confirm("Disconnect cloud sync on this device? Your cached budget will remain available.")) return;
         await this.sync.disconnectDevice();
         this.state.metadata = null;
       } else if (action === "copy-invite") {
@@ -555,7 +554,7 @@ export class AccountPanel {
         }
         await this.cloud.deleteAccount();
         await this.sync.disconnectDevice();
-        this.notice = "Account deleted. Your local device copy remains available.";
+        this.notice = "Account deleted. Your cached device copy remains available.";
       }
     });
   }

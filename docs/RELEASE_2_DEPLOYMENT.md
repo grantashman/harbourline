@@ -22,7 +22,9 @@ VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_your_key
 ```
 
-The unconfigured build intentionally remains in local-only mode.
+The unconfigured build intentionally shows that a Supabase account connection
+is required for the hosted experience. Account creation is not exposed in the
+application; access requests are collected on the public product homepage.
 
 ## 3. Apply the database
 
@@ -118,4 +120,3 @@ Before inviting paid customers:
 - remove financial values from logs, analytics and support captures
 - run dependency, secret and policy checks in CI
 - complete legal review of educational financial guidance
-
