@@ -267,15 +267,12 @@ export class AccountPanel {
           <button class="btn secondary" type="button" data-action="magic-link" ${this.busy ? "disabled" : ""}>Email a sign-in link</button>
           <button class="btn secondary" type="button" data-action="password-reset" ${this.busy ? "disabled" : ""}>Forgot password?</button>
         </form>
-        <form class="release2-section" data-form="sign-up">
+        <section class="release2-section">
           <div class="release2-section-heading">
-            <div><span>New to Harbourline</span><h3>Create account</h3></div>
+            <div><span>Demo/trial mode</span><h3>Registrations paused</h3></div>
           </div>
-          <label>Name<input name="displayName" type="text" autocomplete="name" maxlength="80" required /></label>
-          <label>Email<input name="email" type="email" autocomplete="email" required /></label>
-          <label>Password<input name="password" type="password" autocomplete="new-password" minlength="8" required /></label>
-          <button class="btn" type="submit" ${this.busy ? "disabled" : ""}>Create account</button>
-        </form>
+          <p class="release2-empty">New account registration is temporarily disabled while Harbourline is prepared for demo and trial access.</p>
+        </section>
       </div>
     `;
   }
@@ -454,11 +451,7 @@ export class AccountPanel {
         await this.cloud.signIn(formValue(form, "email"), formValue(form, "password"));
         this.notice = "Signed in.";
       } else if (action === "sign-up") {
-        this.notice = await this.cloud.signUp(
-          formValue(form, "email"),
-          formValue(form, "password"),
-          formValue(form, "displayName")
-        );
+        throw new Error("New registrations are paused for now.");
       } else if (action === "update-password") {
         const password = formValue(form, "password");
         if (password !== formValue(form, "confirmation")) {

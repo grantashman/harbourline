@@ -101,6 +101,10 @@
       cursor: pointer;
     }
 
+    [hidden] {
+      display: none !important;
+    }
+
     .app {
       width: min(1220px, calc(100% - 32px));
       margin: 0 auto;
@@ -392,6 +396,140 @@
       font-weight: 850;
       min-width: 0;
     }
+
+    .income-source-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 0 0 auto;
+    }
+
+    .income-remove {
+      width: 34px;
+      height: 34px;
+      border-radius: 7px;
+      color: var(--muted);
+      background: var(--field);
+      border: 1px solid var(--line);
+      font-weight: 900;
+    }
+
+    .income-remove:hover {
+      color: var(--rose);
+      border-color: color-mix(in srgb, var(--rose) 45%, var(--line));
+    }
+
+    .income-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+    }
+
+    .income-toolbar-note {
+      color: var(--muted);
+      font-size: 0.8rem;
+      font-weight: 750;
+    }
+
+    .btn.compact {
+      min-height: 36px;
+      padding: 9px 12px;
+      font-size: 0.8rem;
+    }
+
+    .menu-wrap {
+      position: relative;
+    }
+
+    .menu-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .menu-button::after {
+      content: "";
+      width: 0;
+      height: 0;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 5px solid currentColor;
+      opacity: 0.72;
+    }
+
+    .topbar-menu {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      z-index: 50;
+      min-width: 220px;
+      padding: 8px;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .topbar-menu button,
+    .topbar-menu label {
+      width: 100%;
+    }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 38px;
+      padding: 9px 10px;
+      border-radius: 7px;
+      color: var(--ink);
+      background: transparent;
+      text-align: left;
+      font-size: 0.84rem;
+      font-weight: 850;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    .menu-item:hover {
+      background: var(--field-muted);
+    }
+
+    .menu-item.danger {
+      color: var(--rose);
+    }
+
+    .menu-divider {
+      height: 1px;
+      margin: 7px 4px;
+      background: var(--line);
+    }
+
+    .menu-toggle-row {
+      cursor: pointer;
+    }
+
+    .menu-toggle-row input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--mint);
+    }
+
+    .menu-caption {
+      display: block;
+      padding: 5px 10px 8px;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
 
     .income-name {
       width: auto;
@@ -2275,7 +2413,7 @@
         0 0 0 1px rgba(7, 31, 26, 0.3) inset,
         0 1px 0 rgba(255, 255, 255, 0.08) inset,
         0 14px 34px rgba(7, 25, 21, 0.24);
-      overflow: hidden;
+      overflow: visible;
       isolation: isolate;
     }
 
@@ -2285,6 +2423,7 @@
       inset: 0;
       z-index: 0;
       background: rgba(7, 31, 26, 0.74);
+      border-radius: inherit;
     }
 
     .topbar::after {
@@ -2528,25 +2667,9 @@
     .income-source {
       padding: 0 0 0 12px;
       border: 0;
-      border-left: 2px solid var(--line);
+      border-left: 2px solid var(--income-accent, var(--line));
       border-radius: 0;
       background: transparent;
-    }
-
-    .income-source:nth-child(1) {
-      border-left-color: var(--blue);
-    }
-
-    .income-source:nth-child(2) {
-      border-left-color: var(--mint);
-    }
-
-    .income-source:nth-child(3) {
-      border-left-color: var(--amber);
-    }
-
-    .income-source:nth-child(4) {
-      border-left-color: var(--rose);
     }
 
     .income-preview {
@@ -2933,8 +3056,19 @@
         grid-column: 1 / -1;
       }
 
+      .menu-wrap,
+      .actions .btn {
+        width: 100%;
+      }
+
       .actions .btn {
         justify-content: center;
+      }
+
+      .topbar-menu {
+        left: 0;
+        right: auto;
+        width: min(280px, calc(100vw - 44px));
       }
 
       .hero-panel {
@@ -3185,14 +3319,27 @@
         </div>
       </div>
       <div class="actions" aria-label="Budget actions">
-        <label class="theme-toggle" title="Toggle dark mode">
-          <input id="themeToggle" type="checkbox" />
-          <span class="switch" aria-hidden="true"></span>
-          <span>Dark mode</span>
-        </label>
-        <button class="btn secondary" id="exportButton" type="button">Export spreadsheet</button>
-        <button class="btn secondary" id="pdfReportButton" type="button">PDF report</button>
-        <button class="btn danger" id="resetButton" type="button">Reset budget</button>
+        <div class="menu-wrap">
+          <button class="btn secondary menu-button" id="exportMenuButton" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="exportMenu">Export</button>
+          <div class="topbar-menu" id="exportMenu" role="menu" hidden>
+            <span class="menu-caption">Download report</span>
+            <button class="menu-item" id="exportButton" type="button" role="menuitem">Excel workbook</button>
+            <button class="menu-item" id="csvExportButton" type="button" role="menuitem">CSV file</button>
+            <button class="menu-item" id="pdfReportButton" type="button" role="menuitem">PDF report</button>
+          </div>
+        </div>
+        <div class="menu-wrap">
+          <button class="btn secondary menu-button" id="settingsMenuButton" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="settingsMenu">Settings</button>
+          <div class="topbar-menu" id="settingsMenu" role="menu" hidden>
+            <span class="menu-caption">Application</span>
+            <label class="menu-item menu-toggle-row" role="menuitemcheckbox">
+              <span>Dark mode</span>
+              <input id="themeToggle" type="checkbox" />
+            </label>
+            <div class="menu-divider"></div>
+            <button class="menu-item danger" id="resetButton" type="button" role="menuitem">Reset budget</button>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -3208,119 +3355,10 @@
           <h2 id="incomeTitle">Household income</h2>
           <span class="badge">AUD</span>
         </div>
-        <div class="income-source-grid">
-          <section class="income-source" aria-label="Income source 1">
-            <div class="income-source-title">
-              <input class="income-name" id="grantIncomeTitle" data-income-id="grant" type="text" maxlength="40" autocomplete="off" spellcheck="false" aria-label="Income source 1 name" placeholder="Primary income" />
-              <span class="badge">Primary</span>
-            </div>
-            <div class="field-grid">
-              <label>
-                Amount
-                <span class="input-wrap">
-                  <span class="prefix">$</span>
-                  <input class="money-input income-amount" id="grantIncomeAmount" data-income-id="grant" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" />
-                </span>
-              </label>
-              <label>
-                Frequency
-                <select class="income-frequency" id="grantIncomeFrequency" data-income-id="grant">
-                  <option value="yearly">Yearly</option>
-                  <option value="monthly">Monthly</option>
-                  <option value="fortnightly">Fortnightly</option>
-                  <option value="weekly">Weekly</option>
-                </select>
-              </label>
-              <label class="income-pay-date-field">
-                Next pay date
-                <input class="income-pay-date" id="grantIncomePayDate" data-income-id="grant" type="date" />
-              </label>
-            </div>
-          </section>
-          <section class="income-source" aria-label="Income source 2">
-            <div class="income-source-title">
-              <input class="income-name" id="billieIncomeTitle" data-income-id="billie" type="text" maxlength="40" autocomplete="off" spellcheck="false" aria-label="Income source 2 name" placeholder="Secondary income" />
-              <span class="badge">Secondary</span>
-            </div>
-            <div class="field-grid">
-              <label>
-                Amount
-                <span class="input-wrap">
-                  <span class="prefix">$</span>
-                  <input class="money-input income-amount" id="billieIncomeAmount" data-income-id="billie" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" />
-                </span>
-              </label>
-              <label>
-                Frequency
-                <select class="income-frequency" id="billieIncomeFrequency" data-income-id="billie">
-                  <option value="yearly">Yearly</option>
-                  <option value="monthly">Monthly</option>
-                  <option value="fortnightly">Fortnightly</option>
-                  <option value="weekly">Weekly</option>
-                </select>
-              </label>
-              <label class="income-pay-date-field">
-                Next pay date
-                <input class="income-pay-date" id="billieIncomePayDate" data-income-id="billie" type="date" />
-              </label>
-            </div>
-          </section>
-          <section class="income-source" aria-label="Income source 3">
-            <div class="income-source-title">
-              <input class="income-name" id="childSupportIncomeTitle" data-income-id="childSupport" type="text" maxlength="40" autocomplete="off" spellcheck="false" aria-label="Income source 3 name" placeholder="Additional income 1" />
-              <span class="badge">Additional</span>
-            </div>
-            <div class="field-grid">
-              <label>
-                Amount
-                <span class="input-wrap">
-                  <span class="prefix">$</span>
-                  <input class="money-input income-amount" id="childSupportIncomeAmount" data-income-id="childSupport" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" />
-                </span>
-              </label>
-              <label>
-                Frequency
-                <select class="income-frequency" id="childSupportIncomeFrequency" data-income-id="childSupport">
-                  <option value="monthly">Monthly</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="fortnightly">Fortnightly</option>
-                  <option value="yearly">Yearly</option>
-                </select>
-              </label>
-              <label class="income-pay-date-field">
-                Next pay date
-                <input class="income-pay-date" id="childSupportIncomePayDate" data-income-id="childSupport" type="date" />
-              </label>
-            </div>
-          </section>
-          <section class="income-source" aria-label="Income source 4">
-            <div class="income-source-title">
-              <input class="income-name" id="pensionIncomeTitle" data-income-id="pension" type="text" maxlength="40" autocomplete="off" spellcheck="false" aria-label="Income source 4 name" placeholder="Additional income 2" />
-              <span class="badge">Additional</span>
-            </div>
-            <div class="field-grid">
-              <label>
-                Amount
-                <span class="input-wrap">
-                  <span class="prefix">$</span>
-                  <input class="money-input income-amount" id="pensionIncomeAmount" data-income-id="pension" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" />
-                </span>
-              </label>
-              <label>
-                Frequency
-                <select class="income-frequency" id="pensionIncomeFrequency" data-income-id="pension">
-                  <option value="monthly">Monthly</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="fortnightly">Fortnightly</option>
-                  <option value="yearly">Yearly</option>
-                </select>
-              </label>
-              <label class="income-pay-date-field">
-                Next pay date
-                <input class="income-pay-date" id="pensionIncomePayDate" data-income-id="pension" type="date" />
-              </label>
-            </div>
-          </section>
+        <div class="income-source-grid" id="incomeSourceGrid"></div>
+        <div class="income-toolbar">
+          <span class="income-toolbar-note" id="incomeSourceCount">1 income source</span>
+          <button class="btn secondary compact" id="addIncomeSourceButton" type="button">Add income</button>
         </div>
         <div class="income-preview" aria-label="Income breakdown">
           <div class="mini-stat">
@@ -4029,12 +4067,22 @@
       return `item-${Date.now()}-${Math.random().toString(16).slice(2)}`;
     }
 
-    const INCOME_SOURCES = [
-      { id: "grant", defaultLabel: "Primary income", defaultFrequency: "yearly", defaultAmount: 0, defaultNextPayDate: "" },
-      { id: "billie", defaultLabel: "Secondary income", defaultFrequency: "yearly", defaultAmount: 0, defaultNextPayDate: "" },
-      { id: "childSupport", defaultLabel: "Additional income 1", defaultFrequency: "monthly", defaultAmount: 0, defaultNextPayDate: "" },
-      { id: "pension", defaultLabel: "Additional income 2", defaultFrequency: "monthly", defaultAmount: 0, defaultNextPayDate: "" }
-    ];
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    const INCOME_SOURCE_ACCENTS = ["var(--blue)", "var(--mint)", "var(--amber)", "var(--rose)", "#7f6ab0", "#3e8fa3"];
+    const LEGACY_INCOME_SOURCE_DEFAULTS = new Map([
+      ["grant", { defaultLabel: "Primary income", defaultFrequency: "yearly" }],
+      ["billie", { defaultLabel: "Secondary income", defaultFrequency: "yearly" }],
+      ["childSupport", { defaultLabel: "Additional income 1", defaultFrequency: "monthly" }],
+      ["pension", { defaultLabel: "Additional income 2", defaultFrequency: "monthly" }]
+    ]);
 
     function normaliseIncomeLabel(value, fallback = "Income") {
       const label = String(value || "").trim().replace(/\s+/g, " ").slice(0, 40);
@@ -4042,21 +4090,46 @@
     }
 
     function incomeSourceLabel(source) {
-      const config = INCOME_SOURCES.find((item) => item.id === source?.id);
-      return normaliseIncomeLabel(source?.label, config?.defaultLabel || "Income");
+      return normaliseIncomeLabel(source?.label, source?.defaultLabel || "Income");
     }
 
-    function createIncomeSources(overrides = {}) {
-      return INCOME_SOURCES.map((source) => {
-        const override = overrides[source.id] || {};
-        return {
-          id: source.id,
-          label: normaliseIncomeLabel(override.label, source.defaultLabel),
-          amount: Number(override.amount ?? source.defaultAmount) || 0,
-          frequency: override.frequency || source.defaultFrequency,
-          nextPayDate: String(override.nextPayDate || source.defaultNextPayDate || "")
-        };
-      });
+    function incomeDefaultLabel(index) {
+      return index === 0 ? "Primary income" : `Income source ${index + 1}`;
+    }
+
+    function normaliseIncomeSource(source = {}, index = 0) {
+      const legacy = LEGACY_INCOME_SOURCE_DEFAULTS.get(source.id);
+      const defaultLabel = source.defaultLabel || legacy?.defaultLabel || incomeDefaultLabel(index);
+      return {
+        id: String(source.id || createId()),
+        label: normaliseIncomeLabel(source.label, defaultLabel),
+        amount: Math.max(Number(source.amount) || 0, 0),
+        frequency: ["weekly", "fortnightly", "monthly", "yearly"].includes(source.frequency)
+          ? source.frequency
+          : legacy?.defaultFrequency || "monthly",
+        nextPayDate: String(source.nextPayDate || "")
+      };
+    }
+
+    function isMeaningfulIncomeSource(source, index) {
+      if (index === 0) return true;
+      const legacy = LEGACY_INCOME_SOURCE_DEFAULTS.get(source.id);
+      const defaultLabel = legacy?.defaultLabel || incomeDefaultLabel(index);
+      return (Number(source.amount) || 0) > 0
+        || Boolean(source.nextPayDate)
+        || normaliseIncomeLabel(source.label, defaultLabel) !== defaultLabel;
+    }
+
+    function createIncomeSources(saved = null) {
+      const rawSources = Array.isArray(saved)
+        ? saved
+        : saved && typeof saved === "object"
+          ? Object.entries(saved).map(([id, source]) => ({ ...(source || {}), id }))
+          : [];
+      const sources = rawSources
+        .map((source, index) => normaliseIncomeSource(source, index))
+        .filter((source, index) => isMeaningfulIncomeSource(source, index));
+      return sources.length ? sources : [normaliseIncomeSource({}, 0)];
     }
 
     const DEFAULT_SAVINGS_PLAN = {
@@ -4099,10 +4172,9 @@
     let calendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
     let selectedCalendarDate = todayValue();
 
-    const incomeAmountInputs = document.querySelectorAll(".income-amount");
-    const incomeNameInputs = document.querySelectorAll(".income-name");
-    const incomeFrequencyInputs = document.querySelectorAll(".income-frequency");
-    const incomePayDateInputs = document.querySelectorAll(".income-pay-date");
+    const incomeSourceGrid = document.querySelector("#incomeSourceGrid");
+    const incomeSourceCount = document.querySelector("#incomeSourceCount");
+    const addIncomeSourceButton = document.querySelector("#addIncomeSourceButton");
     const expenseForm = document.querySelector("#expenseForm");
     const expenseFormTitle = document.querySelector("#expenseFormTitle");
     const expenseSubmitButton = document.querySelector("#expenseSubmitButton");
@@ -4160,21 +4232,14 @@
     const scenarioInputs = document.querySelectorAll("#scenarioIncomeChange, #scenarioExpenseChange, #scenarioOneOff, #scenarioDebtWeekly");
 
     function normaliseState(parsed = {}) {
-      const savedIncomeMap = Array.isArray(parsed.incomes)
-        ? parsed.incomes.reduce((items, income) => {
-            if (!income || !income.id) return items;
-            items[income.id] = income;
-            return items;
-          }, {})
-        : {
-            grant: {
-              amount: parsed.incomeAmount,
-              frequency: parsed.incomeFrequency || "yearly"
-            }
-          };
+      const savedIncomes = Array.isArray(parsed.incomes)
+        ? parsed.incomes
+        : parsed.incomeAmount != null
+          ? [{ id: "grant", amount: parsed.incomeAmount, frequency: parsed.incomeFrequency || "yearly" }]
+          : null;
 
       return {
-        incomes: createIncomeSources(savedIncomeMap),
+        incomes: createIncomeSources(savedIncomes),
         savingsPlan: {
           ...DEFAULT_SAVINGS_PLAN,
           ...(parsed.savingsPlan || {}),
@@ -4838,14 +4903,7 @@
     function incomeSource(id) {
       let source = state.incomes.find((income) => income.id === id);
       if (!source) {
-        const config = INCOME_SOURCES.find((income) => income.id === id);
-        source = {
-          id,
-          label: config?.defaultLabel || "Income",
-          amount: 0,
-          frequency: config?.defaultFrequency || "monthly",
-          nextPayDate: ""
-        };
+        source = normaliseIncomeSource({ id }, state.incomes.length);
         state.incomes.push(source);
       }
       return source;
@@ -5770,27 +5828,48 @@
     }
 
     function renderIncomeFields() {
-      incomeNameInputs.forEach((input) => {
-        const source = incomeSource(input.dataset.incomeId);
+      state.incomes = state.incomes.length
+        ? state.incomes.map((source, index) => normaliseIncomeSource(source, index))
+        : createIncomeSources();
+      incomeSourceGrid.innerHTML = state.incomes.map((source, index) => {
         const label = incomeSourceLabel(source);
-        input.value = label;
-        input.closest(".income-source")?.setAttribute("aria-label", label);
-      });
-
-      incomeAmountInputs.forEach((input) => {
-        const source = incomeSource(input.dataset.incomeId);
-        input.value = source.amount || "";
-      });
-
-      incomeFrequencyInputs.forEach((select) => {
-        const source = incomeSource(select.dataset.incomeId);
-        select.value = source.frequency;
-      });
-
-      incomePayDateInputs.forEach((input) => {
-        const source = incomeSource(input.dataset.incomeId);
-        input.value = source.nextPayDate || "";
-      });
+        const accent = INCOME_SOURCE_ACCENTS[index % INCOME_SOURCE_ACCENTS.length];
+        const badge = index === 0 ? "Primary" : "Income";
+        return `
+          <section class="income-source" aria-label="${escapeHtml(label)}" style="--income-accent: ${escapeHtml(accent)}">
+            <div class="income-source-title">
+              <input class="income-name" data-income-id="${escapeHtml(source.id)}" type="text" maxlength="40" autocomplete="off" spellcheck="false" aria-label="Income source ${index + 1} name" placeholder="${escapeHtml(incomeDefaultLabel(index))}" value="${escapeHtml(label)}" />
+              <div class="income-source-actions">
+                <span class="badge">${badge}</span>
+                ${state.incomes.length > 1 ? `<button class="income-remove" type="button" data-income-id="${escapeHtml(source.id)}" aria-label="Remove ${escapeHtml(label)}" title="Remove income">×</button>` : ""}
+              </div>
+            </div>
+            <div class="field-grid">
+              <label>
+                Amount
+                <span class="input-wrap">
+                  <span class="prefix">$</span>
+                  <input class="money-input income-amount" data-income-id="${escapeHtml(source.id)}" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" value="${source.amount || ""}" />
+                </span>
+              </label>
+              <label>
+                Frequency
+                <select class="income-frequency" data-income-id="${escapeHtml(source.id)}">
+                  <option value="weekly" ${source.frequency === "weekly" ? "selected" : ""}>Weekly</option>
+                  <option value="fortnightly" ${source.frequency === "fortnightly" ? "selected" : ""}>Fortnightly</option>
+                  <option value="monthly" ${source.frequency === "monthly" ? "selected" : ""}>Monthly</option>
+                  <option value="yearly" ${source.frequency === "yearly" ? "selected" : ""}>Yearly</option>
+                </select>
+              </label>
+              <label class="income-pay-date-field">
+                Next pay date
+                <input class="income-pay-date" data-income-id="${escapeHtml(source.id)}" type="date" value="${escapeHtml(source.nextPayDate || "")}" />
+              </label>
+            </div>
+          </section>
+        `;
+      }).join("");
+      incomeSourceCount.textContent = `${state.incomes.length} income source${state.incomes.length === 1 ? "" : "s"}`;
     }
 
     function renderPaydayWorkspace() {
@@ -6947,6 +7026,39 @@
       showToast("Excel workbook downloaded");
     }
 
+    function csvCell(value) {
+      const text = String(value ?? "");
+      return /[",\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+    }
+
+    function exportCsvSummary() {
+      const rows = [
+        ["Section", "Name", "Category", "Frequency", "Amount", "Monthly", "Next date"],
+        ...state.incomes.map((income) => [
+          "Income",
+          incomeSourceLabel(income),
+          "",
+          frequencyLabel(income.frequency),
+          Number(income.amount) || 0,
+          monthlyAmount(income.amount, income.frequency),
+          income.nextPayDate || ""
+        ]),
+        ...state.expenses.map((expense) => [
+          "Expense",
+          expense.name,
+          expense.category,
+          frequencyLabel(expense.frequency),
+          Number(expense.amount) || 0,
+          monthlyAmount(expense.amount, expense.frequency),
+          expense.due || ""
+        ])
+      ];
+      const csv = rows.map((row) => row.map(csvCell).join(",")).join("\r\n");
+      const date = new Date().toISOString().slice(0, 10);
+      downloadBlob(new Blob([csv], { type: "text/csv;charset=utf-8" }), `${PRODUCT_SLUG}-${date}.csv`);
+      showToast("CSV file downloaded");
+    }
+
     function pdfSafe(value) {
       return String(value ?? "")
         .replace(/\u2013|\u2014/g, "-")
@@ -7543,70 +7655,74 @@
       renderCalendar();
     }
 
-    incomeNameInputs.forEach((input) => {
-      input.addEventListener("input", () => {
-        const source = incomeSource(input.dataset.incomeId);
+    function refreshIncomeAmountViews() {
+      renderSummary();
+      renderCharts();
+      renderSavingsPlan();
+      renderDebtResults();
+      renderAdvisorSnapshot();
+      renderInsights();
+      renderPaydayWorkspace();
+      renderExpenses();
+      renderScenario();
+      renderCalendar();
+    }
+
+    incomeSourceGrid.addEventListener("input", (event) => {
+      const input = event.target;
+      if (!(input instanceof HTMLInputElement)) return;
+      const source = incomeSource(input.dataset.incomeId);
+      if (input.classList.contains("income-name")) {
         source.label = String(input.value || "").slice(0, 40);
-        const label = incomeSourceLabel(source);
-        input.closest(".income-source")?.setAttribute("aria-label", label);
+        input.closest(".income-source")?.setAttribute("aria-label", incomeSourceLabel(source));
         saveState();
         refreshIncomeNameViews();
-      });
-
-      input.addEventListener("change", () => {
-        const source = incomeSource(input.dataset.incomeId);
-        source.label = incomeSourceLabel(source);
-        input.value = source.label;
-        saveState();
-        refreshIncomeNameViews();
-      });
-    });
-
-    incomeAmountInputs.forEach((input) => {
-      input.addEventListener("input", () => {
-        const source = incomeSource(input.dataset.incomeId);
+      } else if (input.classList.contains("income-amount")) {
         source.amount = Number(input.value) || 0;
         saveState();
-        renderSummary();
-        renderCharts();
-        renderSavingsPlan();
-        renderDebtResults();
-        renderAdvisorSnapshot();
-        renderInsights();
-        renderPaydayWorkspace();
-        renderExpenses();
-        renderScenario();
-        renderCalendar();
-      });
+        refreshIncomeAmountViews();
+      }
     });
 
-    incomeFrequencyInputs.forEach((select) => {
-      select.addEventListener("change", () => {
-        const source = incomeSource(select.dataset.incomeId);
-        source.frequency = select.value;
+    incomeSourceGrid.addEventListener("change", (event) => {
+      const target = event.target;
+      if (target instanceof HTMLInputElement && target.classList.contains("income-name")) {
+        const source = incomeSource(target.dataset.incomeId);
+        source.label = incomeSourceLabel(source);
+        target.value = source.label;
         saveState();
-        renderSummary();
-        renderCharts();
-        renderSavingsPlan();
-        renderDebtResults();
-        renderAdvisorSnapshot();
-        renderInsights();
-        renderPaydayWorkspace();
-        renderExpenses();
-        renderScenario();
-        renderCalendar();
-      });
-    });
-
-    incomePayDateInputs.forEach((input) => {
-      input.addEventListener("change", () => {
-        const source = incomeSource(input.dataset.incomeId);
-        source.nextPayDate = input.value || "";
+        refreshIncomeNameViews();
+      } else if (target instanceof HTMLSelectElement && target.classList.contains("income-frequency")) {
+        const source = incomeSource(target.dataset.incomeId);
+        source.frequency = target.value;
+        saveState();
+        refreshIncomeAmountViews();
+      } else if (target instanceof HTMLInputElement && target.classList.contains("income-pay-date")) {
+        const source = incomeSource(target.dataset.incomeId);
+        source.nextPayDate = target.value || "";
         saveState();
         renderPaydayWorkspace();
         renderExpenses();
         renderCalendar();
-      });
+      }
+    });
+
+    incomeSourceGrid.addEventListener("click", (event) => {
+      const button = event.target instanceof Element ? event.target.closest(".income-remove") : null;
+      if (!(button instanceof HTMLButtonElement)) return;
+      if (state.incomes.length <= 1) return;
+      const source = incomeSource(button.dataset.incomeId);
+      state.incomes = state.incomes.filter((income) => income.id !== source.id);
+      saveState();
+      render();
+      showToast(`${incomeSourceLabel(source)} removed`);
+    });
+
+    addIncomeSourceButton.addEventListener("click", () => {
+      state.incomes.push(normaliseIncomeSource({}, state.incomes.length));
+      saveState();
+      render();
+      showToast("Income source added");
     });
 
     function updateSavingsPlan(updates) {
@@ -7897,35 +8013,59 @@
     categoryFilter.addEventListener("change", renderExpenses);
     sortSelect.addEventListener("change", renderExpenses);
 
+    const topbarMenus = [
+      { button: document.querySelector("#exportMenuButton"), menu: document.querySelector("#exportMenu") },
+      { button: document.querySelector("#settingsMenuButton"), menu: document.querySelector("#settingsMenu") }
+    ];
+
+    function closeTopbarMenus(except = null) {
+      topbarMenus.forEach(({ button, menu }) => {
+        if (menu === except) return;
+        menu.hidden = true;
+        button.setAttribute("aria-expanded", "false");
+      });
+    }
+
+    topbarMenus.forEach(({ button, menu }) => {
+      button.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const shouldOpen = menu.hidden;
+        closeTopbarMenus(menu);
+        menu.hidden = !shouldOpen;
+        button.setAttribute("aria-expanded", String(shouldOpen));
+      });
+      menu.addEventListener("click", (event) => event.stopPropagation());
+    });
+
+    document.addEventListener("click", () => closeTopbarMenus());
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closeTopbarMenus();
+    });
+
     document.querySelector("#resetButton").addEventListener("click", () => {
       const confirmed = window.confirm("Reset your saved budget data on this device?");
       if (!confirmed) return;
       resetExpenseForm();
-      state = {
-        incomes: createIncomeSources({
-          grant: { amount: 0 },
-          billie: { amount: 0 },
-          childSupport: { amount: 0 },
-          pension: { amount: 0 }
-        }),
-        savingsPlan: { ...DEFAULT_SAVINGS_PLAN },
-        debtPlan: { ...DEFAULT_DEBT_PLAN },
-        paydayPlan: { ...DEFAULT_PAYDAY_PLAN, nextPayday: todayValue() },
-        transactions: [],
-        goals: [],
-        netWorthItems: [],
-        netWorthHistory: [],
-        expenses: []
-      };
+      state = createDefaultState();
+      state.paydayPlan.nextPayday = todayValue();
       saveState();
       render();
+      closeTopbarMenus();
       showToast("Budget reset");
     });
 
-    document.querySelector("#exportButton").addEventListener("click", exportSpreadsheet);
+    document.querySelector("#exportButton").addEventListener("click", () => {
+      exportSpreadsheet();
+      closeTopbarMenus();
+    });
+    document.querySelector("#csvExportButton").addEventListener("click", () => {
+      exportCsvSummary();
+      closeTopbarMenus();
+    });
     document.querySelector("#pdfReportButton").addEventListener("click", async () => {
       try {
         await exportPdfReport();
+        closeTopbarMenus();
       } catch (error) {
         console.error(error);
         showToast("PDF report could not be created");
