@@ -1,0 +1,687 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Harbourline | Household Money Planning</title>
+  <meta name="description" content="Harbourline helps households plan paydays, bills, debt, savings and goals in one calm financial command centre." />
+  <meta property="og:title" content="Harbourline | Household Money Planning" />
+  <meta property="og:description" content="Budgeting, payday planning, debt payoff and savings projections for modern households." />
+  <meta property="og:type" content="website" />
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #06110f;
+      --panel: #0d1d1a;
+      --panel-2: #112824;
+      --ink: #f4fffb;
+      --muted: #adc5bd;
+      --line: rgba(174, 230, 211, 0.18);
+      --mint: #5ce0b3;
+      --mint-2: #2fb98d;
+      --blue: #7fa7ff;
+      --amber: #ffc66d;
+      --rose: #ff8d9c;
+      --shadow: 0 30px 90px rgba(0, 0, 0, 0.38);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 12% 8%, rgba(92, 224, 179, 0.18), transparent 30%),
+        radial-gradient(circle at 84% 16%, rgba(127, 167, 255, 0.14), transparent 32%),
+        linear-gradient(180deg, #071512 0%, #06110f 58%, #091714 100%);
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    .page {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .nav {
+      position: sticky;
+      top: 14px;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin: 18px auto 0;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(7, 21, 18, 0.78);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand img {
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      box-shadow: 0 10px 28px rgba(92, 224, 179, 0.16);
+    }
+
+    .eyebrow {
+      color: var(--mint);
+      font-size: 0.72rem;
+      font-weight: 850;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .brand strong {
+      display: block;
+      margin-top: 2px;
+      font-size: 1.15rem;
+      line-height: 1;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .nav-links a {
+      padding: 10px 12px;
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 0.88rem;
+      font-weight: 750;
+    }
+
+    .nav-links a:hover {
+      color: var(--ink);
+      background: rgba(255, 255, 255, 0.07);
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 0 16px;
+      border: 1px solid rgba(92, 224, 179, 0.36);
+      border-radius: 8px;
+      color: #04130f;
+      background: linear-gradient(135deg, var(--mint), #96f2d2);
+      font-weight: 850;
+      box-shadow: 0 18px 36px rgba(52, 202, 155, 0.18);
+    }
+
+    .button.secondary {
+      color: var(--ink);
+      background: rgba(255, 255, 255, 0.07);
+      border-color: var(--line);
+      box-shadow: none;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.02fr) minmax(360px, 0.98fr);
+      gap: 22px;
+      align-items: stretch;
+      padding: 74px 0 36px;
+    }
+
+    .hero-copy {
+      padding: 28px 0;
+    }
+
+    .hero h1 {
+      max-width: 760px;
+      margin: 14px 0 18px;
+      font-size: clamp(2.8rem, 7vw, 5.7rem);
+      line-height: 0.93;
+      letter-spacing: 0;
+    }
+
+    .hero p {
+      max-width: 650px;
+      margin: 0;
+      color: var(--muted);
+      font-size: clamp(1.04rem, 2vw, 1.28rem);
+      line-height: 1.55;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 26px;
+    }
+
+    .trust-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 26px;
+      max-width: 660px;
+    }
+
+    .trust-row div,
+    .app-card,
+    .section-card,
+    .price-card,
+    .signup-card {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(13, 29, 26, 0.78);
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset;
+    }
+
+    .trust-row div {
+      padding: 13px;
+    }
+
+    .trust-row strong {
+      display: block;
+      font-size: 1.25rem;
+    }
+
+    .trust-row span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    .app-card {
+      position: relative;
+      overflow: hidden;
+      min-height: 560px;
+      padding: 20px;
+      background:
+        linear-gradient(180deg, rgba(17, 40, 36, 0.92), rgba(9, 23, 20, 0.96)),
+        url("assets/harbourline-waterfront.jpg") center / cover;
+    }
+
+    .app-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .status-pill {
+      border-radius: 999px;
+      padding: 8px 10px;
+      color: var(--mint);
+      background: rgba(92, 224, 179, 0.14);
+      font-size: 0.76rem;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .metric {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(4, 19, 15, 0.64);
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 8px;
+      font-size: 1.75rem;
+    }
+
+    .timeline {
+      margin-top: 18px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .timeline-row {
+      display: grid;
+      grid-template-columns: 92px 1fr auto;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .bar {
+      height: 8px;
+      overflow: hidden;
+      border-radius: 99px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .bar i {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--mint), var(--blue));
+    }
+
+    section {
+      padding: 46px 0;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: clamp(1.9rem, 4vw, 3.2rem);
+      line-height: 1;
+    }
+
+    .section-head p {
+      max-width: 560px;
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .section-card {
+      padding: 20px;
+      min-height: 190px;
+    }
+
+    .icon {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      color: #031410;
+      background: linear-gradient(135deg, var(--mint), #c1ffe9);
+      font-weight: 950;
+    }
+
+    .section-card h3,
+    .price-card h3 {
+      margin: 18px 0 10px;
+      font-size: 1.18rem;
+    }
+
+    .section-card p,
+    .price-card p,
+    .signup-card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .price-card {
+      padding: 22px;
+    }
+
+    .price-card.featured {
+      border-color: rgba(92, 224, 179, 0.46);
+      background: linear-gradient(180deg, rgba(34, 78, 67, 0.9), rgba(13, 29, 26, 0.82));
+    }
+
+    .price {
+      margin: 14px 0 14px;
+      font-size: 2.1rem;
+      font-weight: 950;
+    }
+
+    .price span {
+      color: var(--muted);
+      font-size: 0.85rem;
+      font-weight: 750;
+    }
+
+    ul {
+      display: grid;
+      gap: 10px;
+      margin: 18px 0 0;
+      padding: 0;
+      list-style: none;
+      color: var(--muted);
+    }
+
+    li::before {
+      content: "\\2713";
+      margin-right: 9px;
+      color: var(--mint);
+      font-weight: 950;
+    }
+
+    .signup-wrap {
+      display: grid;
+      grid-template-columns: minmax(0, 0.82fr) minmax(340px, 0.88fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .signup-card {
+      padding: 24px;
+    }
+
+    form {
+      display: grid;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    label {
+      display: grid;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 850;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    input,
+    select {
+      min-height: 46px;
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0 12px;
+      color: var(--ink);
+      background: rgba(3, 14, 12, 0.72);
+      outline: none;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: rgba(92, 224, 179, 0.76);
+      box-shadow: 0 0 0 3px rgba(92, 224, 179, 0.12);
+    }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 28px 0 44px;
+      color: var(--muted);
+      border-top: 1px solid var(--line);
+    }
+
+    @media (max-width: 920px) {
+      .hero,
+      .signup-wrap {
+        grid-template-columns: 1fr;
+      }
+
+      .feature-grid,
+      .pricing-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 660px) {
+      .page {
+        width: min(100% - 20px, 1180px);
+      }
+
+      .nav {
+        position: static;
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .nav-links {
+        width: 100%;
+        justify-content: flex-start;
+      }
+
+      .nav-links a,
+      .button {
+        width: 100%;
+      }
+
+      .hero {
+        padding-top: 46px;
+      }
+
+      .trust-row,
+      .feature-grid,
+      .pricing-grid,
+      .field-row {
+        grid-template-columns: 1fr;
+      }
+
+      .app-card {
+        min-height: auto;
+      }
+
+      .metric-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="page nav">
+    <a class="brand" href="#top" aria-label="Harbourline homepage">
+      <img src="assets/harbourline-mark.svg" alt="" />
+      <span>
+        <span class="eyebrow">Household money planning</span>
+        <strong>Harbourline</strong>
+      </span>
+    </a>
+    <nav class="nav-links" aria-label="Main navigation">
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#early-access">Early access</a>
+      <a class="button secondary" href="https://harbourline-zeta.vercel.app/">Open app</a>
+    </nav>
+  </header>
+
+  <main id="top" class="page">
+    <section class="hero">
+      <div class="hero-copy">
+        <span class="eyebrow">Budgeting, payday planning and progress</span>
+        <h1>Your household money plan, finally in one clear view.</h1>
+        <p>Harbourline brings income, bills, savings, debt and future goals together so households can see what is coming, what is safe to spend, and what needs attention.</p>
+        <div class="hero-actions">
+          <a class="button" href="#early-access">Join early access</a>
+          <a class="button secondary" href="#pricing">See pricing</a>
+        </div>
+        <div class="trust-row" aria-label="Product highlights">
+          <div><strong>AUD</strong><span>Built for Australian households first</span></div>
+          <div><strong>13 wk</strong><span>Payday and bills forecast</span></div>
+          <div><strong>Private</strong><span>Local-first by design</span></div>
+        </div>
+      </div>
+
+      <aside class="app-card" aria-label="Harbourline app preview">
+        <div class="app-top">
+          <div>
+            <span class="eyebrow">Command centre</span>
+            <h2>Harbourline</h2>
+          </div>
+          <span class="status-pill">Plan funded</span>
+        </div>
+        <div class="metric-grid">
+          <div class="metric"><span>Monthly income</span><strong>$5,349.76</strong></div>
+          <div class="metric"><span>Weekly set-aside</span><strong>$642.11</strong></div>
+          <div class="metric"><span>Shortfall</span><strong>$0.00</strong></div>
+          <div class="metric"><span>Safe to spend</span><strong>$411.80</strong></div>
+        </div>
+        <div class="timeline" aria-label="Upcoming cash flow">
+          <div class="timeline-row"><strong>Payday</strong><span class="bar"><i style="width: 88%"></i></span><span>+$1,234</span></div>
+          <div class="timeline-row"><strong>Rent</strong><span class="bar"><i style="width: 72%"></i></span><span>-$625</span></div>
+          <div class="timeline-row"><strong>Savings</strong><span class="bar"><i style="width: 46%"></i></span><span>-$124</span></div>
+          <div class="timeline-row"><strong>Debt</strong><span class="bar"><i style="width: 34%"></i></span><span>-$80</span></div>
+        </div>
+      </aside>
+    </section>
+
+    <section id="features">
+      <div class="section-head">
+        <h2>Plan the next pay, not just the last month.</h2>
+        <p>Harbourline is built around the real rhythm of household money: income dates, due dates, bill cycles, savings targets and debt repayment choices.</p>
+      </div>
+      <div class="feature-grid">
+        <article class="section-card"><span class="icon">$</span><h3>Flexible income</h3><p>Add one income stream or many, each with its own amount, frequency and next pay date.</p></article>
+        <article class="section-card"><span class="icon">UP</span><h3>Payday command centre</h3><p>See what to set aside every pay cycle and whether upcoming bills are fully funded.</p></article>
+        <article class="section-card"><span class="icon">OK</span><h3>Debt and savings plans</h3><p>Model savings growth, debt payoff order and realistic monthly trade-offs.</p></article>
+        <article class="section-card"><span class="icon">CAL</span><h3>Calendar visibility</h3><p>View planned income, bills and actual transactions in a monthly cash-flow calendar.</p></article>
+        <article class="section-card"><span class="icon">PDF</span><h3>Reports and exports</h3><p>Download Excel, CSV, PDF and backup files for review, advice or record keeping.</p></article>
+        <article class="section-card"><span class="icon">SYNC</span><h3>Household sync</h3><p>Optional account sync is designed for shared household planning when cloud features are enabled.</p></article>
+      </div>
+    </section>
+
+    <section id="pricing">
+      <div class="section-head">
+        <h2>Pricing designed for real households.</h2>
+        <p>These tiers are planned for the demo and trial phase. Public billing will launch once onboarding, support and account safety are production-ready.</p>
+      </div>
+      <div class="pricing-grid">
+        <article class="price-card">
+          <span class="eyebrow">Local</span>
+          <h3>Starter</h3>
+          <div class="price">Free</div>
+          <p>Single-device planning for households who want the core budget and forecast tools.</p>
+          <ul>
+            <li>Local budget storage</li>
+            <li>Income and bills</li>
+            <li>Excel, CSV and PDF exports</li>
+          </ul>
+        </article>
+        <article class="price-card featured">
+          <span class="eyebrow">Most likely</span>
+          <h3>Household</h3>
+          <div class="price">$9<span> / month target</span></div>
+          <p>Shared planning, secure sync and the payday command centre for the whole household.</p>
+          <ul>
+            <li>Household sync</li>
+            <li>Payday and bill forecasting</li>
+            <li>Calendar exports and reports</li>
+          </ul>
+        </article>
+        <article class="price-card">
+          <span class="eyebrow">Future</span>
+          <h3>Plus</h3>
+          <div class="price">$15<span> / month target</span></div>
+          <p>Deeper guidance for households actively working through debt, savings and financial goals.</p>
+          <ul>
+            <li>Advisor-style insights</li>
+            <li>Advanced payoff modelling</li>
+            <li>Automation and integrations</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section id="early-access">
+      <div class="signup-wrap">
+        <div class="signup-card">
+          <span class="eyebrow">Early access</span>
+          <h2>Join the Harbourline demo list.</h2>
+          <p>Public registrations are paused while Harbourline is prepared for controlled demo and trial access. Register your interest and we will use that feedback to shape onboarding, pricing and the next release.</p>
+        </div>
+        <div class="signup-card">
+          <form id="earlyAccessForm">
+            <div class="field-row">
+              <label>Name<input id="name" name="name" autocomplete="name" required /></label>
+              <label>Email<input id="email" name="email" type="email" autocomplete="email" required /></label>
+            </div>
+            <label>Best fit
+              <select id="plan" name="plan">
+                <option>Household trial</option>
+                <option>Local budget user</option>
+                <option>Advisor / partner</option>
+              </select>
+            </label>
+            <button class="button" type="submit">Request early access</button>
+            <p id="formNote">This opens your email client with a pre-filled early access request. No financial data is collected on this page.</p>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="page footer">
+    <span>&copy; 2026 Harbourline</span>
+    <span>Local-first household money planning.</span>
+  </footer>
+
+  <script>
+    document.querySelector("#earlyAccessForm").addEventListener("submit", (event) => {
+      event.preventDefault();
+      const name = encodeURIComponent(document.querySelector("#name").value.trim());
+      const email = encodeURIComponent(document.querySelector("#email").value.trim());
+      const plan = encodeURIComponent(document.querySelector("#plan").value);
+      const subject = encodeURIComponent("Harbourline early access request");
+      const body = encodeURIComponent(`Hi,\n\nI'd like early access to Harbourline.\n\nName: ${decodeURIComponent(name)}\nEmail: ${decodeURIComponent(email)}\nInterest: ${decodeURIComponent(plan)}\n\nThanks.`);
+      window.location.href = `mailto:grant@ashman.net.au?subject=${subject}&body=${body}`;
+    });
+  </script>
+</body>
+</html>
