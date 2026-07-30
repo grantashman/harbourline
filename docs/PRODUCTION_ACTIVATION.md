@@ -18,35 +18,35 @@ Before wider launch, review whether Australian data residency is required and
 create a Sydney project if appropriate. A Supabase project's primary region
 cannot be changed after creation.
 
-## 2. Configure the GitHub production environment
+## 2. GitHub production integration
 
-In the private `grantashman/harbourline` repository, create a GitHub Actions
-environment named `production`. Add these environment secrets:
+The Supabase GitHub App is installed on the private
+`grantashman/harbourline` repository only. The Harbourline project is connected
+with:
 
-- `SUPABASE_ACCESS_TOKEN`: a fine-grained Supabase token with the minimum
-  project read, database deployment and function deployment permissions
-- `SUPABASE_PROJECT_REF`: the beta project's 20-character reference
-- `SUPABASE_DB_PASSWORD`: the beta project's database password
+- working directory: `.`
+- production deployment: enabled
+- production branch: `main`
+- automatic preview branches: disabled on the current plan
 
-Protect the environment with required approval before deployment. Browser
-publishable keys belong in the web host's environment, not in GitHub source.
+Supabase applies changes under `supabase/` after they are merged into `main`.
+The repository CI still runs application, domain, sync, schema and production
+build checks before merge. No account-wide Supabase access token or database
+password is stored in GitHub.
 
-## 3. Run the first deployment
+## 3. Release database and function changes
 
-Open GitHub Actions and manually run `Deploy Supabase Production`.
+1. Create a timestamped migration in `supabase/migrations/`.
+2. Update or add Edge Functions under `supabase/functions/`.
+3. Run `pnpm check`.
+4. Open and review a pull request.
+5. Merge the reviewed change into `main`.
+6. Confirm the Supabase integration reports a successful production update.
 
-The workflow:
-
-1. runs all application, domain, sync and schema checks
-2. verifies the target is healthy and in an approved Asia-Pacific region
-3. previews pending migrations
-4. applies migrations through Supabase migration history
-5. deploys all Edge Functions
-6. prints the final migration state
-
-The workflow is manual until production has passed backup, email and recovery
-tests. After that gate, a reviewed change can enable deployment on merges to
-`main`.
+Do not edit the production schema directly in the SQL editor after this
+activation. If an emergency manual change is unavoidable, immediately capture
+the same change in a migration and reconcile the migration ledger before the
+next merge.
 
 ## 4. Configure authentication
 
@@ -85,13 +85,6 @@ export and account deletion.
 
 ## Existing migration history
 
-The current schema was applied through the SQL editor. Before the first
-automated deployment, link it with the Supabase CLI and mark the already-applied
-migration once:
-
-```text
-supabase migration repair 202607300001 --status applied
-supabase migration list
-```
-
-Do this only after confirming the deployed schema matches the migration.
+The Release 2 schema was originally applied through the SQL editor. Its deployed
+schema was verified and migration `202607300001_release_2_household_sync.sql`
+was recorded as applied before the GitHub integration was enabled.

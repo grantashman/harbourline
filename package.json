@@ -10,7 +10,6 @@
     "test": "pnpm --filter @harbourline/domain test && pnpm --filter @harbourline/sync test",
     "db:verify": "node scripts/verify-release2-schema.mjs",
     "db:test": "supabase test db",
-    "production:verify": "node scripts/verify-production-project.mjs",
     "check": "pnpm typecheck && pnpm test && pnpm db:verify && pnpm build"
   }
 }

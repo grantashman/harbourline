@@ -83,8 +83,9 @@ service-role key. See `docs/RELEASE_2_DEPLOYMENT.md` for activation.
 
 The current Supabase project is approved for a controlled Asia-Pacific beta.
 Its Tokyo data-residency limitation must be disclosed and reassessed before a
-wider launch. Production changes use the guarded GitHub Actions deployment in
-`docs/PRODUCTION_ACTIVATION.md`.
+wider launch. Production database and Edge Function changes are deployed from
+the private GitHub repository through Supabase's repository-scoped GitHub
+integration. See `docs/PRODUCTION_ACTIVATION.md`.
 
 ## Privacy
 
