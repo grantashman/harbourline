@@ -12,9 +12,18 @@
   <title>Harbourline | Household Money Planning</title>
   <script>
     try {
-      if ((localStorage.getItem("harbourline-theme") || localStorage.getItem("pocket-harbour-theme") || localStorage.getItem("budget-studio-theme")) === "dark") {
-        document.documentElement.dataset.theme = "dark";
-      }
+      const storedTheme = localStorage.getItem("harbourline-theme")
+        || localStorage.getItem("pocket-harbour-theme")
+        || localStorage.getItem("budget-studio-theme");
+      const palette = storedTheme === "dark"
+        ? "harbour-night"
+        : storedTheme === "light"
+          ? "sea-glass"
+          : ["harbour-night", "sea-glass", "deep-ocean", "sunset-ledger"].includes(storedTheme)
+            ? storedTheme
+            : "harbour-night";
+      document.documentElement.dataset.palette = palette;
+      document.documentElement.dataset.theme = ["sea-glass", "sunset-ledger"].includes(palette) ? "light" : "dark";
     } catch {}
   </script>
   <style>
@@ -466,7 +475,7 @@
       top: calc(100% + 8px);
       right: 0;
       z-index: 50;
-      min-width: 220px;
+      min-width: 280px;
       padding: 8px;
       border: 1px solid var(--line-strong);
       border-radius: 8px;
@@ -528,6 +537,129 @@
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.04em;
+    }
+
+    .theme-options {
+      display: grid;
+      gap: 6px;
+      padding: 0 4px 4px;
+    }
+
+    .theme-option {
+      --option-bg: #06110f;
+      --option-panel: #112824;
+      --option-accent: #5ce0b3;
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 9px;
+      width: 100%;
+      min-height: 48px;
+      padding: 7px 8px;
+      color: var(--ink);
+      border: 1px solid transparent;
+      border-radius: 7px;
+      background: transparent;
+      text-align: left;
+    }
+
+    .theme-option:hover,
+    .theme-option:focus-visible,
+    .theme-option.is-selected {
+      border-color: color-mix(in srgb, var(--option-accent) 52%, var(--line));
+      background: color-mix(in srgb, var(--option-accent) 10%, var(--panel));
+      outline: none;
+    }
+
+    .theme-option[data-theme-option="sea-glass"] {
+      --option-bg: #f1f7f4;
+      --option-panel: #ffffff;
+      --option-accent: #1c9a71;
+    }
+
+    .theme-option[data-theme-option="deep-ocean"] {
+      --option-bg: #071321;
+      --option-panel: #132b43;
+      --option-accent: #80a8ff;
+    }
+
+    .theme-option[data-theme-option="sunset-ledger"] {
+      --option-bg: #fbf4ec;
+      --option-panel: #fffdf8;
+      --option-accent: #b85b45;
+    }
+
+    .theme-swatch {
+      position: relative;
+      display: block;
+      width: 34px;
+      height: 34px;
+      overflow: hidden;
+      border: 1px solid color-mix(in srgb, var(--option-accent) 42%, var(--line));
+      border-radius: 8px;
+      background: var(--option-bg);
+      box-shadow: 0 3px 8px color-mix(in srgb, var(--option-bg) 32%, transparent);
+    }
+
+    .theme-swatch::before,
+    .theme-swatch::after {
+      position: absolute;
+      content: "";
+    }
+
+    .theme-swatch::before {
+      inset: 6px 5px auto;
+      height: 8px;
+      border-radius: 3px;
+      background: var(--option-panel);
+      box-shadow: 0 11px 0 var(--option-panel);
+    }
+
+    .theme-swatch::after {
+      right: 5px;
+      bottom: 5px;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--option-accent);
+    }
+
+    .theme-option-copy {
+      display: grid;
+      min-width: 0;
+      gap: 1px;
+    }
+
+    .theme-option-copy strong {
+      overflow: hidden;
+      font-size: 0.78rem;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .theme-option-copy small {
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 0.68rem;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .theme-option-check {
+      display: grid;
+      width: 20px;
+      height: 20px;
+      place-items: center;
+      color: var(--option-accent);
+      border: 1px solid transparent;
+      border-radius: 50%;
+      font-size: 0.75rem;
+      font-weight: 900;
+    }
+
+    .theme-option[aria-checked="false"] .theme-option-check {
+      color: transparent;
+      border-color: var(--line);
     }
 
 
@@ -2334,47 +2466,129 @@
     }
 
     :root {
-      --ink: #172220;
-      --muted: #65736f;
-      --line: #dce4e0;
-      --paper: #eef3f1;
-      --panel: #ffffff;
-      --panel-soft: #edf5f1;
-      --field: #ffffff;
-      --field-muted: #f6f8f7;
-      --mint: #22a77b;
-      --mint-dark: #08795a;
-      --blue: #3f6fb8;
-      --amber: #d58a25;
-      --rose: #c85260;
-      --button: #17362f;
-      --button-text: #ffffff;
-      --toast-bg: #17362f;
-      --toast-text: #ffffff;
-      --shadow: 0 1px 2px rgba(20, 43, 38, 0.05), 0 12px 32px rgba(20, 43, 38, 0.07);
-      --radius: 8px;
-      font-family: Aptos, "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+      color-scheme: dark;
+      --ink: #f4fffb;
+      --muted: #adc5bd;
+      --line: rgba(174, 230, 211, 0.18);
+      --line-strong: rgba(174, 230, 211, 0.34);
+      --paper: #06110f;
+      --panel: #0d1d1a;
+      --panel-soft: #112824;
+      --field: #091713;
+      --field-muted: #0f211c;
+      --mint: #5ce0b3;
+      --mint-dark: #96f2d2;
+      --blue: #7fa7ff;
+      --amber: #ffc66d;
+      --rose: #ff8d9c;
+      --button: #5ce0b3;
+      --button-text: #04130f;
+      --toast-bg: #f4fffb;
+      --toast-text: #06110f;
+      --shadow: 0 30px 90px rgba(0, 0, 0, 0.38);
+      --body-background:
+        radial-gradient(circle at 12% 8%, rgba(92, 224, 179, 0.18), transparent 30%),
+        radial-gradient(circle at 84% 16%, rgba(127, 167, 255, 0.14), transparent 32%),
+        linear-gradient(180deg, #071512 0%, #06110f 58%, #091714 100%);
+      --topbar-background: rgba(7, 21, 18, 0.78);
+      --hero-overlay: rgba(6, 28, 24, 0.34);
+      --hero-ink: #f5fbf8;
+      --hero-line: #17332d;
+      --radius: 10px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
-    :root[data-theme="dark"] {
-      --ink: #edf5f2;
-      --muted: #9fb0ac;
-      --line: #2a3a38;
-      --paper: #0b1213;
-      --panel: #121c1d;
-      --panel-soft: #172625;
-      --field: #0e1718;
-      --field-muted: #162120;
-      --mint: #4bc89b;
-      --mint-dark: #78dab7;
-      --blue: #7ea6eb;
-      --amber: #edb45c;
-      --rose: #ed7d89;
-      --button: #55cba0;
-      --button-text: #07130f;
-      --toast-bg: #edf5f2;
-      --toast-text: #07130f;
-      --shadow: 0 1px 2px rgba(0, 0, 0, 0.24), 0 14px 34px rgba(0, 0, 0, 0.22);
+    :root[data-palette="sea-glass"] {
+      color-scheme: light;
+      --ink: #10251f;
+      --muted: #587069;
+      --line: #cde0d7;
+      --line-strong: #b5d0c4;
+      --paper: #f1f7f4;
+      --panel: #ffffff;
+      --panel-soft: #e4f1eb;
+      --field: #fbfdfc;
+      --field-muted: #f4f9f6;
+      --mint: #1c9a71;
+      --mint-dark: #0d6f50;
+      --blue: #3c6bb5;
+      --amber: #c47a1d;
+      --rose: #b64658;
+      --button: #0e3f33;
+      --button-text: #f7fffb;
+      --toast-bg: #0e3f33;
+      --toast-text: #f7fffb;
+      --shadow: 0 1px 2px rgba(20, 43, 38, 0.05), 0 16px 36px rgba(20, 43, 38, 0.08);
+      --body-background:
+        radial-gradient(circle at 12% 8%, rgba(28, 154, 113, 0.14), transparent 30%),
+        radial-gradient(circle at 84% 16%, rgba(60, 107, 181, 0.1), transparent 32%),
+        linear-gradient(180deg, #fbfdfc 0%, #f1f7f4 58%, #eaf3ef 100%);
+      --topbar-background: rgba(255, 255, 255, 0.8);
+      --hero-overlay: rgba(6, 28, 24, 0.48);
+      --hero-ink: #f5fbf8;
+      --hero-line: rgba(13, 111, 80, 0.65);
+    }
+
+    :root[data-palette="deep-ocean"] {
+      color-scheme: dark;
+      --ink: #eef6ff;
+      --muted: #a5bbd2;
+      --line: rgba(156, 195, 231, 0.2);
+      --line-strong: rgba(156, 195, 231, 0.36);
+      --paper: #071321;
+      --panel: #0e1e31;
+      --panel-soft: #132b43;
+      --field: #091829;
+      --field-muted: #10243a;
+      --mint: #6ce0c2;
+      --mint-dark: #9af4dc;
+      --blue: #80a8ff;
+      --amber: #f3be64;
+      --rose: #ff9bab;
+      --button: #74d4be;
+      --button-text: #071321;
+      --toast-bg: #eef6ff;
+      --toast-text: #071321;
+      --shadow: 0 30px 90px rgba(0, 5, 18, 0.48);
+      --body-background:
+        radial-gradient(circle at 12% 8%, rgba(108, 224, 194, 0.16), transparent 30%),
+        radial-gradient(circle at 84% 16%, rgba(128, 168, 255, 0.16), transparent 32%),
+        linear-gradient(180deg, #0b1b2c 0%, #071321 58%, #0b1828 100%);
+      --topbar-background: rgba(8, 23, 39, 0.82);
+      --hero-overlay: rgba(4, 20, 35, 0.56);
+      --hero-ink: #f4f9ff;
+      --hero-line: #1c4257;
+    }
+
+    :root[data-palette="sunset-ledger"] {
+      color-scheme: light;
+      --ink: #30211c;
+      --muted: #806b60;
+      --line: #e6d4c3;
+      --line-strong: #dac1ac;
+      --paper: #fbf4ec;
+      --panel: #fffdf8;
+      --panel-soft: #f5e8d8;
+      --field: #fffefa;
+      --field-muted: #fbf2e6;
+      --mint: #b85b45;
+      --mint-dark: #88412f;
+      --blue: #4e718f;
+      --amber: #cf8c2c;
+      --rose: #bf5a62;
+      --button: #4b2e27;
+      --button-text: #fff9f4;
+      --toast-bg: #4b2e27;
+      --toast-text: #fff9f4;
+      --shadow: 0 1px 2px rgba(76, 46, 39, 0.06), 0 16px 36px rgba(76, 46, 39, 0.1);
+      --body-background:
+        radial-gradient(circle at 12% 8%, rgba(184, 91, 69, 0.13), transparent 30%),
+        radial-gradient(circle at 84% 16%, rgba(207, 140, 44, 0.12), transparent 32%),
+        linear-gradient(180deg, #fffaf4 0%, #fbf4ec 58%, #f4e8db 100%);
+      --topbar-background: rgba(255, 253, 248, 0.84);
+      --hero-overlay: rgba(67, 34, 26, 0.52);
+      --hero-ink: #fff8f2;
+      --hero-line: rgba(136, 65, 47, 0.68);
     }
 
     * {
@@ -2383,7 +2597,7 @@
 
     body,
     :root[data-theme="dark"] body {
-      background: var(--paper);
+      background: var(--body-background);
     }
 
     body {
@@ -2392,38 +2606,28 @@
     }
 
     .app {
-      width: min(1360px, calc(100% - 40px));
-      padding: 20px 0 48px;
+      width: min(1180px, calc(100% - 32px));
+      padding: 0 0 48px;
     }
 
     .topbar {
       position: sticky;
-      top: 12px;
+      top: 14px;
       z-index: 20;
       align-items: center;
-      margin-bottom: 16px;
-      padding: 12px 14px;
-      border: 1px solid rgba(111, 207, 173, 0.2);
-      border-radius: 8px;
-      background-color: #102923;
-      background-image: url("assets/harbourline-waterfront.jpg");
-      background-position: 66% 36%;
-      background-size: cover;
-      box-shadow:
-        0 0 0 1px rgba(7, 31, 26, 0.3) inset,
-        0 1px 0 rgba(255, 255, 255, 0.08) inset,
-        0 14px 34px rgba(7, 25, 21, 0.24);
+      margin: 18px 0 22px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--topbar-background);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
       overflow: visible;
       isolation: isolate;
     }
 
     .topbar::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      z-index: 0;
-      background: rgba(7, 31, 26, 0.74);
-      border-radius: inherit;
+      display: none;
     }
 
     .topbar::after {
@@ -2434,7 +2638,7 @@
       bottom: 0;
       height: 2px;
       z-index: 0;
-      background: #43c99a;
+      background: var(--mint);
       border-radius: 2px 2px 0 0;
     }
 
@@ -2451,13 +2655,13 @@
     }
 
     .brand-title {
-      color: #ffffff;
+      color: var(--ink);
       font-size: 1.55rem;
       line-height: 1.1;
     }
 
     .topbar .eyebrow {
-      color: #94d9c0;
+      color: var(--mint);
       margin-bottom: 3px;
       font-size: 0.7rem;
     }
@@ -2469,24 +2673,24 @@
     .topbar .theme-toggle,
     .topbar .btn.secondary {
       min-height: 38px;
-      color: #ecf7f3;
-      background: rgba(10, 31, 27, 0.52);
-      border-color: rgba(255, 255, 255, 0.2);
-      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset;
+      color: var(--ink);
+      background: color-mix(in srgb, var(--panel) 82%, transparent);
+      border-color: var(--line);
+      box-shadow: 0 1px 0 color-mix(in srgb, var(--ink) 10%, transparent) inset;
       backdrop-filter: blur(10px);
     }
 
     .topbar .btn.danger,
     :root[data-theme="dark"] .topbar .btn.danger {
       min-height: 38px;
-      color: #ffd8dc;
-      background: rgba(207, 77, 92, 0.14);
-      border-color: rgba(255, 170, 180, 0.26);
+      color: var(--rose);
+      background: color-mix(in srgb, var(--rose) 12%, transparent);
+      border-color: color-mix(in srgb, var(--rose) 28%, var(--line));
     }
 
     .topbar .btn:hover,
     .topbar .theme-toggle:hover {
-      background: rgba(255, 255, 255, 0.11);
+      background: color-mix(in srgb, var(--mint) 12%, var(--panel));
       box-shadow: none;
     }
 
@@ -2529,12 +2733,12 @@
     :root[data-theme="dark"] .hero-panel {
       min-height: 320px;
       padding: 28px;
-      color: #f5fbf8;
+      color: var(--hero-ink);
       background-color: #12332b;
-      background-image: url("assets/harbourline-waterfront.jpg");
+      background-image: linear-gradient(var(--hero-overlay), var(--hero-overlay)), url("assets/harbourline-waterfront.jpg");
       background-position: 61% center;
       background-size: cover;
-      border-color: #17332d;
+      border-color: var(--hero-line);
       align-content: end;
       box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08) inset, 0 18px 40px rgba(13, 38, 31, 0.15);
       isolation: isolate;
@@ -2545,7 +2749,7 @@
       position: absolute;
       inset: 0;
       z-index: 0;
-      background: rgba(6, 28, 24, 0.34);
+      background: transparent;
     }
 
     .hero-panel::after {
@@ -2556,8 +2760,8 @@
       width: auto;
       height: auto;
       z-index: 1;
-      border: 1px solid rgba(191, 229, 215, 0.22);
-      border-left: 3px solid #50cda0;
+      border: 1px solid color-mix(in srgb, var(--hero-ink) 22%, transparent);
+      border-left: 3px solid var(--mint);
       border-radius: 6px;
       background: transparent;
       transform: none;
@@ -3034,7 +3238,7 @@
     @media (max-width: 680px) {
       .app {
         width: calc(100% - 20px);
-        padding-top: 10px;
+        padding-top: 0;
       }
 
       .topbar {
@@ -3050,10 +3254,6 @@
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         width: 100%;
-      }
-
-      .theme-toggle {
-        grid-column: 1 / -1;
       }
 
       .menu-wrap,
@@ -3331,11 +3531,29 @@
         <div class="menu-wrap">
           <button class="btn secondary menu-button" id="settingsMenuButton" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="settingsMenu">Settings</button>
           <div class="topbar-menu" id="settingsMenu" role="menu" hidden>
-            <span class="menu-caption">Application</span>
-            <label class="menu-item menu-toggle-row" role="menuitemcheckbox">
-              <span>Dark mode</span>
-              <input id="themeToggle" type="checkbox" />
-            </label>
+            <span class="menu-caption">Colour scheme</span>
+            <div class="theme-options" role="group" aria-label="Colour scheme">
+              <button class="theme-option" type="button" role="menuitemradio" data-theme-option="harbour-night" aria-checked="true">
+                <span class="theme-swatch" aria-hidden="true"></span>
+                <span class="theme-option-copy"><strong>Harbour Night</strong><small>Marketing dark</small></span>
+                <span class="theme-option-check" aria-hidden="true">✓</span>
+              </button>
+              <button class="theme-option" type="button" role="menuitemradio" data-theme-option="sea-glass" aria-checked="false">
+                <span class="theme-swatch" aria-hidden="true"></span>
+                <span class="theme-option-copy"><strong>Sea Glass</strong><small>Clear and light</small></span>
+                <span class="theme-option-check" aria-hidden="true">✓</span>
+              </button>
+              <button class="theme-option" type="button" role="menuitemradio" data-theme-option="deep-ocean" aria-checked="false">
+                <span class="theme-swatch" aria-hidden="true"></span>
+                <span class="theme-option-copy"><strong>Deep Ocean</strong><small>Blue-hour focus</small></span>
+                <span class="theme-option-check" aria-hidden="true">✓</span>
+              </button>
+              <button class="theme-option" type="button" role="menuitemradio" data-theme-option="sunset-ledger" aria-checked="false">
+                <span class="theme-swatch" aria-hidden="true"></span>
+                <span class="theme-option-copy"><strong>Sunset Ledger</strong><small>Warm and grounded</small></span>
+                <span class="theme-option-check" aria-hidden="true">✓</span>
+              </button>
+            </div>
             <div class="menu-divider"></div>
             <button class="menu-item danger" id="resetButton" type="button" role="menuitem">Reset budget</button>
           </div>
@@ -4010,6 +4228,13 @@
     const LEGACY_STORAGE_KEYS = ["pocket-harbour-aud-v1", "budget-studio-aud-v1"];
     const THEME_KEY = "harbourline-theme";
     const LEGACY_THEME_KEYS = ["pocket-harbour-theme", "budget-studio-theme"];
+    const DEFAULT_THEME = "harbour-night";
+    const THEME_OPTIONS = {
+      "harbour-night": { label: "Harbour Night", mode: "dark", browserColor: "#06110f" },
+      "sea-glass": { label: "Sea Glass", mode: "light", browserColor: "#f1f7f4" },
+      "deep-ocean": { label: "Deep Ocean", mode: "dark", browserColor: "#071321" },
+      "sunset-ledger": { label: "Sunset Ledger", mode: "light", browserColor: "#fbf4ec" }
+    };
     const CURRENCY_FORMATTER = new Intl.NumberFormat("en-AU", {
       style: "currency",
       currency: "AUD"
@@ -4195,7 +4420,7 @@
     const categoryFilter = document.querySelector("#categoryFilter");
     const sortSelect = document.querySelector("#sortSelect");
     const toast = document.querySelector("#toast");
-    const themeToggle = document.querySelector("#themeToggle");
+    const themeOptions = document.querySelectorAll("[data-theme-option]");
     const savingsRate = document.querySelector("#savingsRate");
     const savingsRateNumber = document.querySelector("#savingsRateNumber");
     const startingSavings = document.querySelector("#startingSavings");
@@ -7648,23 +7873,40 @@
       showToast("PDF report downloaded");
     }
 
+    function normaliseTheme(theme) {
+      if (theme === "dark") return "harbour-night";
+      if (theme === "light") return "sea-glass";
+      return Object.hasOwn(THEME_OPTIONS, theme) ? theme : DEFAULT_THEME;
+    }
+
+    function updateThemeOptions(theme) {
+      themeOptions.forEach((option) => {
+        const selected = option.dataset.themeOption === theme;
+        option.setAttribute("aria-checked", String(selected));
+        option.classList.toggle("is-selected", selected);
+      });
+    }
+
     function applyTheme(theme) {
-      const isDark = theme === "dark";
-      document.documentElement.dataset.theme = isDark ? "dark" : "light";
-      themeToggle.checked = isDark;
+      const selectedTheme = normaliseTheme(theme);
+      const definition = THEME_OPTIONS[selectedTheme];
+      document.documentElement.dataset.palette = selectedTheme;
+      document.documentElement.dataset.theme = definition.mode;
+      document.querySelector('meta[name="theme-color"]')?.setAttribute("content", definition.browserColor);
+      updateThemeOptions(selectedTheme);
       try {
-        localStorage.setItem(THEME_KEY, isDark ? "dark" : "light");
+        localStorage.setItem(THEME_KEY, selectedTheme);
       } catch {}
     }
 
     function loadTheme() {
-      let savedTheme = "light";
+      let savedTheme = DEFAULT_THEME;
       try {
         savedTheme = localStorage.getItem(THEME_KEY)
           || LEGACY_THEME_KEYS.map((key) => localStorage.getItem(key)).find(Boolean)
-          || "light";
+          || DEFAULT_THEME;
       } catch {}
-      applyTheme(savedTheme === "dark" ? "dark" : "light");
+      applyTheme(savedTheme);
     }
 
     function refreshIncomeNameViews() {
@@ -8093,9 +8335,13 @@
       }
     });
 
-    themeToggle.addEventListener("change", () => {
-      applyTheme(themeToggle.checked ? "dark" : "light");
-      showToast(themeToggle.checked ? "Dark mode on" : "Dark mode off");
+    themeOptions.forEach((option) => {
+      option.addEventListener("click", () => {
+        const selectedTheme = normaliseTheme(option.dataset.themeOption);
+        applyTheme(selectedTheme);
+        showToast(`${THEME_OPTIONS[selectedTheme].label} selected`);
+        closeTopbarMenus();
+      });
     });
 
     loadTheme();
