@@ -74,9 +74,12 @@ export class HarbourlineCloud {
     this.configured = Boolean(url && publishableKey);
     this.client = this.configured
       ? createClient(url, publishableKey, {
-          auth: {
-            flowType: "pkce",
-            persistSession: true,
+        auth: {
+          // The public homepage and app use different origins. The homepage
+          // therefore returns OAuth sessions in the URL fragment so the app
+          // can consume them after the redirect.
+          flowType: "implicit",
+          persistSession: true,
             autoRefreshToken: true,
             detectSessionInUrl: true
           }
@@ -106,6 +109,15 @@ export class HarbourlineCloud {
 
   async signIn(email: string, password: string): Promise<void> {
     const { error } = await this.requireClient().auth.signInWithPassword({ email, password });
+    if (error) throw error;
+  }
+
+  async signInWithGoogle(): Promise<void> {
+    const redirectTo = `${location.origin}${location.pathname}?account=signin`;
+    const { error } = await this.requireClient().auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo }
+    });
     if (error) throw error;
   }
 

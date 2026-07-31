@@ -481,6 +481,16 @@ export class AccountPanel {
           <label>Email<input name="email" type="email" autocomplete="email" required /></label>
           <label>Password<input name="password" type="password" autocomplete="current-password" minlength="8" required /></label>
           <button class="btn" type="submit" ${this.busy ? "disabled" : ""}>Sign in</button>
+          <div class="release2-auth-divider" role="separator"><span>or continue with</span></div>
+          <button class="btn secondary release2-google-button" type="button" data-action="google-sign-in" ${this.busy ? "disabled" : ""}>
+            <svg class="release2-provider-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path fill="#4285F4" d="M21.35 12.23c0-.7-.06-1.37-.18-2.02H12v3.82h5.24a4.48 4.48 0 0 1-1.94 2.94v2.44h3.14c1.84-1.7 2.91-4.2 2.91-7.18Z"/>
+              <path fill="#34A853" d="M12 21.6c2.63 0 4.84-.87 6.45-2.35l-3.14-2.44c-.87.58-1.98.92-3.31.92-2.54 0-4.69-1.72-5.46-4.03H3.3v2.52A9.74 9.74 0 0 0 12 21.6Z"/>
+              <path fill="#FBBC05" d="M6.54 13.7a5.86 5.86 0 0 1 0-3.4V7.78H3.3a9.6 9.6 0 0 0 0 8.44l3.24-2.52Z"/>
+              <path fill="#EA4335" d="M12 6.27c1.43 0 2.71.49 3.72 1.45l2.79-2.79C16.84 3.37 14.63 2.4 12 2.4a9.74 9.74 0 0 0-8.7 5.38l3.24 2.52C7.31 7.99 9.46 6.27 12 6.27Z"/>
+            </svg>
+            <span>Continue with Google</span>
+          </button>
           <button class="btn secondary" type="button" data-action="magic-link" ${this.busy ? "disabled" : ""}>Email a sign-in link</button>
           <button class="btn secondary" type="button" data-action="password-reset" ${this.busy ? "disabled" : ""}>Forgot password?</button>
         </form>
@@ -489,7 +499,7 @@ export class AccountPanel {
             <div><span>New accounts</span><h3>Join from the homepage</h3></div>
           </div>
           <p class="release2-empty">Account creation is handled on the Harbourline homepage. Create your account there, then return here to sign in and continue to secure payment.</p>
-          <a class="btn secondary" href="https://grantashman.github.io/harbourline/#early-access" target="_blank" rel="noreferrer">Create account on homepage</a>
+          <a class="btn secondary release2-homepage-button" href="https://grantashman.github.io/harbourline/#early-access" target="_blank" rel="noreferrer">Create account on homepage</a>
         </section>
       </div>
     `;
@@ -776,7 +786,9 @@ export class AccountPanel {
       return;
     }
     void this.run(async () => {
-      if (action === "magic-link") {
+      if (action === "google-sign-in") {
+        await this.cloud.signInWithGoogle();
+      } else if (action === "magic-link") {
         const form = button.closest("form");
         if (!(form instanceof HTMLFormElement)) return;
         const email = formValue(form, "email");

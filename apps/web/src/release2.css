@@ -196,6 +196,38 @@
   gap: 13px;
 }
 
+.release2-auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.release2-auth-divider::before,
+.release2-auth-divider::after {
+  height: 1px;
+  flex: 1;
+  background: var(--line);
+  content: "";
+}
+
+.release2-google-button,
+.release2-homepage-button {
+  width: 100%;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.release2-provider-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+}
+
 .release2-section-heading {
   display: flex;
   min-width: 0;
