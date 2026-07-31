@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createServiceRoleClient } from "../_shared/beta.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "https://harbourline-zeta.vercel.app",
@@ -35,6 +36,15 @@ Deno.serve(async (request) => {
   if (billingError) return new Response("Billing status could not be checked", { status: 500, headers: corsHeaders });
   if (existingBilling && ["active", "trialing", "past_due", "unpaid", "incomplete"].includes(existingBilling.status)) {
     return new Response("An existing subscription needs to be managed from the billing portal.", { status: 409, headers: corsHeaders });
+  }
+
+  const admin = createServiceRoleClient();
+  const { error: checkoutEventError } = await admin.from("beta_operational_events").insert({
+    user_id: user.id,
+    event_name: "checkout_started"
+  });
+  if (checkoutEventError) {
+    return new Response("Checkout activity could not be recorded", { status: 500, headers: corsHeaders });
   }
 
   const form = new URLSearchParams({

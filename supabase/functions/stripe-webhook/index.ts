@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendLifecycleEmail } from "../_shared/beta-email.ts";
 
 type StripeObject = Record<string, unknown>;
 
@@ -123,6 +124,14 @@ async function findKnownUserId(
   return null;
 }
 
+function lifecycleEventName(previousStatus: string | null, nextStatus: string): string | null {
+  if (previousStatus === nextStatus) return null;
+  if (nextStatus === "active") return "subscription_activated";
+  if (nextStatus === "past_due") return "subscription_past_due";
+  if (nextStatus === "canceled") return "subscription_cancelled";
+  return null;
+}
+
 Deno.serve(async (request) => {
   if (request.method !== "POST") return new Response("Method not allowed", { status: 405 });
 
@@ -174,6 +183,14 @@ Deno.serve(async (request) => {
         throw new Error("Subscription could not be matched to a Harbourline account");
       }
 
+      const { data: previousBilling, error: previousBillingError } = await admin
+        .from("billing_subscriptions")
+        .select("status")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (previousBillingError) throw new Error(previousBillingError.message);
+      const previousStatus = previousBilling?.status ?? null;
+
       const { error: subscriptionError } = await admin.from("billing_subscriptions").upsert({
         user_id: userId,
         stripe_customer_id: snapshot.customerId,
@@ -185,6 +202,30 @@ Deno.serve(async (request) => {
         updated_at: new Date().toISOString()
       }, { onConflict: "user_id" });
       if (subscriptionError) throw new Error(subscriptionError.message);
+
+      const lifecycleEvent = lifecycleEventName(previousStatus, snapshot.status);
+      if (lifecycleEvent) {
+        const { error: lifecycleEventError } = await admin.from("beta_operational_events").insert({
+          user_id: userId,
+          event_name: lifecycleEvent
+        });
+        if (lifecycleEventError) throw new Error(lifecycleEventError.message);
+
+        const { data: account, error: accountError } = await admin.auth.admin.getUserById(userId);
+        if (accountError || !account.user?.email) {
+          console.error("Lifecycle email could not be addressed", {
+            kind: lifecycleEvent,
+            message: accountError?.message ?? "No account email was available"
+          });
+        } else {
+          await sendLifecycleEmail({
+            recipient: account.user.email,
+            previousStatus,
+            nextStatus: snapshot.status,
+            currentPeriodEnd: snapshot.currentPeriodEnd
+          });
+        }
+      }
     }
 
     const { error: processedError } = await admin
