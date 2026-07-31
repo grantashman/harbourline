@@ -314,6 +314,53 @@ describe("budget state migration", () => {
     );
   });
 
+  it("normalises payday checklist and confirmation history", () => {
+    const migrated = normaliseBudgetState({
+      paydayPlan: {
+        payCycle: "fortnightly",
+        nextPayday: "2026-08-06",
+        billsAccountBalance: 420,
+        checklist: {
+          paydayDate: "2026-08-06",
+          billsTransferConfirmed: true,
+          savingsDebtConfirmed: false,
+          safeSpendConfirmed: true,
+          confirmedAt: "2026-08-06T01:00:00.000Z"
+        },
+        history: [{
+          id: "payday-1",
+          paydayDate: "2026-07-23",
+          confirmedAt: "2026-07-23T01:00:00.000Z",
+          income: 1800,
+          transfer: 600,
+          savings: 180,
+          extraDebt: 50,
+          safeSpend: 970,
+          billsPaid: 2
+        }]
+      }
+    });
+
+    assert.deepEqual(migrated.paydayPlan.checklist, {
+      paydayDate: "2026-08-06",
+      billsTransferConfirmed: true,
+      savingsDebtConfirmed: false,
+      safeSpendConfirmed: true,
+      confirmedAt: "2026-08-06T01:00:00.000Z"
+    });
+    assert.deepEqual(migrated.paydayPlan.history[0], {
+      id: "payday-1",
+      paydayDate: "2026-07-23",
+      confirmedAt: "2026-07-23T01:00:00.000Z",
+      income: 1800,
+      transfer: 600,
+      savings: 180,
+      extraDebt: 50,
+      safeSpend: 970,
+      billsPaid: 2
+    });
+  });
+
   it("creates a versioned portable backup", () => {
     const backup = createBudgetBackup(
       createDefaultBudgetState(),

@@ -56,6 +56,28 @@ export interface PaydayPlan {
   payCycle: "weekly" | "fortnightly";
   nextPayday: string;
   billsAccountBalance: number;
+  checklist: PaydayChecklist;
+  history: PaydayRecord[];
+}
+
+export interface PaydayChecklist {
+  paydayDate: string;
+  billsTransferConfirmed: boolean;
+  savingsDebtConfirmed: boolean;
+  safeSpendConfirmed: boolean;
+  confirmedAt: string;
+}
+
+export interface PaydayRecord {
+  id: string;
+  paydayDate: string;
+  confirmedAt: string;
+  income: number;
+  transfer: number;
+  savings: number;
+  extraDebt: number;
+  safeSpend: number;
+  billsPaid: number;
 }
 
 export interface Transaction {

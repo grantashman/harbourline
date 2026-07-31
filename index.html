@@ -1542,6 +1542,192 @@
       font-size: 0.82rem;
     }
 
+    .payday-loop {
+      margin-bottom: 18px;
+      padding: 18px;
+      border: 1px solid color-mix(in srgb, var(--mint) 34%, var(--line));
+      border-radius: 10px;
+      background: var(--panel-soft);
+    }
+
+    .payday-loop-head,
+    .payday-loop-footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .payday-loop-head h3 {
+      font-size: 1.1rem;
+    }
+
+    .payday-loop-head p {
+      max-width: 620px;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.45;
+    }
+
+    .payday-loop-date {
+      min-width: 150px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--panel);
+      text-align: right;
+    }
+
+    .payday-loop-date span,
+    .payday-loop-date strong {
+      display: block;
+    }
+
+    .payday-loop-date span {
+      color: var(--muted);
+      font-size: 0.65rem;
+      font-weight: 850;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .payday-loop-date strong {
+      margin-top: 4px;
+      font-size: 0.86rem;
+    }
+
+    .payday-checklist {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin: 16px 0;
+    }
+
+    .payday-checklist-item {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      min-height: 70px;
+      padding: 11px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      cursor: pointer;
+      transition: border-color 160ms ease, background-color 160ms ease;
+    }
+
+    .payday-checklist-item:hover {
+      border-color: color-mix(in srgb, var(--mint) 54%, var(--line));
+    }
+
+    .payday-checklist-item:has(input:checked) {
+      border-color: color-mix(in srgb, var(--mint) 72%, var(--line));
+      background: color-mix(in srgb, var(--mint) 9%, var(--panel));
+    }
+
+    .payday-checklist-item input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--mint);
+    }
+
+    .payday-checklist-item input:focus-visible {
+      outline: 3px solid color-mix(in srgb, var(--mint) 35%, transparent);
+      outline-offset: 3px;
+    }
+
+    .payday-checklist-copy strong,
+    .payday-checklist-copy small {
+      display: block;
+    }
+
+    .payday-checklist-copy strong {
+      font-size: 0.78rem;
+    }
+
+    .payday-checklist-copy small {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 0.68rem;
+      line-height: 1.35;
+    }
+
+    .payday-checklist-amount {
+      color: var(--mint-dark);
+      font-size: 0.78rem;
+      font-weight: 900;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .payday-loop-footer {
+      align-items: center;
+    }
+
+    .payday-loop-progress strong,
+    .payday-loop-progress span {
+      display: block;
+    }
+
+    .payday-loop-progress strong {
+      font-size: 0.82rem;
+    }
+
+    .payday-loop-progress span {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 0.7rem;
+    }
+
+    .payday-loop-confirmed {
+      color: var(--mint-dark) !important;
+    }
+
+    .payday-history-section {
+      margin-top: 18px;
+    }
+
+    .payday-history-list {
+      display: grid;
+      gap: 7px;
+    }
+
+    .payday-history-item {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--field-muted);
+    }
+
+    .payday-history-item strong,
+    .payday-history-item span {
+      display: block;
+    }
+
+    .payday-history-item strong {
+      font-size: 0.8rem;
+    }
+
+    .payday-history-item span {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 0.7rem;
+    }
+
+    .payday-history-values {
+      color: var(--ink) !important;
+      font-size: 0.76rem !important;
+      font-weight: 850;
+      text-align: right;
+      white-space: nowrap;
+    }
+
     .workspace-control-grid,
     .workspace-metrics,
     .workspace-columns,
@@ -1995,6 +2181,19 @@
 
     .upcoming-item {
       grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .upcoming-item-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .upcoming-item-actions .btn {
+      min-height: 32px;
+      padding: 0 9px;
+      font-size: 0.7rem;
     }
 
     .upcoming-item strong,
@@ -3433,6 +3632,41 @@
         grid-template-columns: 64px minmax(80px, 1fr) 84px;
       }
 
+      .payday-loop-head,
+      .payday-loop-footer {
+        display: block;
+      }
+
+      .payday-loop-date {
+        margin-top: 12px;
+        text-align: left;
+      }
+
+      .payday-checklist {
+        grid-template-columns: 1fr;
+      }
+
+      .payday-loop-footer .btn {
+        width: 100%;
+        margin-top: 12px;
+      }
+
+      .payday-history-item {
+        grid-template-columns: 1fr;
+      }
+
+      .payday-history-values {
+        text-align: left;
+      }
+
+      .upcoming-item {
+        grid-template-columns: 1fr;
+      }
+
+      .upcoming-item-actions {
+        justify-content: space-between;
+      }
+
       .comparison-row {
         grid-template-columns: minmax(0, 1fr) 78px 78px;
       }
@@ -3668,6 +3902,52 @@
             </span>
           </label>
         </div>
+        <section class="payday-loop" aria-labelledby="paydayLoopTitle">
+          <div class="payday-loop-head">
+            <div>
+              <p class="eyebrow">Payday check-in</p>
+              <h3 id="paydayLoopTitle">Make the plan before money moves.</h3>
+              <p>Complete these three steps to turn the forecast into a plan you can act on today.</p>
+            </div>
+            <div class="payday-loop-date">
+              <span>Next payday</span>
+              <strong id="paydayCheckinDate">Not set</strong>
+            </div>
+          </div>
+          <div class="payday-checklist" id="paydayChecklist">
+            <label class="payday-checklist-item">
+              <input id="paydayStepBills" type="checkbox" />
+              <span class="payday-checklist-copy">
+                <strong>Move the bills amount</strong>
+                <small id="paydayStepBillsNote">Transfer to protect upcoming bills.</small>
+              </span>
+              <span class="payday-checklist-amount" id="paydayStepBillsAmount">$0.00</span>
+            </label>
+            <label class="payday-checklist-item">
+              <input id="paydayStepSavingsDebt" type="checkbox" />
+              <span class="payday-checklist-copy">
+                <strong>Set savings and debt aside</strong>
+                <small id="paydayStepSavingsDebtNote">Keep long-term progress moving.</small>
+              </span>
+              <span class="payday-checklist-amount" id="paydayStepSavingsDebtAmount">$0.00</span>
+            </label>
+            <label class="payday-checklist-item">
+              <input id="paydayStepSafeSpend" type="checkbox" />
+              <span class="payday-checklist-copy">
+                <strong>Set your safe-to-spend limit</strong>
+                <small id="paydayStepSafeSpendNote">Know what is available until the next pay.</small>
+              </span>
+              <span class="payday-checklist-amount" id="paydayStepSafeSpendAmount">$0.00</span>
+            </label>
+          </div>
+          <div class="payday-loop-footer">
+            <div class="payday-loop-progress" aria-live="polite">
+              <strong id="paydayChecklistProgress">0 of 3 steps complete</strong>
+              <span id="paydayChecklistStatus">Complete the checklist to confirm this payday plan.</span>
+            </div>
+            <button class="btn" id="confirmPaydayButton" type="button" disabled>Confirm payday plan</button>
+          </div>
+        </section>
         <div class="workspace-metrics">
           <div class="workspace-metric">
             <span>Income this pay</span>
@@ -3682,7 +3962,7 @@
           <div class="workspace-metric">
             <span>Safe to spend</span>
             <strong id="paydaySafeSpend">$0.00</strong>
-            <small>After bills, savings and extra debt</small>
+            <small id="paydaySafeSpendNote">After bills, savings and extra debt</small>
           </div>
           <div class="workspace-metric">
             <span>13-week low point</span>
@@ -3706,6 +3986,13 @@
             <div class="upcoming-list" id="upcomingBills"></div>
           </section>
         </div>
+        <section class="workspace-section payday-history-section" aria-labelledby="paydayHistoryTitle">
+          <div class="workspace-section-head">
+            <h3 id="paydayHistoryTitle">Recent payday plans</h3>
+            <span class="badge" id="paydayHistoryBadge">No confirmations yet</span>
+          </div>
+          <div class="payday-history-list" id="paydayHistory"></div>
+        </section>
       </div>
 
       <div class="workspace-panel" id="calendarPanel" role="tabpanel" aria-labelledby="calendarTab" data-workspace-panel="calendar" hidden>
@@ -4386,10 +4673,20 @@
       extraPayment: 0
     };
 
+    const DEFAULT_PAYDAY_CHECKLIST = {
+      paydayDate: "",
+      billsTransferConfirmed: false,
+      savingsDebtConfirmed: false,
+      safeSpendConfirmed: false,
+      confirmedAt: ""
+    };
+
     const DEFAULT_PAYDAY_PLAN = {
       payCycle: "weekly",
       nextPayday: "",
-      billsAccountBalance: 0
+      billsAccountBalance: 0,
+      checklist: { ...DEFAULT_PAYDAY_CHECKLIST },
+      history: []
     };
 
     function createDefaultState() {
@@ -4398,7 +4695,11 @@
         incomes: createIncomeSources(),
         savingsPlan: { ...DEFAULT_SAVINGS_PLAN },
         debtPlan: { ...DEFAULT_DEBT_PLAN },
-        paydayPlan: { ...DEFAULT_PAYDAY_PLAN },
+        paydayPlan: {
+          ...DEFAULT_PAYDAY_PLAN,
+          checklist: { ...DEFAULT_PAYDAY_CHECKLIST },
+          history: []
+        },
         transactions: [],
         goals: [],
         netWorthItems: [],
@@ -4457,6 +4758,15 @@
     const billsAccountBalance = document.querySelector("#billsAccountBalance");
     const paydayForecast = document.querySelector("#paydayForecast");
     const upcomingBills = document.querySelector("#upcomingBills");
+    const paydayCheckinDate = document.querySelector("#paydayCheckinDate");
+    const paydayStepBills = document.querySelector("#paydayStepBills");
+    const paydayStepSavingsDebt = document.querySelector("#paydayStepSavingsDebt");
+    const paydayStepSafeSpend = document.querySelector("#paydayStepSafeSpend");
+    const paydayChecklistProgress = document.querySelector("#paydayChecklistProgress");
+    const paydayChecklistStatus = document.querySelector("#paydayChecklistStatus");
+    const confirmPaydayButton = document.querySelector("#confirmPaydayButton");
+    const paydayHistoryBadge = document.querySelector("#paydayHistoryBadge");
+    const paydayHistory = document.querySelector("#paydayHistory");
     const realityMonth = document.querySelector("#realityMonth");
     const transactionForm = document.querySelector("#transactionForm");
     const transactionDate = document.querySelector("#transactionDate");
@@ -4502,7 +4812,29 @@
           ...DEFAULT_PAYDAY_PLAN,
           ...(parsed.paydayPlan || {}),
           payCycle: parsed.paydayPlan?.payCycle === "fortnightly" ? "fortnightly" : "weekly",
-          billsAccountBalance: Math.max(Number(parsed.paydayPlan?.billsAccountBalance) || 0, 0)
+          billsAccountBalance: Math.max(Number(parsed.paydayPlan?.billsAccountBalance) || 0, 0),
+          checklist: {
+            ...DEFAULT_PAYDAY_CHECKLIST,
+            ...(parsed.paydayPlan?.checklist || {}),
+            paydayDate: String(parsed.paydayPlan?.checklist?.paydayDate || ""),
+            billsTransferConfirmed: parsed.paydayPlan?.checklist?.billsTransferConfirmed === true,
+            savingsDebtConfirmed: parsed.paydayPlan?.checklist?.savingsDebtConfirmed === true,
+            safeSpendConfirmed: parsed.paydayPlan?.checklist?.safeSpendConfirmed === true,
+            confirmedAt: String(parsed.paydayPlan?.checklist?.confirmedAt || "")
+          },
+          history: Array.isArray(parsed.paydayPlan?.history)
+            ? parsed.paydayPlan.history.filter(Boolean).map((record, index) => ({
+                id: record.id || `payday-${index + 1}`,
+                paydayDate: String(record.paydayDate || ""),
+                confirmedAt: String(record.confirmedAt || ""),
+                income: Math.max(Number(record.income) || 0, 0),
+                transfer: Math.max(Number(record.transfer) || 0, 0),
+                savings: Math.max(Number(record.savings) || 0, 0),
+                extraDebt: Math.max(Number(record.extraDebt) || 0, 0),
+                safeSpend: Number.isFinite(Number(record.safeSpend)) ? Number(record.safeSpend) : 0,
+                billsPaid: Math.max(Math.round(Number(record.billsPaid) || 0), 0)
+              }))
+            : []
         },
         transactions: Array.isArray(parsed.transactions)
           ? parsed.transactions.filter(Boolean).map((transaction) => ({
@@ -4819,6 +5151,208 @@
         extraDebt,
         safeSpend: income - transfer - savings - extraDebt
       };
+    }
+
+    function ensurePaydayChecklist(paydayDate) {
+      state.paydayPlan.checklist = {
+        ...DEFAULT_PAYDAY_CHECKLIST,
+        ...(state.paydayPlan.checklist || {})
+      };
+      if (state.paydayPlan.checklist.paydayDate === paydayDate) return false;
+      state.paydayPlan.checklist = {
+        ...DEFAULT_PAYDAY_CHECKLIST,
+        paydayDate
+      };
+      return true;
+    }
+
+    function paydayChecklistComplete(checklist = state.paydayPlan.checklist) {
+      return Boolean(
+        checklist?.billsTransferConfirmed
+        && checklist?.savingsDebtConfirmed
+        && checklist?.safeSpendConfirmed
+      );
+    }
+
+    function paydayHistoryRecords() {
+      return Array.isArray(state.paydayPlan.history) ? state.paydayPlan.history : [];
+    }
+
+    function renderPaydayHistory() {
+      const records = paydayHistoryRecords().slice(0, 8);
+      paydayHistoryBadge.textContent = records.length
+        ? `${records.length} confirmed`
+        : "No confirmations yet";
+      paydayHistory.innerHTML = "";
+      if (!records.length) {
+        paydayHistory.innerHTML = '<div class="empty-workspace">Confirm your first payday plan and it will appear here.</div>';
+        return;
+      }
+
+      records.forEach((record) => {
+        const item = document.createElement("div");
+        item.className = "payday-history-item";
+        item.innerHTML = `
+          <div>
+            <strong></strong>
+            <span></span>
+          </div>
+          <span class="payday-history-values"></span>
+        `;
+        const paydayDate = parseDateValue(record.paydayDate);
+        const confirmedAt = record.confirmedAt ? new Date(record.confirmedAt) : null;
+        item.querySelector("strong").textContent = paydayDate
+          ? `Payday plan | ${paydayDate.toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}`
+          : "Payday plan";
+        item.querySelector("div span").textContent = `${confirmedAt && !Number.isNaN(confirmedAt.getTime()) ? `Confirmed ${confirmedAt.toLocaleDateString("en-AU", { day: "numeric", month: "short" })}` : "Confirmed"} | ${record.billsPaid || 0} bill${record.billsPaid === 1 ? "" : "s"} marked paid`;
+        item.querySelector(".payday-history-values").textContent = `Transfer ${money(record.transfer)} | Safe ${money(record.safeSpend)}`;
+        paydayHistory.append(item);
+      });
+    }
+
+    function renderPaydayChecklist(summary) {
+      const paydayDate = dateValue(summary.nextPayday);
+      const checklistReset = ensurePaydayChecklist(paydayDate);
+      if (checklistReset) saveState();
+      const checklist = state.paydayPlan.checklist;
+      const safeSpendPerDay = summary.safeSpend / cycleDays();
+      const completed = [
+        checklist.billsTransferConfirmed,
+        checklist.savingsDebtConfirmed,
+        checklist.safeSpendConfirmed
+      ].filter(Boolean).length;
+      const confirmed = Boolean(checklist.confirmedAt) && paydayChecklistComplete(checklist);
+
+      paydayCheckinDate.textContent = summary.nextPayday.toLocaleDateString("en-AU", {
+        weekday: "short",
+        day: "numeric",
+        month: "short"
+      });
+      paydayStepBills.checked = checklist.billsTransferConfirmed;
+      paydayStepSavingsDebt.checked = checklist.savingsDebtConfirmed;
+      paydayStepSafeSpend.checked = checklist.safeSpendConfirmed;
+      document.querySelector("#paydayStepBillsAmount").textContent = money(summary.transfer);
+      document.querySelector("#paydayStepBillsNote").textContent = summary.transfer > 0
+        ? "Transfer this amount to protect upcoming bills."
+        : "Add bills to calculate the transfer.";
+      document.querySelector("#paydayStepSavingsDebtAmount").textContent = money(summary.savings + summary.extraDebt);
+      document.querySelector("#paydayStepSavingsDebtNote").textContent = summary.savings + summary.extraDebt > 0
+        ? `${money(summary.savings)} savings | ${money(summary.extraDebt)} extra debt`
+        : "No savings or extra debt allocated yet.";
+      document.querySelector("#paydayStepSafeSpendAmount").textContent = money(summary.safeSpend);
+      document.querySelector("#paydayStepSafeSpendNote").textContent = summary.safeSpend < 0
+        ? "Needs attention before spending."
+        : `About ${money(Math.max(safeSpendPerDay, 0))} per day until next pay.`;
+      paydayChecklistProgress.textContent = `${completed} of 3 steps complete`;
+      paydayChecklistStatus.textContent = confirmed
+        ? `Confirmed for this payday${checklist.confirmedAt ? ` | ${new Date(checklist.confirmedAt).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" })}` : ""}.`
+        : completed === 3
+          ? "Your plan is ready to confirm."
+          : "Complete the checklist to confirm this payday plan.";
+      paydayChecklistStatus.classList.toggle("payday-loop-confirmed", confirmed);
+      confirmPaydayButton.disabled = completed !== 3 || confirmed;
+      confirmPaydayButton.textContent = confirmed ? "Plan confirmed" : "Confirm payday plan";
+      confirmPaydayButton.classList.toggle("secondary", confirmed);
+    }
+
+    function updatePaydayChecklist() {
+      const summary = paydaySummary();
+      ensurePaydayChecklist(dateValue(summary.nextPayday));
+      const checklist = state.paydayPlan.checklist;
+      checklist.billsTransferConfirmed = paydayStepBills.checked;
+      checklist.savingsDebtConfirmed = paydayStepSavingsDebt.checked;
+      checklist.safeSpendConfirmed = paydayStepSafeSpend.checked;
+      checklist.confirmedAt = "";
+      state.paydayPlan.history = paydayHistoryRecords().filter((record) => record.paydayDate !== checklist.paydayDate);
+      saveState();
+      renderPaydayWorkspace();
+    }
+
+    function confirmPaydayPlan() {
+      const summary = paydaySummary();
+      const paydayDate = dateValue(summary.nextPayday);
+      ensurePaydayChecklist(paydayDate);
+      const checklist = state.paydayPlan.checklist;
+      if (!paydayChecklistComplete(checklist)) {
+        showToast("Complete the three payday steps first");
+        return;
+      }
+
+      const existing = paydayHistoryRecords().find((record) => record.paydayDate === paydayDate);
+      const billsPaid = (state.transactions || []).filter((transaction) => (
+        transaction.type === "expense"
+        && transaction.date === todayValue()
+        && transaction.matchedExpenseId
+      )).length;
+      checklist.confirmedAt = new Date().toISOString();
+      state.paydayPlan.history = [
+        {
+          id: existing?.id || createId(),
+          paydayDate,
+          confirmedAt: checklist.confirmedAt,
+          income: summary.income,
+          transfer: summary.transfer,
+          savings: summary.savings,
+          extraDebt: summary.extraDebt,
+          safeSpend: summary.safeSpend,
+          billsPaid
+        },
+        ...paydayHistoryRecords().filter((record) => record.paydayDate !== paydayDate)
+      ].slice(0, 52);
+      saveState();
+      renderPaydayWorkspace();
+      showToast("Payday plan confirmed");
+    }
+
+    function markBillPaid(expenseId) {
+      const expense = state.expenses.find((item) => item.id === expenseId);
+      if (!expense) return;
+      const amount = Math.max(Number(expense.amount) || 0, 0);
+      if (!amount) {
+        showToast("Add a bill amount before marking it paid");
+        return;
+      }
+      const today = todayValue();
+      const duplicate = (state.transactions || []).some((transaction) => (
+        transaction.date === today
+        && transaction.type === "expense"
+        && transaction.matchedExpenseId === expense.id
+        && transaction.description === `${expense.name} paid`
+      ));
+      if (duplicate) {
+        showToast("This bill is already marked paid today");
+        return;
+      }
+
+      state.transactions.push({
+        id: createId(),
+        date: today,
+        description: `${expense.name} paid`,
+        category: expense.category || "Other",
+        amount,
+        type: "expense",
+        matchedExpenseId: expense.id
+      });
+      if (expense.frequency === "once") {
+        expense.due = "";
+      } else {
+        const currentDue = parseDateValue(expense.due);
+        const nextDue = currentDue ? advanceDueDate(currentDue, expense.frequency) : null;
+        if (nextDue) expense.due = dateValue(nextDue);
+        expense.reservedAmount = 0;
+      }
+      state.paydayPlan.history = paydayHistoryRecords().map((record) => (
+        record.paydayDate === state.paydayPlan.checklist?.paydayDate
+          ? { ...record, billsPaid: Math.max(Number(record.billsPaid) || 0, 0) + 1 }
+          : record
+      ));
+      state.paydayPlan.billsAccountBalance = Math.max(
+        Number(state.paydayPlan.billsAccountBalance || 0) - amount,
+        0
+      );
+      saveState();
+      render();
+      showToast(`${expense.name} marked paid`);
     }
 
     function expenseOccurrences(expense, start, end) {
@@ -6139,10 +6673,15 @@
       const forecast = buildPaydayForecast();
       const lowPoint = forecast.length ? Math.min(...forecast.map((week) => week.balance)) : 0;
       const behindCount = summary.fundings.filter((item) => item.status === "behind" || item.status === "overdue").length;
+      renderPaydayChecklist(summary);
+      renderPaydayHistory();
       document.querySelector("#paydayIncome").textContent = money(summary.income);
       document.querySelector("#paydayTransfer").textContent = money(summary.transfer);
       document.querySelector("#paydaySafeSpend").textContent = money(summary.safeSpend);
       document.querySelector("#paydayLowPoint").textContent = money(lowPoint);
+      document.querySelector("#paydaySafeSpendNote").textContent = summary.safeSpend < 0
+        ? "Needs attention before spending"
+        : `About ${money(Math.max(summary.safeSpend / cycleDays(), 0))} per day until next pay`;
       const nextPayLabel = summary.nextPayday.toLocaleDateString("en-AU", {
         weekday: "short",
         day: "numeric",
@@ -6206,12 +6745,16 @@
               <div class="item-meta"></div>
               <span class="funding-status ${funding.status}"></span>
             </div>
-            <div class="item-value"></div>
+            <div class="upcoming-item-actions">
+              <div class="item-value"></div>
+              <button class="btn secondary compact" type="button" data-payday-action="mark-paid">Mark paid</button>
+            </div>
           `;
           item.querySelector("strong").textContent = expense.name;
           item.querySelector(".item-meta").textContent = `${due ? dueLabel(dateValue(due)) : "No due date"} | ${paydayText}`;
           item.querySelector(".funding-status").textContent = funding.status.replace("-", " ");
           item.querySelector(".item-value").textContent = `${money(funding.requiredPerCycle)} / pay`;
+          item.querySelector("[data-payday-action]").dataset.expenseId = expense.id;
           upcomingBills.append(item);
         });
       }
@@ -8150,6 +8693,16 @@
     payCycle.addEventListener("change", updatePaydayPlan);
     nextPayday.addEventListener("change", updatePaydayPlan);
     billsAccountBalance.addEventListener("input", updatePaydayPlan);
+    [paydayStepBills, paydayStepSavingsDebt, paydayStepSafeSpend].forEach((input) => {
+      input.addEventListener("change", updatePaydayChecklist);
+    });
+    confirmPaydayButton.addEventListener("click", confirmPaydayPlan);
+    upcomingBills.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const button = target.closest("[data-payday-action='mark-paid']");
+      if (button instanceof HTMLElement) markBillPaid(button.dataset.expenseId || "");
+    });
     realityMonth.addEventListener("change", renderRealityWorkspace);
 
     transactionForm.addEventListener("submit", (event) => {

@@ -10,6 +10,8 @@ import type {
   IncomeSource,
   NetWorthItem,
   NetWorthSnapshot,
+  PaydayChecklist,
+  PaydayRecord,
   Transaction
 } from "./types.js";
 
@@ -140,6 +142,31 @@ function normaliseNetWorthSnapshot(value: Record<string, unknown>): NetWorthSnap
   };
 }
 
+function normalisePaydayChecklist(value: unknown): PaydayChecklist {
+  const source = isRecord(value) ? value : {};
+  return {
+    paydayDate: text(source.paydayDate),
+    billsTransferConfirmed: source.billsTransferConfirmed === true,
+    savingsDebtConfirmed: source.savingsDebtConfirmed === true,
+    safeSpendConfirmed: source.safeSpendConfirmed === true,
+    confirmedAt: text(source.confirmedAt)
+  };
+}
+
+function normalisePaydayRecord(value: Record<string, unknown>, index: number): PaydayRecord {
+  return {
+    id: identifier(value.id, `payday-${index + 1}`),
+    paydayDate: text(value.paydayDate),
+    confirmedAt: text(value.confirmedAt),
+    income: nonNegative(value.income),
+    transfer: nonNegative(value.transfer),
+    savings: nonNegative(value.savings),
+    extraDebt: nonNegative(value.extraDebt),
+    safeSpend: Number.isFinite(Number(value.safeSpend)) ? Number(value.safeSpend) : 0,
+    billsPaid: Math.max(Math.round(nonNegative(value.billsPaid)), 0)
+  };
+}
+
 export function createDefaultBudgetState(): BudgetState {
   return {
     schemaVersion: 1,
@@ -164,7 +191,15 @@ export function createDefaultBudgetState(): BudgetState {
     paydayPlan: {
       payCycle: "weekly",
       nextPayday: "",
-      billsAccountBalance: 0
+      billsAccountBalance: 0,
+      checklist: {
+        paydayDate: "",
+        billsTransferConfirmed: false,
+        savingsDebtConfirmed: false,
+        safeSpendConfirmed: false,
+        confirmedAt: ""
+      },
+      history: []
     },
     transactions: [],
     goals: [],
@@ -218,7 +253,9 @@ export function normaliseBudgetState(input: unknown): BudgetState {
     paydayPlan: {
       payCycle: payday.payCycle === "fortnightly" ? "fortnightly" : "weekly",
       nextPayday: text(payday.nextPayday),
-      billsAccountBalance: nonNegative(payday.billsAccountBalance)
+      billsAccountBalance: nonNegative(payday.billsAccountBalance),
+      checklist: normalisePaydayChecklist(payday.checklist),
+      history: records(payday.history).map(normalisePaydayRecord)
     },
     transactions: records(source.transactions).map(normaliseTransaction),
     goals: records(source.goals).map(normaliseGoal),

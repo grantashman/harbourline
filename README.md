@@ -75,6 +75,9 @@ The live app is deployed on Vercel. The public product homepage is deployed sepa
 The current launch gates, cost model, member scaling, break-even assumptions
 and recommended execution order are maintained in
 [`docs/PRODUCTION_AND_PROFITABILITY.md`](docs/PRODUCTION_AND_PROFITABILITY.md).
+The early-access funnel, positioning, acquisition strategy and automation
+backlog are maintained in
+[`docs/EARLY_ACCESS_LAUNCH_AND_MARKETING.md`](docs/EARLY_ACCESS_LAUNCH_AND_MARKETING.md).
 
 Draft customer documents and the brief for Australian legal review are in
 [`docs/legal`](docs/legal). They are not customer-facing or final until the

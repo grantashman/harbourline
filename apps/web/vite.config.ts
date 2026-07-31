@@ -1,14 +1,36 @@
 import { fileURLToPath, URL } from "node:url";
-import { defineConfig } from "vite";
+import { readFileSync } from "node:fs";
+import { defineConfig, type Plugin } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
 const repositoryRoot = fileURLToPath(new URL("../..", import.meta.url));
 const outputRoot = fileURLToPath(new URL("./dist", import.meta.url));
+const runtimeThemeAssets = [
+  "assets/favicon-deep-ocean.svg",
+  "assets/favicon-sunset-ledger.svg",
+  "assets/harbourline-mark.svg",
+  "assets/harbourline-mark-deep-ocean.svg",
+  "assets/harbourline-mark-sunset-ledger.svg"
+];
+
+const runtimeThemeAssetPlugin: Plugin = {
+  name: "harbourline-runtime-theme-assets",
+  generateBundle() {
+    for (const assetPath of runtimeThemeAssets) {
+      this.emitFile({
+        type: "asset",
+        fileName: assetPath,
+        source: readFileSync(new URL(`../../${assetPath}`, import.meta.url))
+      });
+    }
+  }
+};
 
 export default defineConfig({
   root: repositoryRoot,
   base: "./",
   plugins: [
+    runtimeThemeAssetPlugin,
     {
       name: "harbourline-release-2-entry",
       transformIndexHtml: {
