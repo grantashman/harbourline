@@ -34,6 +34,43 @@ Add these GitHub Actions secrets to the `production` environment:
 - `SUPABASE_PROJECT_REF`: the Harbourline project ref
 - `SUPABASE_DB_PASSWORD`: the production database password
 
+The hosted Vercel application and Supabase Edge Functions require separate
+environment configuration. Configure the following names in the appropriate
+environment; never commit their values:
+
+Frontend build variables:
+
+```text
+VITE_HARBOURLINE_DEPLOYMENT=staging|production
+VITE_SUPABASE_URL
+VITE_SUPABASE_PUBLISHABLE_KEY
+VITE_HARBOURLINE_STAGING_SUPABASE_URL
+VITE_HARBOURLINE_SUPPORT_EMAIL
+VITE_SENTRY_DSN
+VITE_HARBOURLINE_RELEASE
+```
+
+Edge Function secrets:
+
+```text
+HARBOURLINE_DEPLOYMENT=staging|production
+HARBOURLINE_APP_URL
+HARBOURLINE_OPERATOR_EMAILS
+HARBOURLINE_SUPPORT_EMAIL
+HARBOURLINE_FROM_EMAIL
+RESEND_API_KEY
+SENTRY_DSN
+STRIPE_SECRET_KEY
+STRIPE_PRICE_ID
+STRIPE_FIRST_MONTH_COUPON_ID
+STRIPE_WEBHOOK_SECRET
+```
+
+Staging and production must use different Supabase projects, Stripe modes,
+webhook signing secrets, email sender configuration and monitoring
+environments. The browser deployment check rejects a production build that
+matches the configured staging Supabase URL.
+
 The workflow links the project, applies migrations in timestamp order, and
 deploys all Edge Functions. Keep the database password and access token in the
 GitHub environment only; never commit them or place them in frontend variables.
@@ -136,6 +173,12 @@ opening paid signup, deploy the Supabase migration and functions from the
 protected workflow, configure the required Edge Function secrets, and complete
 the first-member billing rehearsal. Keep immediate cancellation and plan
 switching disabled for the single-plan launch.
+
+Record each rehearsal in
+[`BETA_RELEASE_TEST_MATRIX.md`](BETA_RELEASE_TEST_MATRIX.md). Configure Sentry
+alerts for frontend exceptions, Edge Function failures, webhook processing
+failures, checkout failures and elevated authentication errors. Confirm that
+the Sentry project receives only scrubbed technical events and no budget values.
 
 ## Existing migration history
 

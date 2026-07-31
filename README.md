@@ -116,3 +116,8 @@ reporting policy is in [`SECURITY.md`](SECURITY.md).
 ## Status
 
 Harbourline is in active product development. The current priority is a polished single-plan subscription release with homepage-led signup, clear onboarding, billing, and robust account safety.
+
+The next controlled paid-beta target is the first 20 paid households, with no
+member cap, at least 70% first-payday-plan activation and at least 60%
+four-week retention. Paid signup remains gated until the production activation
+checklist and release matrix pass.

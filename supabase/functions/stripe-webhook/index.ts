@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { lifecycleEmailFor, sendLifecycleEmail, type LifecycleEmailKind } from "../_shared/beta-email.ts";
+import { captureServerError } from "../_shared/monitoring.ts";
 
 type StripeObject = Record<string, unknown>;
 
@@ -315,7 +316,7 @@ Deno.serve(async (request) => {
     return new Response("ok", { status: 200 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Billing event could not be processed";
-    console.error(message);
+    await captureServerError(error, { function: "stripe-webhook", event_type: eventType });
     await admin.rpc("release_billing_event_claim", {
       target_event_id: eventId,
       claim_token: claimToken,

@@ -1,6 +1,8 @@
 import type { Session } from "@supabase/supabase-js";
 import type { HouseholdSummary, RemoteBudgetDocument } from "@harbourline/sync";
 import { HarbourlineCloud, type BillingSubscription } from "./cloud";
+import { reportError } from "./monitoring";
+import { OnboardingFlow } from "./onboarding-flow";
 import { SyncController } from "./sync-controller";
 import type {
   AccountState,
@@ -14,6 +16,8 @@ const INITIAL_STATUS: Release2Status = {
   queued: 0,
   online: navigator.onLine
 };
+
+const SUPPORT_EMAIL = String(import.meta.env.VITE_HARBOURLINE_SUPPORT_EMAIL ?? "").trim();
 
 function escapeHtml(value: unknown): string {
   return String(value ?? "")
@@ -53,6 +57,7 @@ export class AccountPanel {
   private readonly sync: SyncController;
   private readonly dialog: HTMLDialogElement;
   private readonly accountButton: HTMLButtonElement;
+  private readonly onboarding: OnboardingFlow;
   private state: AccountState;
   private notice = "";
   private busy = false;
@@ -92,6 +97,12 @@ export class AccountPanel {
         this.state.conflict = conflict;
         this.render();
       }
+    });
+    this.onboarding = new OnboardingFlow({
+      bridge,
+      cloud: this.cloud,
+      createHousehold: (name) => this.cloud.createHousehold(name),
+      linkHousehold: (householdId) => this.sync.linkDevice(householdId, "device")
     });
     this.accountButton = this.createAccountButton();
     this.dialog = this.createDialog();
@@ -248,6 +259,7 @@ export class AccountPanel {
 
   private async refreshAccount(): Promise<void> {
     if (!this.state.session) {
+      await this.onboarding.refresh({ session: null, subscriptionActive: false, households: [] });
       this.state.households = [];
       this.subscriptionActive = null;
       this.billingSubscription = null;
@@ -273,7 +285,13 @@ export class AccountPanel {
       if (subscriptionActive && linked && households.some((household) => household.id === linked)) {
         await this.sync.resumeForHousehold(linked);
       }
+      await this.onboarding.refresh({
+        session: this.state.session,
+        subscriptionActive: Boolean(subscriptionActive),
+        households
+      });
     } catch (error) {
+      reportError(error);
       this.notice = error instanceof Error ? error.message : "Account details could not be loaded.";
     }
     this.render();
@@ -464,6 +482,7 @@ export class AccountPanel {
         </form>
       </section>
       ${linkedHousehold ? this.renderSharing(linkedHousehold) : ""}
+      ${this.renderSupport()}
       <section class="release2-section">
         <div class="release2-section-heading">
           <div><span>Sign-in protection</span><h3>Authenticator app</h3></div>
@@ -524,6 +543,24 @@ export class AccountPanel {
               <button class="btn secondary" type="button" data-action="copy-invite">Copy code</button>
             </div>`
           : ""}
+      </section>
+    `;
+  }
+
+  private renderSupport(): string {
+    if (!SUPPORT_EMAIL) return "";
+    const subject = encodeURIComponent("Harbourline support request");
+    const body = encodeURIComponent(
+      "Please avoid including account numbers, passwords or a budget export in your message.\n\nHow can we help?"
+    );
+    const href = `mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`;
+    return `
+      <section class="release2-section release2-support">
+        <div class="release2-section-heading">
+          <div><span>Need a hand?</span><h3>Contact Harbourline support</h3></div>
+        </div>
+        <p>Tell us what happened without including passwords, account numbers or budget values.</p>
+        <a class="btn secondary" href="${escapeHtml(href)}" data-action="support">Email support</a>
       </section>
     `;
   }
@@ -627,6 +664,11 @@ export class AccountPanel {
       this.dialog.close();
       return;
     }
+    if (action === "support") {
+      void this.cloud.recordBetaEvent("support_requested", this.sync.metadata?.householdId)
+        .catch(() => undefined);
+      return;
+    }
     void this.run(async () => {
       if (action === "magic-link") {
         const form = button.closest("form");
@@ -701,6 +743,7 @@ export class AccountPanel {
       await operation();
       await this.refreshAccount();
     } catch (error) {
+      reportError(error);
       this.notice = error instanceof Error ? error.message : "That action could not be completed.";
     } finally {
       this.busy = false;

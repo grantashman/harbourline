@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { captureServerError } from "./monitoring.ts";
 
 export const BETA_EVENT_NAMES = [
   "checkout_started",
@@ -142,6 +143,6 @@ export function errorResponse(error: unknown): Response {
     return jsonResponse({ message: error.message }, error.status);
   }
 
-  console.error(error);
+  void captureServerError(error, { function: "beta" });
   return jsonResponse({ message: "The request could not be completed" }, 500);
 }

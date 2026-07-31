@@ -455,6 +455,125 @@
   margin-top: 14px;
 }
 
+.release2-support p {
+  margin-bottom: 14px;
+}
+
+.release2-onboarding {
+  position: fixed;
+  z-index: 30;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--paper) 94%, #071b16 6%);
+}
+
+.release2-onboarding-shell {
+  width: min(720px, 100%);
+  padding: clamp(24px, 5vw, 52px);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: 0 30px 90px rgba(6, 19, 16, 0.24);
+}
+
+.release2-onboarding-shell h1 {
+  max-width: 620px;
+  margin: 10px 0 12px;
+  font-size: clamp(2rem, 5vw, 3.7rem);
+  line-height: 1;
+}
+
+.release2-onboarding-lede {
+  max-width: 610px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.release2-onboarding-progress {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 30px 0 24px;
+  padding: 0;
+  list-style: none;
+}
+
+.release2-onboarding-progress li {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.release2-onboarding-progress li span {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--field-muted);
+}
+
+.release2-onboarding-progress li.is-current {
+  color: var(--ink);
+}
+
+.release2-onboarding-progress li.is-current span {
+  color: var(--panel);
+  border-color: var(--mint);
+  background: var(--mint);
+}
+
+.release2-onboarding-form {
+  display: grid;
+  gap: 14px;
+  max-width: 600px;
+  margin-top: 24px;
+}
+
+.release2-onboarding-form h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.release2-onboarding-form p {
+  margin: -2px 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.release2-onboarding-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.release2-onboarding-form select {
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  padding: 0 12px;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--field);
+  font: inherit;
+  font-size: 0.88rem;
+}
+
 @media (max-width: 720px) {
   .release2-dialog {
     width: calc(100vw - 16px);
@@ -486,6 +605,22 @@
   }
 
   .release2-mfa-enrolment {
+    grid-template-columns: 1fr;
+  }
+
+  .release2-onboarding {
+    padding: 8px;
+  }
+
+  .release2-onboarding-shell {
+    padding: 24px 18px;
+  }
+
+  .release2-onboarding-progress {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .release2-onboarding-fields {
     grid-template-columns: 1fr;
   }
 }

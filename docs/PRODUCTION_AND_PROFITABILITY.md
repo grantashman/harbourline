@@ -37,6 +37,9 @@ Completed:
   replay-safe subscription webhook processing
 - CodeQL, dependency-review and Dependabot repository safeguards
 - source control, automated deployment and core project documentation
+- deployment configuration validation and financial-data-scrubbed monitoring
+  hooks
+- resumable paid-member onboarding and a privacy-safe support entry point
 
 Still required before live customers:
 
@@ -51,6 +54,7 @@ Still required before live customers:
 - error monitoring, alerts and support workflow
 - backup restoration and account deletion rehearsals
 - closed-beta onboarding and product analytics
+- staging and production execution of the paid early-access test matrix
 
 ## Production pathway
 
@@ -370,6 +374,10 @@ In recommended order:
    to analytics.
 8. Add backup/export automation, a restore rehearsal and incident runbook.
 9. Run the closed-beta production-readiness test matrix.
+
+The repository now contains the onboarding flow, deployment guard and test
+matrix structure. The remaining work is to connect real staging and production
+services, execute the matrix, and record the evidence.
 
 ## Launch rule
 
