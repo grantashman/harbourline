@@ -149,6 +149,61 @@
       box-shadow: none;
     }
 
+    .button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      border-color: rgba(92, 224, 179, 0.72);
+    }
+
+    .button:active:not(:disabled),
+    .button.is-pending {
+      transform: translateY(1px);
+    }
+
+    .button:focus-visible {
+      outline: 3px solid rgba(126, 165, 255, 0.62);
+      outline-offset: 3px;
+    }
+
+    .button:disabled {
+      cursor: not-allowed;
+      opacity: 0.68;
+    }
+
+    .button.is-pending {
+      cursor: wait;
+      border-color: rgba(126, 165, 255, 0.72);
+      box-shadow: 0 0 0 3px rgba(126, 165, 255, 0.12);
+    }
+
+    .button.is-success {
+      border-color: rgba(92, 224, 179, 0.86);
+      background: rgba(92, 224, 179, 0.18);
+      color: var(--mint);
+    }
+
+    .provider-button {
+      position: relative;
+    }
+
+    .provider-button .button-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .button-status {
+      color: var(--muted);
+      font-size: 0.68rem;
+      font-weight: 850;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .provider-button.is-coming-soon {
+      justify-content: space-between;
+      border-style: dashed;
+    }
+
     .hero {
       display: grid;
       grid-template-columns: minmax(0, 1.02fr) minmax(360px, 0.98fr);
@@ -688,26 +743,31 @@
             <label>Name<input id="name" name="name" autocomplete="name" required /></label>
             <label>Email<input id="email" name="email" type="email" autocomplete="email" required /></label>
             <label>Password<input id="password" name="password" type="password" autocomplete="new-password" minlength="8" required /></label>
-            <button class="button" type="submit">Create account</button>
+            <button class="button" id="createAccountButton" type="submit"><span data-button-label>Create account</span></button>
             <div class="auth-divider">or continue with</div>
             <div class="auth-options">
-              <button class="button secondary" type="button" data-provider="google">
-                <svg class="provider-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <path fill="#4285F4" d="M21.35 12.23c0-.7-.06-1.37-.18-2.02H12v3.82h5.24a4.48 4.48 0 0 1-1.94 2.94v2.44h3.14c1.84-1.7 2.91-4.2 2.91-7.18Z"/>
-                  <path fill="#34A853" d="M12 21.6c2.63 0 4.84-.87 6.45-2.35l-3.14-2.44c-.87.58-1.98.92-3.31.92-2.54 0-4.69-1.72-5.46-4.03H3.3v2.52A9.74 9.74 0 0 0 12 21.6Z"/>
-                  <path fill="#FBBC05" d="M6.54 13.7a5.86 5.86 0 0 1 0-3.4V7.78H3.3a9.6 9.6 0 0 0 0 8.44l3.24-2.52Z"/>
-                  <path fill="#EA4335" d="M12 6.27c1.43 0 2.71.49 3.72 1.45l2.79-2.79C16.84 3.37 14.63 2.4 12 2.4a9.74 9.74 0 0 0-8.7 5.38l3.24 2.52C7.31 7.99 9.46 6.27 12 6.27Z"/>
-                </svg>
-                Google
+              <button class="button secondary provider-button" type="button" data-provider="google">
+                <span class="button-label">
+                  <svg class="provider-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path fill="#4285F4" d="M21.35 12.23c0-.7-.06-1.37-.18-2.02H12v3.82h5.24a4.48 4.48 0 0 1-1.94 2.94v2.44h3.14c1.84-1.7 2.91-4.2 2.91-7.18Z"/>
+                    <path fill="#34A853" d="M12 21.6c2.63 0 4.84-.87 6.45-2.35l-3.14-2.44c-.87.58-1.98.92-3.31.92-2.54 0-4.69-1.72-5.46-4.03H3.3v2.52A9.74 9.74 0 0 0 12 21.6Z"/>
+                    <path fill="#FBBC05" d="M6.54 13.7a5.86 5.86 0 0 1 0-3.4V7.78H3.3a9.6 9.6 0 0 0 0 8.44l3.24-2.52Z"/>
+                    <path fill="#EA4335" d="M12 6.27c1.43 0 2.71.49 3.72 1.45l2.79-2.79C16.84 3.37 14.63 2.4 12 2.4a9.74 9.74 0 0 0-8.7 5.38l3.24 2.52C7.31 7.99 9.46 6.27 12 6.27Z"/>
+                  </svg>
+                  <span data-button-label>Google</span>
+                </span>
               </button>
-              <button class="button secondary" type="button" data-provider="azure">
-                <svg class="provider-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <path fill="#F35325" d="M2 2h9.5v9.5H2z"/>
-                  <path fill="#81BC06" d="M12.5 2H22v9.5h-9.5z"/>
-                  <path fill="#05A6F0" d="M2 12.5h9.5V22H2z"/>
-                  <path fill="#FFBA08" d="M12.5 12.5H22V22h-9.5z"/>
-                </svg>
-                Microsoft
+              <button class="button secondary provider-button is-coming-soon" type="button" disabled aria-disabled="true" title="Microsoft sign-in is coming soon">
+                <span class="button-label">
+                  <svg class="provider-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path fill="#F35325" d="M2 2h9.5v9.5H2z"/>
+                    <path fill="#81BC06" d="M12.5 2H22v9.5h-9.5z"/>
+                    <path fill="#05A6F0" d="M2 12.5h9.5V22H2z"/>
+                    <path fill="#FFBA08" d="M12.5 12.5H22V22h-9.5z"/>
+                  </svg>
+                  <span data-button-label>Microsoft</span>
+                </span>
+                <span class="button-status">Coming soon</span>
               </button>
             </div>
             <p id="formNote" class="form-note" role="status">Already registered? <a href="https://harbourline-zeta.vercel.app/?account=signin">Sign in to Harbourline</a>.</p>
@@ -729,6 +789,7 @@
     const config = window.HARBOURLINE_AUTH_CONFIG;
     const form = document.querySelector("#earlyAccessForm");
     const note = document.querySelector("#formNote");
+    const createAccountButton = document.querySelector("#createAccountButton");
     const client = config?.supabaseUrl && config?.publishableKey
       ? createClient(config.supabaseUrl, config.publishableKey)
       : null;
@@ -738,9 +799,19 @@
       note.dataset.tone = tone;
     }
 
+    function setButtonState(button, label, state = "") {
+      const labelNode = button.querySelector("[data-button-label]");
+      if (labelNode) labelNode.textContent = label;
+      button.classList.remove("is-pending", "is-success");
+      if (state) button.classList.add(`is-${state}`);
+    }
+
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       if (!client) return setNote("Account creation is temporarily unavailable. Please try again shortly.", "error");
+      createAccountButton.disabled = true;
+      setButtonState(createAccountButton, "Creating account...", "pending");
+      setNote("Creating your secure Harbourline account...", "");
       const data = new FormData(form);
       const { error } = await client.auth.signUp({
         email: String(data.get("email") || "").trim(),
@@ -750,19 +821,35 @@
           emailRedirectTo: `${config.appUrl}?account=signin`
         }
       });
-      if (error) return setNote(error.message, "error");
+      if (error) {
+        createAccountButton.disabled = false;
+        setButtonState(createAccountButton, "Create account");
+        return setNote(error.message, "error");
+      }
       form.reset();
+      setButtonState(createAccountButton, "Account created", "success");
       setNote("Your account is ready to confirm. Check your email, then sign in to Harbourline.", "success");
+      window.setTimeout(() => {
+        createAccountButton.disabled = false;
+        setButtonState(createAccountButton, "Create account");
+      }, 2200);
     });
 
     document.querySelectorAll("[data-provider]").forEach((button) => {
       button.addEventListener("click", async () => {
         if (!client) return setNote("Account creation is temporarily unavailable. Please try again shortly.", "error");
+        button.disabled = true;
+        setButtonState(button, "Connecting...", "pending");
+        setNote("Connecting to Google...", "");
         const { error } = await client.auth.signInWithOAuth({
           provider: button.dataset.provider,
           options: { redirectTo: `${config.appUrl}?account=signin` }
         });
-        if (error) setNote(error.message, "error");
+        if (error) {
+          button.disabled = false;
+          setButtonState(button, "Google");
+          setNote(error.message, "error");
+        }
       });
     });
   </script>
