@@ -48,33 +48,37 @@ function toIso(seconds: unknown): string | null {
 
 function subscriptionIdFor(eventType: string, object: StripeObject): string | null {
   if (eventType.startsWith("customer.subscription.")) return asString(object.id);
-  return asString(object.subscription);
+  return asString(object.subscription) ?? asString(asObject(object.subscription).id);
 }
 
 async function verifySignature(payload: string, header: string, secret: string): Promise<boolean> {
-  const fields = header.split(",").map((part) => part.split("=", 2));
-  const timestamp = Number(fields.find(([key]) => key === "t")?.[1]);
-  const signatures = fields
-    .filter(([key, value]) => key === "v1" && Boolean(value))
-    .map(([, value]) => value!);
-  if (!timestamp || Math.abs(Date.now() / 1000 - timestamp) > 300 || !signatures.length) return false;
+  try {
+    const fields = header.split(",").map((part) => part.trim().split("=", 2));
+    const timestamp = Number(fields.find(([key]) => key === "t")?.[1]);
+    const signatures = fields
+      .filter(([key, value]) => key === "v1" && Boolean(value))
+      .map(([, value]) => value!);
+    if (!timestamp || Math.abs(Date.now() / 1000 - timestamp) > 300 || !signatures.length) return false;
 
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-  const signature = await crypto.subtle.sign(
-    "HMAC",
-    key,
-    new TextEncoder().encode(`${timestamp}.${payload}`)
-  );
-  const expected = [...new Uint8Array(signature)]
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
-  return signatures.includes(expected);
+    const key = await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(secret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+    const signature = await crypto.subtle.sign(
+      "HMAC",
+      key,
+      new TextEncoder().encode(`${timestamp}.${payload}`)
+    );
+    const expected = [...new Uint8Array(signature)]
+      .map((byte) => byte.toString(16).padStart(2, "0"))
+      .join("");
+    return signatures.includes(expected);
+  } catch {
+    return false;
+  }
 }
 
 async function stripeGetSubscription(subscriptionId: string, secret: string): Promise<StripeObject> {
@@ -95,7 +99,7 @@ function snapshotFromSubscription(subscription: StripeObject, fallback: StripeOb
     subscriptionId: asString(subscription.id) ?? asString(fallback.subscription),
     status: asString(subscription.status),
     priceId: asString(price.id),
-    currentPeriodEnd: toIso(subscription.current_period_end),
+    currentPeriodEnd: toIso(subscription.current_period_end) ?? toIso(firstItem.current_period_end),
     cancelAtPeriodEnd: Boolean(subscription.cancel_at_period_end),
     userId: metadataUserId(subscription) ?? metadataUserId(fallback)
   };
@@ -194,7 +198,15 @@ Deno.serve(async (request) => {
   const signature = request.headers.get("stripe-signature");
   const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
   const stripeSecret = Deno.env.get("STRIPE_SECRET_KEY");
-  if (!signature || !webhookSecret || !(await verifySignature(payload, signature, webhookSecret))) {
+  const signatureValid = signature && webhookSecret
+    ? await verifySignature(payload, signature, webhookSecret)
+    : false;
+  if (!signatureValid) {
+    console.error("Stripe webhook signature rejected", {
+      has_signature_header: Boolean(signature),
+      has_webhook_secret: Boolean(webhookSecret),
+      signature_fields: signature?.split(",").map((part) => part.trim().split("=", 1)[0]) ?? []
+    });
     return new Response("Invalid signature", { status: 400 });
   }
   if (!stripeSecret) return new Response("Billing is not configured", { status: 503 });
@@ -316,6 +328,7 @@ Deno.serve(async (request) => {
     return new Response("ok", { status: 200 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Billing event could not be processed";
+    console.error("Stripe webhook processing failed", { event_type: eventType, message });
     await captureServerError(error, { function: "stripe-webhook", event_type: eventType });
     await admin.rpc("release_billing_event_claim", {
       target_event_id: eventId,
