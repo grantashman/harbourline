@@ -62,8 +62,11 @@ RESEND_API_KEY
 SENTRY_DSN
 STRIPE_SECRET_KEY
 STRIPE_PRICE_ID
-STRIPE_FIRST_MONTH_COUPON_ID
 STRIPE_WEBHOOK_SECRET
+GOOGLE_CALENDAR_CLIENT_ID
+GOOGLE_CALENDAR_CLIENT_SECRET
+GOOGLE_OAUTH_REDIRECT_URI
+GOOGLE_CALENDAR_TOKEN_ENCRYPTION_KEY
 ```
 
 Staging and production must use different Supabase projects, Stripe modes,
@@ -151,14 +154,13 @@ The public homepage creates accounts. Enable and brand the Google and Azure
 (Microsoft) providers in the Harbourline authentication settings, and add the
 GitHub Pages URL and hosted app URL to the provider redirect allowlists.
 
-Create one recurring Stripe price for A$5/month and charge A$2 for the first
-month. Store the Stripe price and first-month promotion values only as Edge
-Function secrets:
+Create one recurring Stripe price for A$1/week. Do not attach a coupon or
+trial to the introductory price. Store the Stripe price and billing values only
+as Edge Function secrets:
 
 ```text
 STRIPE_SECRET_KEY
 STRIPE_PRICE_ID
-STRIPE_FIRST_MONTH_COUPON_ID
 STRIPE_WEBHOOK_SECRET
 HARBOURLINE_APP_URL
 ```
@@ -173,6 +175,14 @@ opening paid signup, deploy the Supabase migration and functions from the
 protected workflow, configure the required Edge Function secrets, and complete
 the first-member billing rehearsal. Keep immediate cancellation and plan
 switching disabled for the single-plan launch.
+
+To activate Google Calendar sync, enable the Google Calendar API, configure the
+OAuth consent screen and an OAuth web client, then add the exact callback URL
+`${GOOGLE_OAUTH_REDIRECT_URI}` to Google's authorised redirect URIs. The
+callback should be the deployed `google-calendar-callback` Edge Function URL.
+Generate a random 32-byte base64url key for
+`GOOGLE_CALENDAR_TOKEN_ENCRYPTION_KEY`. The app only requests the
+`calendar.events` scope and syncs generic all-day payday and bill-due events.
 
 Record each rehearsal in
 [`BETA_RELEASE_TEST_MATRIX.md`](BETA_RELEASE_TEST_MATRIX.md). Configure Sentry

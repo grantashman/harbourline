@@ -30,7 +30,6 @@ Deno.serve(async (request) => {
 
   const stripeSecret = Deno.env.get("STRIPE_SECRET_KEY");
   const priceId = Deno.env.get("STRIPE_PRICE_ID");
-  const couponId = Deno.env.get("STRIPE_FIRST_MONTH_COUPON_ID");
   const appUrl = Deno.env.get("HARBOURLINE_APP_URL") ?? "https://harbourline-zeta.vercel.app/";
   if (!stripeSecret || !priceId) return new Response("Billing is not configured", { status: 503, headers: corsHeaders });
 
@@ -70,8 +69,6 @@ Deno.serve(async (request) => {
   } else if (user.email) {
     form.set("customer_email", user.email);
   }
-  if (couponId && !existingBilling?.stripe_customer_id) form.set("discounts[0][coupon]", stripeValue(couponId));
-
   const response = await fetch("https://api.stripe.com/v1/checkout/sessions", {
     method: "POST",
     headers: {

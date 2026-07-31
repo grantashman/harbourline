@@ -53,7 +53,7 @@ The only plan includes:
 - advanced plan comparisons
 - priority support during the introductory release
 
-Introductory pricing is A$2 for the first month, then A$5 per month thereafter.
+Introductory early-access pricing is A$1 per week on one recurring plan.
 Account creation is available from the public Harbourline homepage only. The
 hosted application provides sign-in and payment handoff, but does not expose
 registration.
@@ -66,11 +66,10 @@ Right integration path.
 
 ### Google Calendar sync
 
-After paid early access, Harbourline is planned to offer optional Google
-Calendar synchronisation for the calendar module. The intended first scope is
-to let a customer authorise Google Calendar and create, update and remove
-calendar events for planned paydays, bill due dates and selected household
-milestones.
+Harbourline now offers optional Google Calendar synchronisation for the
+calendar module. The first scope lets a paid customer authorise Google
+Calendar and create, update and remove calendar events for planned paydays and
+bill due dates.
 
 The integration must be user-controlled and privacy-safe:
 
@@ -83,9 +82,9 @@ The integration must be user-controlled and privacy-safe:
 - Account deletion and disconnect must document what happens to previously
   created Google Calendar events.
 
-The initial product assumption is one-way Harbourline-to-Google synchronisation;
-two-way editing will be designed separately because edits in Google Calendar
-need conflict, ownership and deletion rules.
+The initial implementation is one-way Harbourline-to-Google synchronisation;
+two-way editing remains separate because edits in Google Calendar need
+conflict, ownership and deletion rules.
 
 ## Success measures
 

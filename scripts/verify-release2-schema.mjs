@@ -6,6 +6,11 @@ const migrationUrl = new URL(
   import.meta.url
 );
 const sql = await readFile(migrationUrl, "utf8");
+const googleMigrationUrl = new URL(
+  "../supabase/migrations/202607310004_google_calendar_sync.sql",
+  import.meta.url
+);
+const googleSql = await readFile(googleMigrationUrl, "utf8");
 
 const requiredTables = [
   "profiles",
@@ -57,5 +62,20 @@ assert.doesNotMatch(
 assert.match(sql, /document\.revision <> base_revision/i);
 assert.match(sql, /jsonb_typeof\(document_state\) <> 'object'/i);
 assert.match(sql, /token_hash text not null unique/i);
+
+for (const table of ["google_calendar_connections", "google_calendar_oauth_states"]) {
+  assert.match(
+    googleSql,
+    new RegExp(`alter table public\\.${table} enable row level security`, "i"),
+    `${table} must have row level security enabled`
+  );
+  assert.match(
+    googleSql,
+    new RegExp(`revoke all on public\\.${table} from anon, authenticated`, "i"),
+    `${table} must not be directly readable by customers`
+  );
+}
+assert.match(googleSql, /encrypted_refresh_token text not null/i);
+assert.match(googleSql, /code_verifier text not null/i);
 
 console.log("Release 2 schema guard: passed");

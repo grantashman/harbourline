@@ -41,10 +41,9 @@ The current application includes:
 - Dark mode, responsive layout and local browser caching for continuity
 - Supabase accounts, household sync and password recovery for the hosted product
 
-Planned after paid early access:
+Included in the paid early-access release:
 
-- Optional Google Calendar sync for planned paydays, bill due dates and selected
-  household milestones
+- Optional one-way Google Calendar sync for planned paydays and bill due dates
 
 ## Commercial Direction
 
@@ -52,7 +51,7 @@ Harbourline uses Supabase accounts as its only account model. Account creation i
 
 Single-plan subscription positioning:
 
-- One Harbourline plan: A$2 for the first month, then A$5/month thereafter
+- One Harbourline plan: A$1/week introductory early-access pricing
 - Included: secure Supabase sign-in, household sync, payday planning, reports, savings and debt tools
 
 The introductory price is the only planned offer at this stage. Billing, onboarding, privacy terms and support will be completed before broad public launch.

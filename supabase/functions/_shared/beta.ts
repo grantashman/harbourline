@@ -39,7 +39,7 @@ export interface BetaOperationsSnapshot {
 
 const defaultAppOrigin = "https://harbourline-zeta.vercel.app";
 
-function configuredAppOrigin(): string {
+export function configuredAppOrigin(): string {
   const appUrl = Deno.env.get("HARBOURLINE_APP_URL");
   if (!appUrl) return defaultAppOrigin;
 

@@ -45,6 +45,22 @@ export interface BillingSubscription {
   cancel_at_period_end: boolean;
 }
 
+export interface GoogleCalendarStatus {
+  connected: boolean;
+  googleEmail: string | null;
+  calendarId: string | null;
+  lastSyncedAt: string | null;
+  error: string | null;
+}
+
+export interface GoogleCalendarEvent {
+  id: string;
+  summary: string;
+  description: string;
+  startDate: string;
+  endDate: string;
+}
+
 export class HarbourlineCloud {
   readonly configured: boolean;
   readonly client: SupabaseClient | null;
@@ -151,6 +167,43 @@ export class HarbourlineCloud {
     const url = (data as { url?: string } | null)?.url;
     if (!url) throw new Error("Billing could not be opened.");
     return url;
+  }
+
+  async startGoogleCalendarConnect(returnPath = location.pathname): Promise<string> {
+    const { data, error } = await this.requireClient().functions.invoke("google-calendar-start", {
+      method: "POST",
+      body: { returnPath }
+    });
+    if (error) throw await this.functionError(error);
+    const url = (data as { authorizationUrl?: string } | null)?.authorizationUrl;
+    if (!url) throw new Error("Google Calendar connection could not be started.");
+    return url;
+  }
+
+  async getGoogleCalendarStatus(): Promise<GoogleCalendarStatus> {
+    const { data, error } = await this.requireClient().functions.invoke("google-calendar-status", {
+      method: "POST",
+      body: {}
+    });
+    if (error) throw await this.functionError(error);
+    return data as GoogleCalendarStatus;
+  }
+
+  async syncGoogleCalendar(events: GoogleCalendarEvent[]): Promise<GoogleCalendarStatus> {
+    const { data, error } = await this.requireClient().functions.invoke("google-calendar-sync", {
+      method: "POST",
+      body: { events }
+    });
+    if (error) throw await this.functionError(error);
+    return data as GoogleCalendarStatus;
+  }
+
+  async disconnectGoogleCalendar(deleteEvents: boolean): Promise<void> {
+    const { error } = await this.requireClient().functions.invoke("google-calendar-disconnect", {
+      method: "POST",
+      body: { deleteEvents }
+    });
+    if (error) throw await this.functionError(error);
   }
 
   async getBillingSubscription(): Promise<BillingSubscription | null> {

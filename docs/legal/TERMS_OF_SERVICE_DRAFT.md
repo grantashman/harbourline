@@ -34,11 +34,11 @@ to use.
 
 ## Subscription and billing
 
-Harbourline currently offers one subscription: A$2 for the first month, then
-A$5 per month after that. The price presentation and any applicable taxes will
-be confirmed before payment.
+Harbourline currently offers one subscription at an introductory price of A$1
+per week for paid early access. The price presentation and any applicable taxes
+will be confirmed before payment.
 
-Subscriptions renew monthly unless cancelled. Payment processing is handled by
+Subscriptions renew weekly unless cancelled. Payment processing is handled by
 Harbourline's payment processor. Harbourline does not store full payment-card
 details. Customers can manage payment details, invoices and cancellation through
 the self-service billing portal linked from their Harbourline account.

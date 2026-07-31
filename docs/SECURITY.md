@@ -39,6 +39,19 @@ identifiers. Those values must never be collected.
 - Policy tests include owner, member and unrelated-user paths.
 - Financial values are excluded from application telemetry.
 
+## Google Calendar controls
+
+- Calendar OAuth state and PKCE verifiers are short-lived, single-use and bound
+  to the authenticated Harbourline user.
+- Google refresh tokens are encrypted with AES-GCM before service-role-only
+  storage; they are never exposed to the browser or customer-facing logs.
+- The first sync is one-way and sends only generic all-day payday and bill-due
+  events. Amounts, bill names and household descriptions remain in Harbourline.
+- Google Calendar events are marked as Harbourline-owned, and disconnect can
+  revoke access and remove only those marked events.
+- The OAuth client, callback URL and encryption key are deployment secrets and
+  must be different between staging and production.
+
 ## Repository safeguards
 
 - CodeQL scans JavaScript and TypeScript on pull requests, main-branch changes

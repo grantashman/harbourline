@@ -66,6 +66,13 @@ reviewed. See `PRODUCTION_ACTIVATION.md`.
 - entitlement and grace-period logic
 - subscription lifecycle email
 - founding-household onboarding
+- optional one-way Google Calendar sync for planned paydays and bill due dates
+
+Google Calendar sync is implemented for the paid early-access release. It
+requires Google OAuth deployment configuration and is intentionally one-way:
+Harbourline creates, updates and removes only its own generic all-day events.
+The integration stores refresh tokens encrypted at rest and supports explicit
+disconnect, revocation and optional removal of Harbourline-created events.
 
 ## Release 4: Public web launch
 
@@ -80,12 +87,6 @@ reviewed. See `PRODUCTION_ACTIVATION.md`.
 
 - accredited Consumer Data Right integration
 - automatic transaction categorisation
-- optional Google Calendar sync for planned paydays, bills and household milestones
 - desktop packaging
 - mobile applications and app-store billing
 - professional and employer editions
-
-Google Calendar sync is a post-paid-early-access feature. It requires a
-separate OAuth and event-data design, explicit disconnect/revocation handling,
-and a decision on whether the first release is Harbourline-to-Google only or
-supports edits made in Google Calendar.

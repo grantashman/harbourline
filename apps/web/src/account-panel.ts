@@ -1,6 +1,7 @@
 import type { Session } from "@supabase/supabase-js";
 import type { HouseholdSummary, RemoteBudgetDocument } from "@harbourline/sync";
-import { HarbourlineCloud, type BillingSubscription } from "./cloud";
+import { HarbourlineCloud, type BillingSubscription, type GoogleCalendarStatus } from "./cloud";
+import { GoogleCalendarSync } from "./calendar-sync";
 import { reportError } from "./monitoring";
 import { OnboardingFlow } from "./onboarding-flow";
 import { SyncController } from "./sync-controller";
@@ -63,6 +64,15 @@ export class AccountPanel {
   private busy = false;
   private subscriptionActive: boolean | null = null;
   private billingSubscription: BillingSubscription | null = null;
+  private readonly calendarSync: GoogleCalendarSync;
+  private googleCalendarStatus: GoogleCalendarStatus = {
+    connected: false,
+    googleEmail: null,
+    calendarId: null,
+    lastSyncedAt: null,
+    error: null
+  };
+  private calendarBusy = false;
   private recoveryMode = false;
   private pendingRecoveryRedirect = false;
   private inviteToken = "";
@@ -104,6 +114,7 @@ export class AccountPanel {
       createHousehold: (name) => this.cloud.createHousehold(name),
       linkHousehold: (householdId) => this.sync.linkDevice(householdId, "device")
     });
+    this.calendarSync = new GoogleCalendarSync(bridge, this.cloud);
     this.accountButton = this.createAccountButton();
     this.dialog = this.createDialog();
     this.updateAccessGate();
@@ -114,6 +125,8 @@ export class AccountPanel {
     this.state.metadata = this.sync.metadata;
     const shouldOpenAccount = this.consumeAccountRedirect();
     const billingRedirect = this.consumeBillingRedirect();
+    const calendarRedirect = this.consumeCalendarRedirect();
+    this.bindCalendarControls();
     this.accountButton.addEventListener("click", () => {
       this.render();
       this.dialog.showModal();
@@ -146,7 +159,8 @@ export class AccountPanel {
     });
     await this.refreshAccount();
     this.handleBillingRedirect(billingRedirect);
-    if ((shouldOpenAccount || billingRedirect) && !this.dialog.open) this.dialog.showModal();
+    this.handleCalendarRedirect(calendarRedirect);
+    if ((shouldOpenAccount || billingRedirect || calendarRedirect) && !this.dialog.open) this.dialog.showModal();
   }
 
   private consumeAccountRedirect(): boolean {
@@ -174,6 +188,15 @@ export class AccountPanel {
     return billing;
   }
 
+  private consumeCalendarRedirect(): "connected" | "error" | null {
+    const url = new URL(location.href);
+    const calendar = url.searchParams.get("calendar");
+    if (calendar !== "connected" && calendar !== "error") return null;
+    url.searchParams.delete("calendar");
+    history.replaceState(history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    return calendar;
+  }
+
   private handleBillingRedirect(billing: "success" | "cancelled" | "portal" | null): void {
     if (billing === "cancelled") {
       this.notice = "Payment was not completed. Your account has not been charged.";
@@ -188,6 +211,14 @@ export class AccountPanel {
         ? "Payment confirmed. Your Harbourline plan is active."
         : "Payment received. Confirming your plan now.";
       if (!this.subscriptionActive) this.waitForSubscriptionConfirmation();
+    }
+  }
+
+  private handleCalendarRedirect(calendar: "connected" | "error" | null): void {
+    if (calendar === "connected") {
+      this.notice = "Google Calendar connected. Use Sync Google Calendar when you want to refresh its events.";
+    } else if (calendar === "error") {
+      this.notice = "Google Calendar could not be connected. Check the permission request and try again.";
     }
   }
 
@@ -257,26 +288,89 @@ export class AccountPanel {
     this.accountButton.textContent = session ? "Account · On" : "Account";
   }
 
+  private bindCalendarControls(): void {
+    const button = document.querySelector<HTMLButtonElement>("#googleCalendarSyncButton");
+    button?.addEventListener("click", () => void this.handleCalendarButton());
+    this.updateCalendarControls();
+  }
+
+  private updateCalendarControls(): void {
+    const button = document.querySelector<HTMLButtonElement>("#googleCalendarSyncButton");
+    const status = document.querySelector<HTMLElement>("#googleCalendarSyncStatus");
+    if (!button || !status) return;
+    button.disabled = this.calendarBusy;
+    button.textContent = this.calendarBusy
+      ? "Syncing Google Calendar…"
+      : this.googleCalendarStatus.connected
+        ? "Sync Google Calendar"
+        : "Connect Google Calendar";
+    status.textContent = this.googleCalendarStatus.connected
+      ? `Connected${this.googleCalendarStatus.googleEmail ? ` · ${this.googleCalendarStatus.googleEmail}` : ""}`
+      : this.googleCalendarStatus.error
+        ? "Sync needs attention"
+        : "Not connected";
+  }
+
+  private async handleCalendarButton(): Promise<void> {
+    if (this.calendarBusy) return;
+    if (!this.state.session || !this.subscriptionActive) {
+      this.notice = this.state.session
+        ? "Google Calendar sync is available after your Harbourline plan is active."
+        : "Sign in and subscribe to connect Google Calendar.";
+      this.render();
+      if (!this.dialog.open) this.dialog.showModal();
+      return;
+    }
+    this.calendarBusy = true;
+    this.updateCalendarControls();
+    try {
+      if (!this.googleCalendarStatus.connected) {
+        await this.calendarSync.connect();
+        return;
+      }
+      this.googleCalendarStatus = await this.calendarSync.sync();
+      this.notice = "Google Calendar is up to date with your planned paydays and bill dates.";
+    } catch (error) {
+      reportError(error);
+      this.notice = error instanceof Error ? error.message : "Google Calendar could not be updated.";
+    } finally {
+      this.calendarBusy = false;
+      this.updateCalendarControls();
+      this.render();
+    }
+  }
+
   private async refreshAccount(): Promise<void> {
     if (!this.state.session) {
       await this.onboarding.refresh({ session: null, subscriptionActive: false, households: [] });
       this.state.households = [];
       this.subscriptionActive = null;
       this.billingSubscription = null;
+      this.googleCalendarStatus = {
+        connected: false,
+        googleEmail: null,
+        calendarId: null,
+        lastSyncedAt: null,
+        error: null
+      };
+      this.updateCalendarControls();
       this.mfa = { verifiedCount: 0, currentLevel: null, nextLevel: null, enrollment: null };
       this.render();
       return;
     }
     try {
-      const [households, mfa, subscriptionActive, billingSubscription] = await Promise.all([
+      const [households, mfa, subscriptionActive, billingSubscription, googleCalendarStatus] = await Promise.all([
         this.cloud.listHouseholds(),
         this.cloud.getMfaState(),
         this.cloud.hasActiveSubscription(),
-        this.cloud.getBillingSubscription()
+        this.cloud.getBillingSubscription(),
+        this.cloud.getGoogleCalendarStatus().catch(() => this.googleCalendarStatus)
       ]);
       this.state.households = households;
       this.subscriptionActive = subscriptionActive;
       this.billingSubscription = billingSubscription;
+      this.googleCalendarStatus = googleCalendarStatus;
+      this.updateCalendarControls();
       this.state.metadata = this.sync.metadata;
       this.mfa.verifiedCount = mfa.verified.length;
       this.mfa.currentLevel = mfa.currentLevel;
@@ -299,6 +393,7 @@ export class AccountPanel {
 
   private render(): void {
     this.updateAccessGate();
+    this.updateCalendarControls();
     const body = this.dialog.querySelector(".release2-dialog-body");
     if (!body) return;
     body.innerHTML = !this.state.configured
@@ -456,11 +551,22 @@ export class AccountPanel {
       </section>
       <section class="release2-section">
         <div class="release2-section-heading">
-          <div><span>Harbourline plan</span><h3>A$2 first month, then A$5/month</h3></div>
+          <div><span>Harbourline plan</span><h3>A$1/week introductory early access</h3></div>
           <span class="badge">One plan</span>
         </div>
         <p class="release2-empty">${planMessage}</p>
         <div class="release2-plan-actions">${planAction}</div>
+      </section>
+      <section class="release2-section">
+        <div class="release2-section-heading">
+          <div><span>Calendar connection</span><h3>Google Calendar</h3></div>
+          <span class="badge">${this.googleCalendarStatus.connected ? "Connected" : "Optional"}</span>
+        </div>
+        <p class="release2-empty">Sync generic planned paydays and bill due dates. Amounts, bill names and household details stay in Harbourline.</p>
+        <div class="release2-button-row">
+          <button class="btn secondary" type="button" data-action="google-calendar-sync" ${this.busy || this.calendarBusy || !this.subscriptionActive ? "disabled" : ""}>${this.googleCalendarStatus.connected ? "Sync now" : "Connect Google Calendar"}</button>
+          ${this.googleCalendarStatus.connected ? `<button class="btn secondary" type="button" data-action="google-calendar-disconnect" ${this.busy || this.calendarBusy ? "disabled" : ""}>Disconnect</button>` : ""}
+        </div>
       </section>
       <section class="release2-section">
         <div class="release2-section-heading">
@@ -691,6 +797,22 @@ export class AccountPanel {
       } else if (action === "start-checkout") {
         const checkoutUrl = await this.cloud.createCheckoutSession();
         window.location.assign(checkoutUrl);
+      } else if (action === "google-calendar-sync") {
+        await this.handleCalendarButton();
+      } else if (action === "google-calendar-disconnect") {
+        const deleteEvents = confirm("Also remove the Harbourline-created events from Google Calendar?");
+        this.calendarBusy = true;
+        this.updateCalendarControls();
+        try {
+          await this.calendarSync.disconnect(deleteEvents);
+          this.googleCalendarStatus = this.calendarSync.currentStatus;
+          this.notice = deleteEvents
+            ? "Google Calendar disconnected and Harbourline-created events removed."
+            : "Google Calendar disconnected. Existing events were left in place.";
+        } finally {
+          this.calendarBusy = false;
+          this.updateCalendarControls();
+        }
       } else if (action === "open-billing-portal") {
         const portalUrl = await this.cloud.createBillingPortalSession();
         window.location.assign(portalUrl);

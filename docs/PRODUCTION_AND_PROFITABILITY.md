@@ -13,14 +13,14 @@ production monitoring are complete.
 The commercial model remains:
 
 - one subscription
-- A$2 for the first month
-- A$5 per month thereafter
+- A$1 per week introductory early-access price
 - no free plan
 - no customer access without an active subscription
 
-At the current price, Harbourline has attractive software margins. The main
-economic risks are customer acquisition, churn, support time and compliance,
-not database or hosting cost.
+At A$1/week, payment fixed fees make the first few members economically thin;
+the model improves as recurring volume grows. The main economic risks are
+customer acquisition, churn, support time and compliance, not database or
+hosting cost.
 
 ## Current position
 
@@ -30,8 +30,8 @@ Completed:
 - account-based access with no customer local-budget option
 - Google authentication
 - Supabase household data and subscription state
-- Stripe sandbox product, recurring price, first-month discount and webhook
-- successful sandbox checkout at A$2, followed by A$5 per month
+- Stripe sandbox product, recurring price and webhook flow
+- successful sandbox checkout flow ready for the A$1/week recurring price
 - subscription gate opening after confirmed payment
 - deployed customer billing portal, duplicate-checkout protection and
   replay-safe subscription webhook processing
@@ -64,7 +64,7 @@ Target: complete before accepting live payment.
 
 - Confirm the operating entity, ABN, business bank account and bookkeeping
   process with an accountant.
-- Decide whether the advertised A$2 and A$5 prices are GST-inclusive. Consumer
+- Decide whether the advertised A$1/week price is GST-inclusive. Consumer
   pricing should be unambiguous.
 - Obtain an Australian lawyer's review of the Terms of Service, Privacy Policy,
   subscription renewal, cancellation, refund and financial-guidance wording.
@@ -84,8 +84,8 @@ Australian legal review.
 
 Target: complete and test in sandbox, then reproduce in live mode.
 
-- Create the live Stripe product, A$5 monthly price and one-month introductory
-  discount.
+- Create the live Stripe product with one recurring A$1/week price. Do not add
+  a coupon or trial to the introductory price.
 - Create a separate live webhook endpoint and live secrets.
 - Configure and test the customer portal for payment-method updates, invoices
   and cancellation at period end. Keep immediate cancellation and plan changes
@@ -175,12 +175,11 @@ Stripe states that Australian card-processing fees include GST.
 
 | Charge | Customer pays | Payments fee | Billing fee | Net before platform costs |
 | --- | ---: | ---: | ---: | ---: |
-| Introductory month | A$2.00 | A$0.334 | A$0.014 | A$1.652 |
-| Normal month | A$5.00 | A$0.385 | A$0.035 | A$4.580 |
-| Retained first year | A$57.00 | included below | included below | A$52.032 |
+| One week | A$1.00 | A$0.317 | A$0.007 | A$0.676 |
+| 52-week member | A$52.00 | A$16.484 | A$0.364 | A$35.152 |
 
-The retained first-year figure assumes one A$2 invoice and eleven A$5 invoices.
-Total estimated Stripe Payments and Billing fees are A$4.968.
+The 52-week figure assumes 52 weekly invoices. Total estimated Stripe Payments
+and Billing fees are A$16.848 per member-year.
 
 International cards cost more. Keep the initial market and settlement currency
 Australian where practical, and monitor the domestic/international mix rather
@@ -234,39 +233,39 @@ security scope merely to make the spreadsheet look profitable.
 
 ### Member scaling model
 
-The table shows a steady-state month where every member is paying A$5 with a
-domestic card. "Contribution" is revenue less estimated Stripe fees and core
-software. It is not accounting profit and excludes GST, tax, support labour,
-marketing and professional services.
+The table shows a steady-state month where every member is paying A$1/week
+with a domestic card, using 52/12 weeks per month. "Contribution" is revenue
+less estimated Stripe fees and core software. It is not accounting profit and
+excludes GST, tax, support labour, marketing and professional services.
 
 | Paying members | MRR | Stripe fees | Core software | Contribution before overhead |
 | ---: | ---: | ---: | ---: | ---: |
-| 25 | A$125 | A$10.50 | A$75 | A$39.50 |
-| 100 | A$500 | A$42 | A$75 | A$383 |
-| 500 | A$2,500 | A$210 | A$75 | A$2,215 |
-| 1,000 | A$5,000 | A$420 | A$107 | A$4,473 |
-| 2,500 | A$12,500 | A$1,050 | A$107 | A$11,343 |
-| 5,000 | A$25,000 | A$2,100 | A$107 | A$22,793 |
+| 25 | A$108.33 | A$35.10 | A$75 | -A$1.77 |
+| 100 | A$433.33 | A$140.40 | A$75 | A$217.93 |
+| 500 | A$2,166.67 | A$702.00 | A$75 | A$1,389.67 |
+| 1,000 | A$4,333.33 | A$1,404.00 | A$107 | A$2,822.33 |
+| 2,500 | A$10,833.33 | A$3,510.00 | A$107 | A$7,216.33 |
+| 5,000 | A$21,666.67 | A$7,020.00 | A$107 | A$14,539.67 |
 
-Core platform break-even is approximately 17 steady-state subscribers:
+Core platform break-even is approximately 26 steady-state subscribers:
 
 ```text
-A$75 / A$4.58 net contribution per normal month = 16.4
+A$75 / A$2.929 net contribution per A$1/week member-month = 25.6
 ```
 
 A more realistic operating break-even should include a monthly allowance for
 accounting, support, monitoring, insurance, legal work and marketing. With
 A$500 of monthly overhead in addition to the core stack, break-even becomes
-approximately 126 steady-state subscribers.
+approximately 197 steady-state subscribers.
 
 ### GST and tax planning
 
 The ATO requires most Australian businesses to register for GST when GST
-turnover reaches A$75,000. At a steady A$5 per month, that is roughly 1,250
-full-price subscriber-years:
+turnover reaches A$75,000. At a steady A$1/week, that is roughly 1,443 paying
+members:
 
 ```text
-A$75,000 / (A$5 x 12) = 1,250 subscribers
+A$75,000 / (A$1 x 52) = 1,442.3 members
 ```
 
 The actual threshold timing depends on current and projected GST turnover, the
@@ -282,7 +281,7 @@ percentage with an accountant.
 
 ### Retention before acquisition
 
-At A$5 per month, Harbourline cannot support careless paid acquisition. The
+At A$1/week, Harbourline cannot support careless paid acquisition. The
 strongest early profit lever is keeping customers long enough for the recurring
 margin to accumulate.
 
@@ -290,13 +289,13 @@ Approximate contribution lifetime before fixed platform costs:
 
 | Monthly churn | Approximate lifetime | Approximate contribution lifetime |
 | ---: | ---: | ---: |
-| 3% | 33 months | about A$149 |
-| 5% | 20 months | about A$89 |
-| 8% | 13 months | about A$54 |
+| 3% | 33 months | about A$97 |
+| 5% | 20 months | about A$59 |
+| 8% | 13 months | about A$38 |
 
-These are directional estimates using the introductory month followed by
-normal A$5 months. Cohort data should replace them as soon as Harbourline has
-real customers.
+These are directional estimates using a recurring A$1/week price and the
+estimated net contribution before fixed platform costs. Cohort data should
+replace them as soon as Harbourline has real customers.
 
 Until retention is known:
 
@@ -308,7 +307,7 @@ Until retention is known:
 
 ### Reduce payment friction
 
-The A$0.30 fixed card fee is 6% of a normal A$5 invoice before percentage fees.
+The A$0.30 fixed card fee is 30% of a A$1 weekly invoice before percentage fees.
 Do not change the one-plan launch now, but after retention is proven, test an
 optional annual payment. Fewer invoices can improve payment margin and reduce
 involuntary churn. Any annual offer should be a billing-frequency option for

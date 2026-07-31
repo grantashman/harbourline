@@ -7,7 +7,8 @@ Customers enter their own income, expenses, bills, debts, savings goals and
 transactions. The service calculates cash-flow forecasts, bill set-asides, debt
 projections and savings projections.
 
-The commercial model is A$2 for the first month and A$5/month thereafter.
+The commercial model is one recurring subscription at an introductory price of
+A$1/week for paid early access.
 Customers subscribe through Stripe Checkout, then manage invoices, payment
 methods and cancellation through Stripe's customer portal.
 
@@ -28,7 +29,7 @@ retention wording, complaint process and contact details.
    shared household access, browser storage, Tokyo hosting and overseas
    disclosure?
 4. Are subscription, renewal, cancellation-at-period-end and refund terms
-   suitable for an Australian A$5/month digital service?
+   suitable for an Australian A$1/week digital service?
 5. What notices, records and complaint process should Harbourline maintain?
 
 ## Facts to validate
@@ -48,10 +49,10 @@ retention wording, complaint process and contact details.
 - no financial-product comparisons or open-ended AI financial advice
 - customers can export data and request account deletion
 - cancellation must not delete a household budget
-- a later roadmap feature may offer optional Google Calendar synchronisation
-  through Google OAuth, subject to separate scope, privacy and deletion review
+- the product includes optional one-way Google Calendar synchronisation through
+  Google OAuth, with privacy-minimised event content and explicit disconnect
 
-For the planned Google Calendar feature, please also review the OAuth scopes,
+For the Google Calendar feature, please also review the OAuth scopes,
 Google as a service provider, event-content minimisation, disconnect and token
 revocation, household permission boundaries, and deletion of previously created
 calendar events.

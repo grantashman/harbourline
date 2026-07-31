@@ -2,12 +2,14 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(21);
+select plan(25);
 
 select has_table('public', 'households', 'households table exists');
 select has_table('public', 'household_members', 'household membership table exists');
 select has_table('public', 'household_invites', 'household invitations table exists');
 select has_table('public', 'budget_documents', 'budget documents table exists');
+select has_table('public', 'google_calendar_connections', 'Google Calendar connections table exists');
+select has_table('public', 'google_calendar_oauth_states', 'Google Calendar OAuth states table exists');
 
 select ok(
   (select relrowsecurity from pg_class where oid = 'public.profiles'::regclass),
@@ -32,6 +34,14 @@ select ok(
 select ok(
   (select relrowsecurity from pg_class where oid = 'public.sync_mutations'::regclass),
   'sync_mutations has RLS enabled'
+);
+select ok(
+  (select relrowsecurity from pg_class where oid = 'public.google_calendar_connections'::regclass),
+  'google_calendar_connections has RLS enabled'
+);
+select ok(
+  (select relrowsecurity from pg_class where oid = 'public.google_calendar_oauth_states'::regclass),
+  'google_calendar_oauth_states has RLS enabled'
 );
 
 insert into auth.users (
