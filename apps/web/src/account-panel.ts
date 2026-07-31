@@ -63,6 +63,7 @@ export class AccountPanel {
   private notice = "";
   private busy = false;
   private subscriptionActive: boolean | null = null;
+  private billingConfirmationPending = false;
   private billingSubscription: BillingSubscription | null = null;
   private readonly calendarSync: GoogleCalendarSync;
   private googleCalendarStatus: GoogleCalendarStatus = {
@@ -199,17 +200,20 @@ export class AccountPanel {
 
   private handleBillingRedirect(billing: "success" | "cancelled" | "portal" | null): void {
     if (billing === "cancelled") {
+      this.billingConfirmationPending = false;
       this.notice = "Payment was not completed. Your account has not been charged.";
       return;
     }
     if (billing === "portal") {
+      this.billingConfirmationPending = false;
       this.notice = "Your billing details have been updated.";
       return;
     }
     if (billing === "success") {
+      this.billingConfirmationPending = !this.subscriptionActive;
       this.notice = this.subscriptionActive
         ? "Payment confirmed. Your Harbourline plan is active."
-        : "Payment received. Confirming your plan now.";
+        : "Payment received. We’re confirming your Harbourline plan now.";
       if (!this.subscriptionActive) this.waitForSubscriptionConfirmation();
     }
   }
@@ -227,12 +231,13 @@ export class AccountPanel {
       if (!this.state.session || this.subscriptionActive) return;
       await this.refreshAccount();
       if (this.subscriptionActive) {
+        this.billingConfirmationPending = false;
         this.notice = "Payment confirmed. Your Harbourline plan is active.";
         this.render();
       } else if (attempt < 5) {
         this.waitForSubscriptionConfirmation(attempt + 1);
       } else {
-        this.notice = "Payment is still being confirmed. Refresh shortly, or contact support if access does not open.";
+        this.notice = "Payment is still being confirmed. Check the plan status again shortly.";
         this.render();
       }
     }, attempt * 1500);
@@ -284,8 +289,7 @@ export class AccountPanel {
   private applySession(session: Session | null): void {
     this.state.session = session;
     this.state.user = session?.user ?? null;
-    this.accountButton.classList.toggle("release2-signed-in", Boolean(session));
-    this.accountButton.textContent = session ? "Account · On" : "Account";
+    this.updateAccountButton();
   }
 
   private bindCalendarControls(): void {
@@ -345,6 +349,7 @@ export class AccountPanel {
       await this.onboarding.refresh({ session: null, subscriptionActive: false, households: [] });
       this.state.households = [];
       this.subscriptionActive = null;
+      this.billingConfirmationPending = false;
       this.billingSubscription = null;
       this.googleCalendarStatus = {
         connected: false,
@@ -368,6 +373,7 @@ export class AccountPanel {
       ]);
       this.state.households = households;
       this.subscriptionActive = subscriptionActive;
+      if (subscriptionActive) this.billingConfirmationPending = false;
       this.billingSubscription = billingSubscription;
       this.googleCalendarStatus = googleCalendarStatus;
       this.updateCalendarControls();
@@ -388,6 +394,7 @@ export class AccountPanel {
       reportError(error);
       this.notice = error instanceof Error ? error.message : "Account details could not be loaded.";
     }
+    this.updateAccountButton();
     this.render();
   }
 
@@ -434,6 +441,18 @@ export class AccountPanel {
         <button class="btn" type="button" data-action="open-account">${this.state.session ? "Continue to payment" : "Sign in to continue"}</button>
       </div>
     `;
+  }
+
+  private updateAccountButton(): void {
+    const signedIn = Boolean(this.state.session);
+    const active = signedIn && this.subscriptionActive === true;
+    this.accountButton.classList.toggle("release2-signed-in", signedIn);
+    this.accountButton.classList.toggle("release2-plan-active", active);
+    this.accountButton.textContent = !signedIn
+      ? "Account"
+      : active
+        ? "Account · Active"
+        : "Account · On";
   }
 
   private renderNotice(): string {
@@ -505,6 +524,55 @@ export class AccountPanel {
     `;
   }
 
+  private renderSubscriptionSummary(
+    planState: "active" | "pending" | "checking" | "attention" | "not-started",
+    periodEnd: string | null
+  ): string {
+    const summary = {
+      active: {
+        eyebrow: "Account status",
+        title: "Connected and subscribed",
+        message: `Your plan is active${periodEnd ? ` through ${periodEnd}` : ""}. Create or join a household below to start syncing.`,
+        icon: "✓"
+      },
+      pending: {
+        eyebrow: "Payment received",
+        title: "Confirming your subscription",
+        message: "Stripe has received your payment. Harbourline will open household sync as soon as the plan is confirmed.",
+        icon: "…"
+      },
+      checking: {
+        eyebrow: "Account status",
+        title: "Checking your plan",
+        message: "We’re checking the latest subscription status for this account.",
+        icon: "…"
+      },
+      attention: {
+        eyebrow: "Account status",
+        title: "Payment needs attention",
+        message: "Update your payment method to restore Harbourline access and household sync.",
+        icon: "!"
+      },
+      "not-started": {
+        eyebrow: "Account status",
+        title: "Ready to secure your plan",
+        message: "Complete secure payment to unlock household planning and cloud sync.",
+        icon: "→"
+      }
+    }[planState];
+    return `
+      <section class="release2-account-summary release2-summary-${planState}" aria-live="polite">
+        <span class="release2-account-summary-icon" aria-hidden="true">${summary.icon}</span>
+        <div>
+          <span class="release2-account-summary-eyebrow">${summary.eyebrow}</span>
+          <h3>${summary.title}</h3>
+          <p>${summary.message}</p>
+        </div>
+        <span class="badge release2-summary-badge">${planState === "active" ? "Ready" : planState === "pending" ? "Confirming" : planState === "checking" ? "Checking" : planState === "attention" ? "Action needed" : "Not active"}</span>
+      </section>
+    `;
+  }
+
   private renderRecovery(): string {
     return `
       ${this.renderNotice()}
@@ -531,25 +599,55 @@ export class AccountPanel {
     const periodEnd = formatBillingDate(billing?.current_period_end ?? null);
     const paymentNeedsAttention = billing && ["incomplete", "past_due", "unpaid"].includes(billing.status);
     const hasBillingPortal = Boolean(billing?.stripe_customer_id);
+    const planState: "active" | "pending" | "checking" | "attention" | "not-started" = this.subscriptionActive === null
+      ? "checking"
+      : this.subscriptionActive
+        ? "active"
+        : this.billingConfirmationPending
+          ? "pending"
+          : paymentNeedsAttention
+            ? "attention"
+            : "not-started";
     const planMessage = this.subscriptionActive
       ? billing?.cancel_at_period_end
         ? `Your plan is active until ${periodEnd ?? "the end of the current billing period"}. Cancellation is scheduled after that date.`
-        : `Your Harbourline plan is active${periodEnd ? ` until ${periodEnd}` : ""}. Household sync is available across supported devices.`
+        : `Household sync is available across supported devices${periodEnd ? `. Next billing is ${periodEnd}.` : "."}`
+      : this.billingConfirmationPending
+        ? "Your payment has been received. We’re waiting for the subscription confirmation before opening sync."
       : paymentNeedsAttention
         ? "A payment needs attention. Update your payment method or manage your subscription to restore access."
         : "Secure payment is handled by our payment provider. Your card details are never stored in Harbourline.";
-    const planAction = this.subscriptionActive || paymentNeedsAttention
+    const planAction = this.subscriptionActive
       ? hasBillingPortal
-        ? `<div class="release2-button-row"><span class="badge">${this.subscriptionActive ? "Active" : "Payment needed"}</span><button class="btn secondary" type="button" data-action="open-billing-portal" ${this.busy ? "disabled" : ""}>Manage plan</button></div>`
-        : `<span class="badge">${this.subscriptionActive ? "Active" : "Payment needed"}</span>`
+        ? `<div class="release2-plan-management"><div><strong>Manage your subscription</strong><p>Payment method, invoices and cancellation are handled securely by Stripe.</p></div><button class="btn secondary" type="button" data-action="open-billing-portal" ${this.busy ? "disabled" : ""}>Manage subscription</button></div>`
+        : `<span class="badge release2-plan-badge is-active"><span class="release2-badge-dot" aria-hidden="true"></span>Subscribed</span>`
+      : this.subscriptionActive === null || this.billingConfirmationPending
+        ? `<div class="release2-button-row"><span class="badge release2-plan-badge is-pending">${this.subscriptionActive === null ? "Checking" : "Confirming"}</span><button class="btn secondary" type="button" data-action="refresh-subscription" ${this.busy ? "disabled" : ""}>Check plan status</button></div>`
+      : paymentNeedsAttention
+        ? hasBillingPortal
+          ? `<div class="release2-button-row"><span class="badge release2-plan-badge is-attention">Payment needed</span><button class="btn secondary" type="button" data-action="open-billing-portal" ${this.busy ? "disabled" : ""}>Manage subscription</button></div>`
+          : `<span class="badge release2-plan-badge is-attention">Payment needed</span>`
       : `<button class="btn" type="button" data-action="start-checkout" ${this.busy ? "disabled" : ""}>Continue to secure payment</button>`;
+    const accountStatusMessage = this.subscriptionActive
+      ? linkedHousehold
+        ? status.message
+        : "Plan active. Create or join a household to sync this device."
+      : this.subscriptionActive === null
+        ? "Checking your Harbourline plan…"
+        : status.message;
+    const accountStatusDetail = this.subscriptionActive
+      ? linkedHousehold
+        ? `${status.online ? "Online" : "Offline"}${status.queued ? ` · ${status.queued} queued` : ""} · ${escapeHtml(linkedHousehold.name)}`
+        : `${status.online ? "Online" : "Offline"} · Sync ready when a household is connected`
+      : `${status.online ? "Online" : "Offline"}${status.queued ? ` · ${status.queued} queued` : ""}`;
     return `
       ${this.renderNotice()}
+      ${this.renderSubscriptionSummary(planState, periodEnd)}
       <section class="release2-sync-status release2-tone-${status.tone}">
         <span class="release2-status-dot"></span>
         <div>
-          <strong>${escapeHtml(status.message)}</strong>
-          <span>${status.online ? "Online" : "Offline"}${status.queued ? ` · ${status.queued} queued` : ""}${linkedHousehold ? ` · ${escapeHtml(linkedHousehold.name)}` : ""}</span>
+          <strong>${escapeHtml(accountStatusMessage)}</strong>
+          <span>${accountStatusDetail}</span>
         </div>
       </section>
       ${this.state.conflict ? this.renderConflict(this.state.conflict) : ""}
@@ -559,11 +657,12 @@ export class AccountPanel {
           <button class="btn secondary" type="button" data-action="sign-out">Sign out</button>
         </div>
       </section>
-      <section class="release2-section">
+      <section class="release2-section release2-plan-card release2-plan-${planState}">
         <div class="release2-section-heading">
           <div><span>Harbourline plan</span><h3>A$1/week introductory early access</h3></div>
-          <span class="badge">One plan</span>
+          <span class="badge release2-plan-badge ${planState === "active" ? "is-active" : planState === "attention" ? "is-attention" : planState === "pending" || planState === "checking" ? "is-pending" : ""}">${planState === "active" ? "Subscribed" : planState === "pending" ? "Confirming" : planState === "checking" ? "Checking" : planState === "attention" ? "Payment needed" : "One plan"}</span>
         </div>
+        ${this.subscriptionActive ? `<div class="release2-plan-confirmation" role="status"><span class="release2-plan-check" aria-hidden="true">✓</span><div><strong>Subscription active</strong><p>Payment confirmed. Harbourline is ready for household planning and sync.</p></div></div>` : ""}
         <p class="release2-empty">${planMessage}</p>
         <div class="release2-plan-actions">${planAction}</div>
       </section>
@@ -809,6 +908,11 @@ export class AccountPanel {
       } else if (action === "start-checkout") {
         const checkoutUrl = await this.cloud.createCheckoutSession();
         window.location.assign(checkoutUrl);
+      } else if (action === "refresh-subscription") {
+        await this.refreshAccount();
+        this.notice = this.subscriptionActive
+          ? "Payment confirmed. Your Harbourline plan is active."
+          : "Your plan is still being confirmed. Check again shortly.";
       } else if (action === "google-calendar-sync") {
         await this.handleCalendarButton();
       } else if (action === "google-calendar-disconnect") {
