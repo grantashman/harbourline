@@ -6,9 +6,11 @@ import {
   calculateCategoryTotals,
   createBudgetBackup,
   createDefaultBudgetState,
+  deriveBetaOnboardingStep,
   formatAud,
   fortnightlyAmount,
   monthlyAmount,
+  nextBetaMilestoneEvents,
   normaliseBudgetState,
   parseBudgetBackup,
   projectSavings,
@@ -321,5 +323,62 @@ describe("budget state migration", () => {
       }
     );
     assert.equal(backup.state.schemaVersion, 1);
+  });
+});
+
+describe("paid beta onboarding", () => {
+  it("moves from household to income, bills and payday", () => {
+    assert.equal(
+      deriveBetaOnboardingStep({
+        householdId: null,
+        incomeCount: 0,
+        billCount: 0,
+        paydayViewed: false
+      }),
+      "household"
+    );
+    assert.equal(
+      deriveBetaOnboardingStep({
+        householdId: "household-1",
+        incomeCount: 1,
+        billCount: 0,
+        paydayViewed: false
+      }),
+      "bills"
+    );
+    assert.equal(
+      deriveBetaOnboardingStep({
+        householdId: "household-1",
+        incomeCount: 1,
+        billCount: 1,
+        paydayViewed: false
+      }),
+      "payday"
+    );
+  });
+
+  it("emits only new privacy-safe milestones", () => {
+    assert.deepEqual(
+      nextBetaMilestoneEvents(
+        {
+          householdId: "household-1",
+          incomeCount: 0,
+          billCount: 0,
+          paydayViewed: false
+        },
+        {
+          householdId: "household-1",
+          incomeCount: 1,
+          billCount: 5,
+          paydayViewed: true
+        }
+      ),
+      [
+        "income_added",
+        "five_bills_added",
+        "payday_viewed",
+        "onboarding_completed"
+      ]
+    );
   });
 });
