@@ -40,7 +40,7 @@ jobs:
           cp assets/harbourline-waterfront.jpg _site/assets/
 
       - name: Upload homepage
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: _site
 
