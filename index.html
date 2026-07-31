@@ -4339,6 +4339,13 @@
         } finally {
           stateChangeSource = "local";
         }
+      },
+      openWorkspace(tab) {
+        selectWorkspaceTab(tab);
+        document.querySelector(".planning-workspace")?.scrollIntoView({
+          behavior: "smooth",
+          block: "start"
+        });
       }
     });
     window.dispatchEvent(new CustomEvent("harbourline:ready"));
@@ -7804,17 +7811,20 @@
     expenseCategory.addEventListener("change", toggleDebtEntryFields);
     expenseAmount.addEventListener("input", renderExpenseConversionPreview);
     expenseFrequency.addEventListener("change", renderExpenseConversionPreview);
-    workspaceTabs.forEach((tab) => {
-      tab.addEventListener("click", () => {
-        const selected = tab.dataset.workspaceTab;
-        workspaceTabs.forEach((item) => item.setAttribute("aria-selected", item === tab ? "true" : "false"));
-        workspacePanels.forEach((panel) => {
-          const active = panel.dataset.workspacePanel === selected;
-          panel.classList.toggle("active", active);
-          panel.hidden = !active;
-        });
-        if (selected === "calendar") renderCalendar();
+    function selectWorkspaceTab(selected) {
+      workspaceTabs.forEach((tab) => {
+        tab.setAttribute("aria-selected", tab.dataset.workspaceTab === selected ? "true" : "false");
       });
+      workspacePanels.forEach((panel) => {
+        const active = panel.dataset.workspacePanel === selected;
+        panel.classList.toggle("active", active);
+        panel.hidden = !active;
+      });
+      if (selected === "calendar") renderCalendar();
+    }
+
+    workspaceTabs.forEach((tab) => {
+      tab.addEventListener("click", () => selectWorkspaceTab(tab.dataset.workspaceTab));
     });
 
     document.querySelector("#calendarPrevious").addEventListener("click", () => {

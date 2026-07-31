@@ -12,6 +12,12 @@ import type {
   RemoteBudgetDocument,
   SyncResult
 } from "@harbourline/sync";
+import type {
+  BetaEventName,
+  BetaOnboardingProgress,
+  BetaOnboardingStep,
+  BetaOperationsSnapshot
+} from "./beta-types";
 
 interface HouseholdMemberRow {
   household_id: string;
@@ -160,6 +166,54 @@ export class HarbourlineCloud {
     const { data, error } = await this.requireClient().rpc("has_active_subscription");
     if (error) throw error;
     return Boolean(data);
+  }
+
+  async getBetaOnboarding(): Promise<BetaOnboardingProgress | null> {
+    const { data, error } = await this.requireClient().functions.invoke("record-beta-progress", {
+      method: "POST",
+      body: { action: "get" }
+    });
+    if (error) {
+      if (this.functionStatus(error) === 404) return null;
+      throw await this.functionError(error);
+    }
+    return data as BetaOnboardingProgress;
+  }
+
+  async saveBetaProgress(progress: {
+    householdId: string | null;
+    step: BetaOnboardingStep;
+  }): Promise<BetaOnboardingProgress> {
+    const { data, error } = await this.requireClient().functions.invoke("record-beta-progress", {
+      method: "POST",
+      body: { action: "progress", ...progress }
+    });
+    if (error) throw await this.functionError(error);
+    return data as BetaOnboardingProgress;
+  }
+
+  async recordBetaEvent(eventName: BetaEventName, householdId?: string | null): Promise<void> {
+    const { error } = await this.requireClient().functions.invoke("record-beta-progress", {
+      method: "POST",
+      body: {
+        action: "event",
+        eventName,
+        ...(householdId === undefined ? {} : { householdId })
+      }
+    });
+    if (error) throw await this.functionError(error);
+  }
+
+  async getBetaOperations(): Promise<BetaOperationsSnapshot | null> {
+    const { data, error } = await this.requireClient().functions.invoke("get-beta-operations", {
+      method: "POST",
+      body: {}
+    });
+    if (error) {
+      if (this.functionStatus(error) === 403) return null;
+      throw await this.functionError(error);
+    }
+    return data as BetaOperationsSnapshot;
   }
 
   async listHouseholds(): Promise<HouseholdSummary[]> {
@@ -357,6 +411,16 @@ export class HarbourlineCloud {
       body: { confirmation: "DELETE MY HARBOURLINE ACCOUNT" }
     });
     if (error) throw error;
+  }
+
+  private functionStatus(error: unknown): number | null {
+    const response = (error as { context?: Response }).context;
+    return response?.status ?? null;
+  }
+
+  private async functionError(error: { context?: Response; message: string }): Promise<Error> {
+    const detail = error.context ? await error.context.text() : "";
+    return new Error(detail || error.message);
   }
 
   private mapBudget(row: BudgetRow): RemoteBudgetDocument {

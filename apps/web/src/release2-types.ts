@@ -11,6 +11,7 @@ export interface HarbourlineLocalBridge {
   storageKey: string;
   read(): unknown;
   replace(state: unknown, source?: string): void;
+  openWorkspace(tab: "payday"): void;
 }
 
 export interface Release2Status {
