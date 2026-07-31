@@ -75,8 +75,9 @@ The integration must be user-controlled and privacy-safe:
 
 - Google access is granted through OAuth and can be disconnected or revoked.
 - Harbourline never receives Google passwords or bank credentials.
-- Event content should avoid financial amounts and sensitive descriptions by
-  default, with any richer detail requiring an explicit product decision.
+- Event content avoids financial amounts and sensitive descriptions by default.
+  Customers can explicitly opt in to showing expense names in bill titles; the
+  setting is off by default and remains one-way Harbourline-to-Google.
 - Calendar sync must not expose one household member's private data to another
   Google account without household permission.
 - Account deletion and disconnect must document what happens to previously

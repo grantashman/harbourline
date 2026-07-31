@@ -45,8 +45,10 @@ identifiers. Those values must never be collected.
   to the authenticated Harbourline user.
 - Google refresh tokens are encrypted with AES-GCM before service-role-only
   storage; they are never exposed to the browser or customer-facing logs.
-- The first sync is one-way and sends only generic all-day payday and bill-due
-  events. Amounts, bill names and household descriptions remain in Harbourline.
+- The first sync is one-way and sends all-day payday and bill-due events. Amounts
+  and household descriptions remain in Harbourline; bill names are sent only
+  when the customer explicitly enables the calendar title option, which is off
+  by default.
 - Google Calendar events are marked as Harbourline-owned, and disconnect can
   revoke access and remove only those marked events.
 - The OAuth client, callback URL and encryption key are deployment secrets and

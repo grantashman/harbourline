@@ -55,6 +55,7 @@ export interface GoogleCalendarStatus {
 
 export interface GoogleCalendarEvent {
   id: string;
+  kind: "payday" | "bill";
   summary: string;
   description: string;
   startDate: string;

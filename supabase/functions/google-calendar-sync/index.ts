@@ -21,6 +21,7 @@ import {
 
 interface InputEvent {
   id: string;
+  kind?: "payday" | "bill";
   summary: string;
   startDate: string;
   endDate: string;
@@ -31,16 +32,30 @@ function validateEvents(value: unknown): InputEvent[] {
   const events = value.map((candidate) => {
     if (!candidate || typeof candidate !== "object") throw new HttpError(400, "Calendar event input is invalid");
     const event = candidate as Partial<InputEvent>;
+    if (typeof event.summary !== "string") throw new HttpError(400, "Calendar event input is invalid");
+    const summary = event.summary.trim();
+    const kind = event.kind ?? (
+      event.summary === "Harbourline payday"
+        ? "payday"
+        : event.summary === "Harbourline bill due"
+          ? "bill"
+          : undefined
+    );
     if (
       typeof event.id !== "string" || !/^[a-v0-9-]{5,1024}$/.test(event.id) ||
-      (event.summary !== "Harbourline payday" && event.summary !== "Harbourline bill due") ||
+      (kind !== "payday" && kind !== "bill") ||
+      !summary ||
+      summary.length > 120 ||
+      /[\u0000-\u001f\u007f]/.test(summary) ||
+      (kind === "payday" && summary !== "Harbourline payday") ||
       typeof event.startDate !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(event.startDate) ||
       typeof event.endDate !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(event.endDate) ||
       event.endDate <= event.startDate
     ) throw new HttpError(400, "Calendar event input is invalid");
     return {
       id: event.id,
-      summary: event.summary,
+      kind,
+      summary,
       startDate: event.startDate,
       endDate: event.endDate
     };
@@ -49,7 +64,7 @@ function validateEvents(value: unknown): InputEvent[] {
 }
 
 function eventBody(event: InputEvent): Record<string, unknown> {
-  const payday = event.summary === "Harbourline payday";
+  const payday = event.kind === "payday";
   return {
     id: event.id,
     summary: event.summary,

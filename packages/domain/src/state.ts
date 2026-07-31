@@ -143,6 +143,7 @@ function normaliseNetWorthSnapshot(value: Record<string, unknown>): NetWorthSnap
 export function createDefaultBudgetState(): BudgetState {
   return {
     schemaVersion: 1,
+    showExpenseNamesOnCalendar: false,
     household: {
       id: "local-household",
       name: "My household",
@@ -196,6 +197,7 @@ export function normaliseBudgetState(input: unknown): BudgetState {
 
   return {
     schemaVersion: 1,
+    showExpenseNamesOnCalendar: source.showExpenseNamesOnCalendar === true,
     household: {
       id: identifier(household.id, "local-household"),
       name: text(household.name, "My household"),

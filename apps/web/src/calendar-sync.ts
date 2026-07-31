@@ -4,7 +4,8 @@ const SYNC_HORIZON_DAYS = 366;
 
 interface CalendarState {
   paydayPlan?: { payCycle?: string; nextPayday?: string };
-  expenses?: Array<{ id?: string; due?: string; frequency?: string }>;
+  showExpenseNamesOnCalendar?: boolean;
+  expenses?: Array<{ id?: string; name?: string; due?: string; frequency?: string }>;
 }
 
 const EMPTY_STATUS: GoogleCalendarStatus = {
@@ -58,10 +59,25 @@ function hashId(value: string): string {
   return `h${(first >>> 0).toString(16).padStart(8, "0")}${(second >>> 0).toString(16).padStart(8, "0")}`;
 }
 
-function event(kind: "payday" | "bill", source: string, date: string): GoogleCalendarEvent {
+function billSummary(expenseName?: string): string {
+  const name = typeof expenseName === "string"
+    ? expenseName.trim().replace(/\s+/g, " ").slice(0, 100).trim()
+    : "";
+  return name ? `${name} due` : "Harbourline bill due";
+}
+
+function event(
+  kind: "payday" | "bill",
+  source: string,
+  date: string,
+  expenseName?: string
+): GoogleCalendarEvent {
   return {
     id: hashId(`${kind}|${source}|${date}`),
-    summary: kind === "payday" ? "Harbourline payday" : "Harbourline bill due",
+    kind,
+    summary: kind === "payday"
+      ? "Harbourline payday"
+      : billSummary(expenseName),
     description: kind === "payday"
       ? "Planned payday from Harbourline. Open Harbourline for private budget details."
       : "Planned bill due date from Harbourline. Open Harbourline for private budget details.",
@@ -104,7 +120,12 @@ export function buildGoogleCalendarEvents(input: unknown, start = todayDate()): 
       }
     }
     for (let count = 0; due && due <= horizon && count < 60; count += 1) {
-      events.push(event("bill", String(expense.id ?? `expense-${index}`), due));
+      events.push(event(
+        "bill",
+        String(expense.id ?? `expense-${index}`),
+        due,
+        state.showExpenseNamesOnCalendar ? expense.name : undefined
+      ));
       due = nextOccurrence(due, expense.frequency);
     }
   }
