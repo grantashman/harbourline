@@ -37,16 +37,16 @@
       --panel-soft: #eef6f1;
       --field: #ffffff;
       --field-muted: #f7faf8;
-      --mint: #4ea787;
-      --mint-dark: #246955;
-      --blue: #466bb0;
-      --amber: #d79335;
-      --rose: #c85762;
-      --button: #17211f;
-      --button-text: #ffffff;
-      --toast-bg: #17211f;
-      --toast-text: #ffffff;
-      --shadow: 0 20px 55px rgba(23, 33, 31, 0.12);
+      --mint: #1c9a71;
+      --mint-dark: #0d6f50;
+      --blue: #3c6bb5;
+      --amber: #c47a1d;
+      --rose: #b64658;
+      --button: #0e3f33;
+      --button-text: #f7fffb;
+      --toast-bg: #0e3f33;
+      --toast-text: #f7fffb;
+      --shadow: 0 1px 2px rgba(20, 43, 38, 0.05), 0 16px 36px rgba(20, 43, 38, 0.08);
       --radius: 8px;
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
@@ -55,21 +55,22 @@
       color-scheme: dark;
       --ink: #edf6f1;
       --muted: #aebdb8;
-      --line: #34433f;
-      --paper: #0f1715;
-      --panel: #17211f;
-      --panel-soft: #1d2b27;
-      --field: #111a18;
-      --field-muted: #1b2825;
-      --mint: #6bc5a3;
-      --mint-dark: #8ad9bd;
-      --blue: #83a8f3;
+      --line: rgba(174, 230, 211, 0.18);
+      --line-strong: rgba(174, 230, 211, 0.34);
+      --paper: #06110f;
+      --panel: #0d1d1a;
+      --panel-soft: #112824;
+      --field: #091713;
+      --field-muted: #0f211c;
+      --mint: #5ce0b3;
+      --mint-dark: #96f2d2;
+      --blue: #7fa7ff;
       --amber: #f0b45b;
       --rose: #f08390;
-      --button: #6bc5a3;
-      --button-text: #07110f;
-      --toast-bg: #edf6f1;
-      --toast-text: #07110f;
+      --button: #5ce0b3;
+      --button-text: #04130f;
+      --toast-bg: #f4fffb;
+      --toast-text: #06110f;
       --shadow: 0 22px 60px rgba(0, 0, 0, 0.34);
     }
 
@@ -88,14 +89,14 @@
       margin: 0;
       min-height: 100vh;
       background:
-        radial-gradient(circle at 14% 18%, rgba(78, 167, 135, 0.14), transparent 30rem),
+        radial-gradient(circle at 14% 18%, color-mix(in srgb, var(--mint) 14%, transparent), transparent 30rem),
         linear-gradient(135deg, #f9fbfa 0%, #eef4f0 46%, #f7faf8 100%);
       color: var(--ink);
     }
 
     :root[data-theme="dark"] body {
       background:
-        radial-gradient(circle at 14% 18%, rgba(107, 197, 163, 0.16), transparent 28rem),
+        radial-gradient(circle at 14% 18%, color-mix(in srgb, var(--mint) 16%, transparent), transparent 28rem),
         linear-gradient(135deg, #08100e 0%, #101a18 48%, #151f22 100%);
     }
 
@@ -342,8 +343,8 @@
       width: 230px;
       height: 230px;
       background:
-        linear-gradient(90deg, transparent 48%, rgba(70, 107, 176, 0.14) 48% 52%, transparent 52%),
-        linear-gradient(0deg, transparent 48%, rgba(78, 167, 135, 0.16) 48% 52%, transparent 52%);
+        linear-gradient(90deg, transparent 48%, color-mix(in srgb, var(--blue) 14%, transparent) 48% 52%, transparent 52%),
+        linear-gradient(0deg, transparent 48%, color-mix(in srgb, var(--mint) 16%, transparent) 48% 52%, transparent 52%);
       background-size: 34px 34px;
       transform: rotate(-8deg);
       pointer-events: none;
@@ -732,7 +733,7 @@
     input:focus,
     select:focus {
       border-color: var(--mint);
-      box-shadow: 0 0 0 4px rgba(78, 167, 135, 0.16);
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--mint) 16%, transparent);
     }
 
     .income-preview {
@@ -1222,7 +1223,12 @@
       display: grid;
       grid-template-columns: minmax(360px, 0.85fr) minmax(0, 1.15fr);
       gap: 14px;
-      align-items: start;
+      align-items: stretch;
+    }
+
+    .main-grid > .stack > .entry-panel,
+    .main-grid > .list-panel {
+      height: 100%;
     }
 
     .entry-panel,
@@ -1263,14 +1269,14 @@
     .progress-wrap {
       margin-top: 18px;
       border-radius: 8px;
-      background: #edf2ef;
+      background: var(--field-muted);
       height: 18px;
       overflow: hidden;
-      border: 1px solid #dce6e0;
+      border: 1px solid var(--line);
     }
 
     :root[data-theme="dark"] .progress-wrap {
-      background: #111a18;
+      background: var(--field);
       border-color: var(--line);
     }
 
@@ -1423,8 +1429,8 @@
     }
 
     :root[data-theme="dark"] .badge {
-      background: #20352f;
-      color: #9de7ca;
+      background: color-mix(in srgb, var(--mint) 14%, var(--panel));
+      color: var(--mint-dark);
     }
 
     .expense-meta {
@@ -2264,8 +2270,8 @@
     }
 
     :root[data-theme="dark"] .empty-state {
-      border-color: #3a4a45;
-      background: rgba(29, 43, 39, 0.7);
+      border-color: var(--line-strong);
+      background: color-mix(in srgb, var(--panel-soft) 70%, transparent);
     }
 
     .insights {
@@ -2494,6 +2500,9 @@
       --hero-overlay: rgba(6, 28, 24, 0.34);
       --hero-ink: #f5fbf8;
       --hero-line: #17332d;
+      --hero-surface: #12332b;
+      --report-header: #0b2925;
+      --report-pale: #e9f5f0;
       --radius: 10px;
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
@@ -2527,6 +2536,9 @@
       --hero-overlay: rgba(6, 28, 24, 0.48);
       --hero-ink: #f5fbf8;
       --hero-line: rgba(13, 111, 80, 0.65);
+      --hero-surface: #12332b;
+      --report-header: #0e3f33;
+      --report-pale: #eef6f2;
     }
 
     :root[data-palette="deep-ocean"] {
@@ -2540,24 +2552,27 @@
       --panel-soft: #132b43;
       --field: #091829;
       --field-muted: #10243a;
-      --mint: #6ce0c2;
-      --mint-dark: #9af4dc;
-      --blue: #80a8ff;
+      --mint: #67c8ff;
+      --mint-dark: #a6e1ff;
+      --blue: #8fa8ff;
       --amber: #f3be64;
       --rose: #ff9bab;
-      --button: #74d4be;
+      --button: #67c8ff;
       --button-text: #071321;
       --toast-bg: #eef6ff;
       --toast-text: #071321;
       --shadow: 0 30px 90px rgba(0, 5, 18, 0.48);
       --body-background:
-        radial-gradient(circle at 12% 8%, rgba(108, 224, 194, 0.16), transparent 30%),
-        radial-gradient(circle at 84% 16%, rgba(128, 168, 255, 0.16), transparent 32%),
+        radial-gradient(circle at 12% 8%, rgba(103, 200, 255, 0.18), transparent 30%),
+        radial-gradient(circle at 84% 16%, rgba(143, 168, 255, 0.16), transparent 32%),
         linear-gradient(180deg, #0b1b2c 0%, #071321 58%, #0b1828 100%);
       --topbar-background: rgba(8, 23, 39, 0.82);
-      --hero-overlay: rgba(4, 20, 35, 0.56);
+      --hero-overlay: rgba(4, 16, 37, 0.68);
       --hero-ink: #f4f9ff;
-      --hero-line: #1c4257;
+      --hero-line: #2a5f8b;
+      --hero-surface: #0b2744;
+      --report-header: #0b2744;
+      --report-pale: #eaf3ff;
     }
 
     :root[data-palette="sunset-ledger"] {
@@ -2589,6 +2604,9 @@
       --hero-overlay: rgba(67, 34, 26, 0.52);
       --hero-ink: #fff8f2;
       --hero-line: rgba(136, 65, 47, 0.68);
+      --hero-surface: #43221a;
+      --report-header: #4b2e27;
+      --report-pale: #fbf0e5;
     }
 
     * {
@@ -2734,13 +2752,13 @@
       min-height: 320px;
       padding: 28px;
       color: var(--hero-ink);
-      background-color: #12332b;
+      background-color: var(--hero-surface);
       background-image: linear-gradient(var(--hero-overlay), var(--hero-overlay)), url("assets/harbourline-waterfront.jpg");
       background-position: 61% center;
       background-size: cover;
       border-color: var(--hero-line);
       align-content: end;
-      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08) inset, 0 18px 40px rgba(13, 38, 31, 0.15);
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08) inset, 0 18px 40px rgba(0, 0, 0, 0.2);
       isolation: isolate;
     }
 
@@ -2774,14 +2792,14 @@
     }
 
     .hero-panel .eyebrow {
-      color: #7fd6b6;
+      color: var(--mint);
       font-size: 0.72rem;
       margin-bottom: 10px;
       padding-left: 12px;
     }
 
     .hero-panel h1 {
-      color: #ffffff;
+      color: var(--hero-ink);
       font-size: 2.15rem;
       line-height: 1.08;
       max-width: 440px;
@@ -2790,7 +2808,7 @@
     }
 
     .hero-panel .subhead {
-      color: #c3d5cf;
+      color: color-mix(in srgb, var(--hero-ink) 78%, transparent);
       max-width: 500px;
       margin-top: 14px;
       font-size: 0.94rem;
@@ -2855,7 +2873,7 @@
 
     input:focus,
     select:focus {
-      box-shadow: 0 0 0 3px rgba(34, 167, 123, 0.14);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--mint) 14%, transparent);
     }
 
     .btn {
@@ -3081,13 +3099,13 @@
     }
 
     .expense-item:hover {
-      border-color: #b8c9c3;
+      border-color: var(--line-strong);
       background: var(--panel);
-      box-shadow: 0 8px 22px rgba(20, 43, 38, 0.07);
+      box-shadow: 0 8px 22px color-mix(in srgb, var(--ink) 8%, transparent);
     }
 
     :root[data-theme="dark"] .expense-item:hover {
-      border-color: #42605a;
+      border-color: var(--line-strong);
     }
 
     .expense-details {
@@ -3104,42 +3122,30 @@
       border-radius: 7px;
       display: grid;
       place-items: center;
-      background: var(--icon-bg, #e7efec);
-      color: var(--icon-ink, #35564d);
+      background: var(--icon-bg, var(--field-muted));
+      color: var(--icon-ink, var(--muted));
       font-family: "Segoe UI Symbol", "Segoe UI", sans-serif;
       font-size: 1.08rem;
       font-weight: 900;
       line-height: 1;
     }
 
-    .category-icon.housing { --icon-bg: #e5eefb; --icon-ink: #315f9c; }
-    .category-icon.utilities { --icon-bg: #fff1d8; --icon-ink: #986014; }
-    .category-icon.food { --icon-bg: #e5f4ed; --icon-ink: #167052; }
-    .category-icon.transport { --icon-bg: #e8ecfa; --icon-ink: #4a5fa4; }
-    .category-icon.insurance { --icon-bg: #e3f1f3; --icon-ink: #28717b; }
-    .category-icon.debt { --icon-bg: #f8e4e7; --icon-ink: #a43f4c; }
-    .category-icon.subscriptions { --icon-bg: #eee9f7; --icon-ink: #6a5590; }
-    .category-icon.health { --icon-bg: #f9e7df; --icon-ink: #a85031; }
-    .category-icon.lifestyle { --icon-bg: #f4eadc; --icon-ink: #8b642d; }
-    .category-icon.savings { --icon-bg: #ddf3e8; --icon-ink: #167451; }
-    .category-icon.other { --icon-bg: #e8ecea; --icon-ink: #55625e; }
+    .category-icon.housing { --icon-bg: color-mix(in srgb, var(--blue) 18%, var(--panel)); --icon-ink: var(--blue); }
+    .category-icon.utilities { --icon-bg: color-mix(in srgb, var(--amber) 18%, var(--panel)); --icon-ink: var(--amber); }
+    .category-icon.food { --icon-bg: color-mix(in srgb, var(--mint) 18%, var(--panel)); --icon-ink: var(--mint-dark); }
+    .category-icon.transport { --icon-bg: color-mix(in srgb, var(--blue) 14%, var(--panel)); --icon-ink: var(--blue); }
+    .category-icon.insurance { --icon-bg: color-mix(in srgb, var(--mint) 12%, var(--panel)); --icon-ink: var(--mint-dark); }
+    .category-icon.debt { --icon-bg: color-mix(in srgb, var(--rose) 16%, var(--panel)); --icon-ink: var(--rose); }
+    .category-icon.subscriptions { --icon-bg: color-mix(in srgb, var(--blue) 14%, var(--panel)); --icon-ink: var(--blue); }
+    .category-icon.health { --icon-bg: color-mix(in srgb, var(--amber) 14%, var(--panel)); --icon-ink: var(--amber); }
+    .category-icon.lifestyle { --icon-bg: color-mix(in srgb, var(--amber) 12%, var(--panel)); --icon-ink: var(--amber); }
+    .category-icon.savings { --icon-bg: color-mix(in srgb, var(--mint) 18%, var(--panel)); --icon-ink: var(--mint-dark); }
+    .category-icon.other { --icon-bg: color-mix(in srgb, var(--muted) 12%, var(--panel)); --icon-ink: var(--muted); }
 
     :root[data-theme="dark"] .category-icon {
-      --icon-bg: #20302e;
+      --icon-bg: var(--field-muted);
       filter: none;
     }
-
-    :root[data-theme="dark"] .category-icon.housing { --icon-ink: #91baf4; }
-    :root[data-theme="dark"] .category-icon.utilities { --icon-ink: #f2c06d; }
-    :root[data-theme="dark"] .category-icon.food { --icon-ink: #73d6af; }
-    :root[data-theme="dark"] .category-icon.transport { --icon-ink: #9eb0ed; }
-    :root[data-theme="dark"] .category-icon.insurance { --icon-ink: #73c7cf; }
-    :root[data-theme="dark"] .category-icon.debt { --icon-ink: #f38c98; }
-    :root[data-theme="dark"] .category-icon.subscriptions { --icon-ink: #c4a9e8; }
-    :root[data-theme="dark"] .category-icon.health { --icon-ink: #eea183; }
-    :root[data-theme="dark"] .category-icon.lifestyle { --icon-ink: #d8b177; }
-    :root[data-theme="dark"] .category-icon.savings { --icon-ink: #71d6aa; }
-    :root[data-theme="dark"] .category-icon.other { --icon-ink: #b9c5c1; }
 
     .expense-name {
       font-size: 0.94rem;
@@ -4188,7 +4194,6 @@
       <section class="list-panel" aria-labelledby="expenseListTitle">
         <div class="panel-title">
           <h2 id="expenseListTitle">Expenses and bills</h2>
-          <span class="badge" id="savedStatus">Saved locally</span>
         </div>
         <div class="payday-plan" aria-live="polite">
           <div class="payday-plan-icon" aria-hidden="true">$</div>
@@ -4230,10 +4235,10 @@
     const LEGACY_THEME_KEYS = ["pocket-harbour-theme", "budget-studio-theme"];
     const DEFAULT_THEME = "harbour-night";
     const THEME_OPTIONS = {
-      "harbour-night": { label: "Harbour Night", mode: "dark", browserColor: "#06110f" },
-      "sea-glass": { label: "Sea Glass", mode: "light", browserColor: "#f1f7f4" },
-      "deep-ocean": { label: "Deep Ocean", mode: "dark", browserColor: "#071321" },
-      "sunset-ledger": { label: "Sunset Ledger", mode: "light", browserColor: "#fbf4ec" }
+      "harbour-night": { label: "Harbour Night", mode: "dark", browserColor: "#06110f", mark: "assets/harbourline-mark.svg", icon: "assets/favicon.svg" },
+      "sea-glass": { label: "Sea Glass", mode: "light", browserColor: "#f1f7f4", mark: "assets/harbourline-mark.svg", icon: "assets/favicon.svg" },
+      "deep-ocean": { label: "Deep Ocean", mode: "dark", browserColor: "#071321", mark: "assets/harbourline-mark-deep-ocean.svg", icon: "assets/favicon-deep-ocean.svg" },
+      "sunset-ledger": { label: "Sunset Ledger", mode: "light", browserColor: "#fbf4ec", mark: "assets/harbourline-mark-sunset-ledger.svg", icon: "assets/favicon-sunset-ledger.svg" }
     };
     const CURRENCY_FORMATTER = new Intl.NumberFormat("en-AU", {
       style: "currency",
@@ -4280,17 +4285,17 @@
     };
 
     const CHART_COLORS = [
-      "#4ea787",
-      "#466bb0",
-      "#d79335",
-      "#c85762",
-      "#5d8f7a",
-      "#7f6ab0",
-      "#3e8fa3",
-      "#b46c46",
-      "#6d8fcf",
-      "#8a9b55",
-      "#9b6a82"
+      "var(--mint)",
+      "var(--blue)",
+      "var(--amber)",
+      "var(--rose)",
+      "color-mix(in srgb, var(--mint) 72%, var(--blue))",
+      "color-mix(in srgb, var(--blue) 68%, var(--rose))",
+      "color-mix(in srgb, var(--mint) 62%, var(--blue))",
+      "color-mix(in srgb, var(--amber) 72%, var(--rose))",
+      "color-mix(in srgb, var(--blue) 78%, var(--mint))",
+      "color-mix(in srgb, var(--amber) 68%, var(--blue))",
+      "color-mix(in srgb, var(--rose) 68%, var(--blue))"
     ];
 
     function createId() {
@@ -4306,7 +4311,14 @@
         .replaceAll("'", "&#039;");
     }
 
-    const INCOME_SOURCE_ACCENTS = ["var(--blue)", "var(--mint)", "var(--amber)", "var(--rose)", "#7f6ab0", "#3e8fa3"];
+    const INCOME_SOURCE_ACCENTS = [
+      "var(--blue)",
+      "var(--mint)",
+      "var(--amber)",
+      "var(--rose)",
+      "color-mix(in srgb, var(--blue) 68%, var(--rose))",
+      "color-mix(in srgb, var(--mint) 62%, var(--blue))"
+    ];
     const LEGACY_INCOME_SOURCE_DEFAULTS = new Map([
       ["grant", { defaultLabel: "Primary income", defaultFrequency: "yearly" }],
       ["billie", { defaultLabel: "Secondary income", defaultFrequency: "yearly" }],
@@ -4382,6 +4394,7 @@
 
     function createDefaultState() {
       return {
+        showExpenseNamesOnCalendar: false,
         incomes: createIncomeSources(),
         savingsPlan: { ...DEFAULT_SAVINGS_PLAN },
         debtPlan: { ...DEFAULT_DEBT_PLAN },
@@ -4469,6 +4482,7 @@
           : null;
 
       return {
+        showExpenseNamesOnCalendar: parsed.showExpenseNamesOnCalendar === true,
         incomes: createIncomeSources(savedIncomes),
         savingsPlan: {
           ...DEFAULT_SAVINGS_PLAN,
@@ -4540,7 +4554,6 @@
 
     function saveState() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      document.querySelector("#savedStatus").textContent = "Saved locally";
       window.dispatchEvent(new CustomEvent("harbourline:state-changed", {
         detail: {
           source: stateChangeSource,
@@ -5556,10 +5569,10 @@
       const fill = document.querySelector("#ratioFill");
       fill.style.width = `${Math.min(ratio * 100, 100)}%`;
       fill.style.background = ratio > 1
-        ? "linear-gradient(90deg, #c85762, #d79335)"
+        ? "linear-gradient(90deg, var(--rose), var(--amber))"
         : ratio > 0.75
-          ? "linear-gradient(90deg, #d79335, #c85762)"
-          : "linear-gradient(90deg, #4ea787, #466bb0)";
+          ? "linear-gradient(90deg, var(--amber), var(--rose))"
+          : "linear-gradient(90deg, var(--mint), var(--blue))";
     }
 
     function createBarRow(label, value, max, color) {
@@ -5592,9 +5605,9 @@
       const remaining = Math.max(monthlyIncome - monthlyExpenses, 0);
       const shortfall = Math.max(monthlyExpenses - monthlyIncome, 0);
       const rows = [
-        ["Household income", monthlyIncome, "#466bb0"],
-        ["Expenses", monthlyExpenses, "#d79335"],
-        [shortfall > 0 ? "Shortfall" : "Left over", shortfall > 0 ? shortfall : remaining, shortfall > 0 ? "#c85762" : "#4ea787"]
+        ["Household income", monthlyIncome, "var(--blue)"],
+        ["Expenses", monthlyExpenses, "var(--amber)"],
+        [shortfall > 0 ? "Shortfall" : "Left over", shortfall > 0 ? shortfall : remaining, shortfall > 0 ? "var(--rose)" : "var(--mint)"]
       ];
       const max = Math.max(...rows.map((row) => row[1]), 1);
       const container = document.querySelector("#flowChart");
@@ -5711,7 +5724,7 @@
       const rows = projection.yearly.filter((item) => item.year % interval === 0 || item.year === projection.years);
       const max = Math.max(...rows.map((row) => row.balance), 1);
       rows.forEach((row, index) => {
-        const color = index === rows.length - 1 ? "#4ea787" : "#466bb0";
+        const color = index === rows.length - 1 ? "var(--mint)" : "var(--blue)";
         chart.append(createBarRow(`Year ${row.year}`, row.balance, max, color));
       });
     }
@@ -5924,7 +5937,7 @@
           : row.month % 12 === 0
             ? `Year ${row.month / 12}`
             : `Month ${row.month}`;
-        chart.append(createBarRow(label, row.balance, max, index === rows.length - 1 ? "#4ea787" : "#c85762"));
+        chart.append(createBarRow(label, row.balance, max, index === rows.length - 1 ? "var(--mint)" : "var(--rose)"));
       });
     }
 
@@ -7330,16 +7343,35 @@
       const pageSize = [595.28, 841.89];
       const margin = 42;
       const contentWidth = pageSize[0] - margin * 2;
+      const rootStyles = getComputedStyle(document.documentElement);
+      const themedColour = (token, fallback) => {
+        const value = rootStyles.getPropertyValue(token).trim();
+        const hex = value.match(/^#([\da-f]{3}|[\da-f]{6})$/i);
+        if (hex) {
+          const digits = hex[1].length === 3
+            ? hex[1].split("").map((digit) => `${digit}${digit}`).join("")
+            : hex[1];
+          return rgb(
+            Number.parseInt(digits.slice(0, 2), 16) / 255,
+            Number.parseInt(digits.slice(2, 4), 16) / 255,
+            Number.parseInt(digits.slice(4, 6), 16) / 255
+          );
+        }
+        const channels = value.match(/^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/i);
+        return channels
+          ? rgb(Number(channels[1]) / 255, Number(channels[2]) / 255, Number(channels[3]) / 255)
+          : fallback;
+      };
       const colours = {
-        ink: rgb(0.08, 0.13, 0.12),
-        muted: rgb(0.37, 0.44, 0.42),
-        green: rgb(0.09, 0.27, 0.23),
-        mint: rgb(0.13, 0.65, 0.48),
-        blue: rgb(0.25, 0.44, 0.72),
-        amber: rgb(0.84, 0.54, 0.15),
-        rose: rgb(0.78, 0.25, 0.34),
-        pale: rgb(0.94, 0.97, 0.96),
-        line: rgb(0.82, 0.87, 0.85),
+        ink: themedColour("--ink", rgb(0.08, 0.13, 0.12)),
+        muted: themedColour("--muted", rgb(0.37, 0.44, 0.42)),
+        brand: themedColour("--report-header", rgb(0.09, 0.27, 0.23)),
+        mint: themedColour("--mint", rgb(0.13, 0.65, 0.48)),
+        blue: themedColour("--blue", rgb(0.25, 0.44, 0.72)),
+        amber: themedColour("--amber", rgb(0.84, 0.54, 0.15)),
+        rose: themedColour("--rose", rgb(0.78, 0.25, 0.34)),
+        pale: themedColour("--report-pale", rgb(0.94, 0.97, 0.96)),
+        line: themedColour("--line", rgb(0.82, 0.87, 0.85)),
         white: rgb(1, 1, 1)
       };
       const reportDate = new Date();
@@ -7380,7 +7412,7 @@
         pages.push(page);
         page.drawRectangle({
           x: 0, y: pageSize[1] - 88, width: pageSize[0], height: 88,
-          color: colours.green
+          color: colours.brand
         });
         page.drawRectangle({
           x: margin, y: pageSize[1] - 68, width: 34, height: 34,
@@ -7405,7 +7437,7 @@
       };
 
       const sectionHeading = (page, title, y) => {
-        page.drawText(pdfSafe(title), { x: margin, y, size: 11, font: bold, color: colours.green });
+        page.drawText(pdfSafe(title), { x: margin, y, size: 11, font: bold, color: colours.brand });
         page.drawLine({
           start: { x: margin, y: y - 7 },
           end: { x: pageSize[0] - margin, y: y - 7 },
@@ -7490,7 +7522,7 @@
 
       let report = addPage(PRODUCT_NAME);
       report.page.drawText("Your household position at a glance", {
-        x: margin, y: report.y, size: 19, font: bold, color: colours.green
+        x: margin, y: report.y, size: 19, font: bold, color: colours.brand
       });
       report.y -= 19;
       report.y = drawWrapped(
@@ -7570,12 +7602,12 @@
       priorities.slice(0, 3).forEach((priority, index) => {
         report.page.drawRectangle({
           x: margin, y: report.y - 3, width: 15, height: 15,
-          color: index === 0 ? colours.green : colours.pale,
+          color: index === 0 ? colours.brand : colours.pale,
           borderColor: colours.line, borderWidth: 0.5
         });
         report.page.drawText(String(index + 1), {
           x: margin + 5, y: report.y + 1, size: 7, font: bold,
-          color: index === 0 ? colours.white : colours.green
+          color: index === 0 ? colours.white : colours.brand
         });
         report.y = drawWrapped(report.page, priority, margin + 25, report.y + 3, contentWidth - 25, {
           size: 8.2, lineHeight: 11, colour: colours.ink
@@ -7586,7 +7618,7 @@
       report.y = sectionHeading(report.page, "Household income", report.y);
       const incomeWidths = [130, 78, 82, 96, 125];
       report.y = tableRow(report.page, report.y, ["Source", "Amount", "Frequency", "Next pay", "Monthly"], incomeWidths, {
-        height: 24, fill: colours.green, bold: true, colour: colours.white, right: [1, 4]
+        height: 24, fill: colours.brand, bold: true, colour: colours.white, right: [1, 4]
       });
       state.incomes.forEach((income, index) => {
         report.y = tableRow(report.page, report.y, [
@@ -7638,7 +7670,7 @@
       report.y = sectionHeading(report.page, "Bill funding readiness", report.y);
       const fundingWidths = [151, 78, 90, 100, 92];
       report.y = tableRow(report.page, report.y, ["Bill", "Next due", "Reserved", "This payday", "Status"], fundingWidths, {
-        height: 24, fill: colours.green, bold: true, colour: colours.white, right: [2, 3]
+        height: 24, fill: colours.brand, bold: true, colour: colours.white, right: [2, 3]
       });
       const fundingRows = [...paySummary.fundings].sort((a, b) => {
         const statusOrder = { overdue: 0, behind: 1, "on-track": 2, funded: 3 };
@@ -7672,7 +7704,7 @@
       }, {});
       const realityWidths = [170, 112, 112, 117];
       report.y = tableRow(report.page, report.y, ["Category", "Planned", "Actual", "Variance"], realityWidths, {
-        height: 24, fill: colours.green, bold: true, colour: colours.white, right: [1, 2, 3]
+        height: 24, fill: colours.brand, bold: true, colour: colours.white, right: [1, 2, 3]
       });
       const realityCategories = [...new Set([...categories.map((item) => item.name), ...Object.keys(actualByCategory)])].slice(0, 7);
       realityCategories.forEach((category, index) => {
@@ -7706,7 +7738,7 @@
       report.y = sectionHeading(report.page, "Savings goals", report.y);
       const goalWidths = [171, 90, 90, 90, 70];
       report.y = tableRow(report.page, report.y, ["Goal", "Target", "Saved", "Weekly need", "Progress"], goalWidths, {
-        height: 24, fill: colours.green, bold: true, colour: colours.white, right: [1, 2, 3, 4]
+        height: 24, fill: colours.brand, bold: true, colour: colours.white, right: [1, 2, 3, 4]
       });
       (state.goals || []).slice(0, 8).forEach((goal, index) => {
         const target = Number(goal.target) || 0;
@@ -7727,7 +7759,7 @@
       report.y = sectionHeading(report.page, "Assets and liabilities", report.y);
       const netWidths = [72, 76, 100, 164, 99];
       report.y = tableRow(report.page, report.y, ["Kind", "Owner", "Type", "Name", "Value"], netWidths, {
-        height: 24, fill: colours.green, bold: true, colour: colours.white, right: [4]
+        height: 24, fill: colours.brand, bold: true, colour: colours.white, right: [4]
       });
       (state.netWorthItems || []).slice(0, 10).forEach((item, index) => {
         report.y = tableRow(report.page, report.y, [
@@ -7752,7 +7784,7 @@
         x: margin, y: expensePage.y, size: 6.8, font: bold, color: colours.muted
       });
       expensePage.page.drawText(money(paySummary.transfer), {
-        x: margin, y: expensePage.y - 22, size: 16, font: bold, color: colours.green
+        x: margin, y: expensePage.y - 22, size: 16, font: bold, color: colours.brand
       });
       expensePage.page.drawText(`Move this amount to your bills account on the next ${state.paydayPlan?.payCycle || "weekly"} payday.`, {
         x: margin + 122, y: expensePage.y - 19, size: 8, font: regular, color: colours.muted
@@ -7763,7 +7795,7 @@
         expensePage.y = tableRow(expensePage.page, expensePage.y, [
           "Expense", "Category", "Original", "Cycle", "Due", "Weekly", "Monthly"
         ], expenseWidths, {
-          height: 24, fill: colours.green, bold: true, colour: colours.white, right: [2, 5, 6]
+          height: 24, fill: colours.brand, bold: true, colour: colours.white, right: [2, 5, 6]
         });
       };
       drawExpenseHeader();
@@ -7816,7 +7848,7 @@
       } else {
         const debtWidths = [42, 176, 99, 90, 104];
         report.y = tableRow(report.page, report.y, ["Order", "Account", "Balance", "Rate p.a.", "Monthly pay"], debtWidths, {
-          height: 24, fill: colours.green, bold: true, colour: colours.white, right: [2, 3, 4]
+          height: 24, fill: colours.brand, bold: true, colour: colours.white, right: [2, 3, 4]
         });
         orderedDebts(debts, debtPlan.strategy).forEach((debt, index) => {
           report.y = tableRow(report.page, report.y, [
@@ -7893,6 +7925,8 @@
       document.documentElement.dataset.palette = selectedTheme;
       document.documentElement.dataset.theme = definition.mode;
       document.querySelector('meta[name="theme-color"]')?.setAttribute("content", definition.browserColor);
+      document.querySelector(".logo-mark")?.setAttribute("src", definition.mark);
+      document.querySelector('link[rel="icon"][type="image/svg+xml"]')?.setAttribute("href", definition.icon);
       updateThemeOptions(selectedTheme);
       try {
         localStorage.setItem(THEME_KEY, selectedTheme);

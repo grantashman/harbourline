@@ -92,6 +92,7 @@ export interface NetWorthSnapshot {
 
 export interface BudgetState {
   schemaVersion: 1;
+  showExpenseNamesOnCalendar: boolean;
   household: Household;
   incomes: IncomeSource[];
   savingsPlan: SavingsPlan;
@@ -112,4 +113,3 @@ export interface BudgetBackup {
   currency: "AUD";
   state: BudgetState;
 }
-

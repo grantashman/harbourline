@@ -70,8 +70,9 @@ reviewed. See `PRODUCTION_ACTIVATION.md`.
 
 Google Calendar sync is implemented for the paid early-access release. It
 requires Google OAuth deployment configuration and is intentionally one-way:
-Harbourline creates, updates and removes only its own generic all-day events.
-The integration stores refresh tokens encrypted at rest and supports explicit
+Harbourline creates, updates and removes only its own all-day events. Calendar
+titles stay generic by default, with an explicit opt-in for expense names. The
+integration stores refresh tokens encrypted at rest and supports explicit
 disconnect, revocation and optional removal of Harbourline-created events.
 
 ## Release 4: Public web launch

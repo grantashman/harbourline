@@ -21,15 +21,15 @@
   display: grid;
   place-items: center;
   padding: 24px;
-  background: rgba(4, 15, 13, 0.96);
+  background: color-mix(in srgb, var(--paper) 96%, #000 4%);
 }
 
 .release2-access-gate-card {
   width: min(560px, 100%);
   padding: 34px;
-  border: 1px solid rgba(92, 224, 179, 0.28);
+  border: 1px solid color-mix(in srgb, var(--mint) 28%, var(--line));
   border-radius: 12px;
-  background: linear-gradient(145deg, rgba(17, 40, 36, 0.98), rgba(9, 23, 20, 0.98));
+  background: linear-gradient(145deg, color-mix(in srgb, var(--panel-soft) 96%, var(--mint) 4%), var(--panel));
   box-shadow: 0 30px 90px rgba(0, 0, 0, 0.42);
 }
 
@@ -41,7 +41,7 @@
 
 .release2-access-gate-card p {
   margin: 0 0 24px;
-  color: var(--muted, #adc5bd);
+  color: var(--muted);
   font-size: 1.05rem;
   line-height: 1.55;
 }
@@ -57,11 +57,11 @@
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel);
-  box-shadow: 0 30px 90px rgba(6, 19, 16, 0.34);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.34);
 }
 
 .release2-dialog::backdrop {
-  background: rgba(5, 17, 14, 0.68);
+  background: color-mix(in srgb, var(--paper) 68%, transparent);
   backdrop-filter: blur(4px);
 }
 
@@ -177,6 +177,56 @@
 .release2-section input:focus {
   border-color: var(--mint);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--mint) 18%, transparent);
+}
+
+.release2-calendar-title-option {
+  display: grid !important;
+  min-width: 0;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 11px !important;
+  margin-top: 14px;
+  padding: 12px;
+  color: var(--ink) !important;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--field-muted);
+  font-size: 0.82rem !important;
+  font-weight: 700 !important;
+  line-height: 1.4;
+}
+
+.release2-calendar-title-option:has(input:checked) {
+  border-color: color-mix(in srgb, var(--mint) 48%, var(--line));
+  background: color-mix(in srgb, var(--mint) 8%, var(--field-muted));
+}
+
+.release2-calendar-title-option input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  padding: 0;
+  accent-color: var(--mint);
+}
+
+.release2-calendar-title-option span {
+  display: block;
+  min-width: 0;
+}
+
+.release2-calendar-title-option strong {
+  display: block;
+  color: var(--ink);
+  font-size: 0.84rem;
+}
+
+.release2-calendar-title-option small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 500;
+  line-height: 1.45;
 }
 
 .release2-section .btn {
@@ -699,7 +749,7 @@
   overflow-x: hidden;
   overflow-y: auto;
   color: var(--ink);
-  background: color-mix(in srgb, var(--paper) 94%, #071b16 6%);
+  background: color-mix(in srgb, var(--paper) 94%, var(--blue) 6%);
 }
 
 .release2-onboarding-shell {
@@ -708,7 +758,7 @@
   border: 1px solid var(--line);
   border-radius: 12px;
   background: var(--panel);
-  box-shadow: 0 30px 90px rgba(6, 19, 16, 0.24);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.24);
 }
 
 .release2-onboarding-shell h1 {
