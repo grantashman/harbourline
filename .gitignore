@@ -2,8 +2,8 @@ node_modules/
 dist/
 .vite/
 coverage/
+.worktrees/
 *.log
 .env
 .env.*
 !.env.example
-
