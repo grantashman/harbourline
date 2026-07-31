@@ -48,3 +48,10 @@ retention wording, complaint process and contact details.
 - no financial-product comparisons or open-ended AI financial advice
 - customers can export data and request account deletion
 - cancellation must not delete a household budget
+- a later roadmap feature may offer optional Google Calendar synchronisation
+  through Google OAuth, subject to separate scope, privacy and deletion review
+
+For the planned Google Calendar feature, please also review the OAuth scopes,
+Google as a service provider, event-content minimisation, disconnect and token
+revocation, household permission boundaries, and deletion of previously created
+calendar events.

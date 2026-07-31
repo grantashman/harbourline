@@ -41,6 +41,11 @@ The current application includes:
 - Dark mode, responsive layout and local browser caching for continuity
 - Supabase accounts, household sync and password recovery for the hosted product
 
+Planned after paid early access:
+
+- Optional Google Calendar sync for planned paydays, bill due dates and selected
+  household milestones
+
 ## Commercial Direction
 
 Harbourline uses Supabase accounts as its only account model. Account creation is intentionally unavailable inside the app; the public product homepage is the only signup and access-request entry point.

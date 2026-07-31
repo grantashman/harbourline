@@ -64,6 +64,29 @@ Automatic bank feeds are a later capability. They will be introduced only
 after the product has a validated retention loop and a compliant Consumer Data
 Right integration path.
 
+### Google Calendar sync
+
+After paid early access, Harbourline is planned to offer optional Google
+Calendar synchronisation for the calendar module. The intended first scope is
+to let a customer authorise Google Calendar and create, update and remove
+calendar events for planned paydays, bill due dates and selected household
+milestones.
+
+The integration must be user-controlled and privacy-safe:
+
+- Google access is granted through OAuth and can be disconnected or revoked.
+- Harbourline never receives Google passwords or bank credentials.
+- Event content should avoid financial amounts and sensitive descriptions by
+  default, with any richer detail requiring an explicit product decision.
+- Calendar sync must not expose one household member's private data to another
+  Google account without household permission.
+- Account deletion and disconnect must document what happens to previously
+  created Google Calendar events.
+
+The initial product assumption is one-way Harbourline-to-Google synchronisation;
+two-way editing will be designed separately because edits in Google Calendar
+need conflict, ownership and deletion rules.
+
 ## Success measures
 
 - Activation: income plus five expenses plus a completed payday plan.
