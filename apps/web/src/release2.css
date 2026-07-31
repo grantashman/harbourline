@@ -305,6 +305,105 @@
   line-height: 1.45;
 }
 
+.release2-account-summary {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 13px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.release2-account-summary.release2-summary-active {
+  border-color: color-mix(in srgb, var(--mint) 55%, var(--line));
+  background: color-mix(in srgb, var(--mint) 8%, var(--panel));
+}
+
+.release2-account-summary.release2-summary-pending,
+.release2-account-summary.release2-summary-checking {
+  border-color: color-mix(in srgb, var(--amber) 42%, var(--line));
+  background: color-mix(in srgb, var(--amber) 7%, var(--panel));
+}
+
+.release2-account-summary.release2-summary-attention {
+  border-color: color-mix(in srgb, var(--rose) 48%, var(--line));
+  background: color-mix(in srgb, var(--rose) 7%, var(--panel));
+}
+
+.release2-account-summary-icon {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  margin-top: 1px;
+  color: var(--mint-dark);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--mint) 18%, var(--panel));
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.release2-summary-pending .release2-account-summary-icon,
+.release2-summary-checking .release2-account-summary-icon {
+  color: var(--amber);
+  background: color-mix(in srgb, var(--amber) 16%, var(--panel));
+}
+
+.release2-summary-attention .release2-account-summary-icon {
+  color: var(--rose);
+  background: color-mix(in srgb, var(--rose) 16%, var(--panel));
+}
+
+.release2-account-summary-eyebrow {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--muted);
+  font-size: 0.69rem;
+  font-weight: 850;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase;
+}
+
+.release2-account-summary h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+.release2-account-summary p {
+  max-width: 560px;
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.release2-summary-badge {
+  align-self: start;
+  margin-top: 1px;
+  background: var(--panel-soft);
+}
+
+.release2-summary-active .release2-summary-badge {
+  color: var(--mint-dark);
+  background: color-mix(in srgb, var(--mint) 18%, var(--panel));
+}
+
+.release2-summary-pending .release2-summary-badge,
+.release2-summary-checking .release2-summary-badge {
+  color: var(--amber);
+  background: color-mix(in srgb, var(--amber) 16%, var(--panel));
+}
+
+.release2-summary-attention .release2-summary-badge {
+  color: var(--rose);
+  background: color-mix(in srgb, var(--rose) 16%, var(--panel));
+}
+
 .release2-fact-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -420,6 +519,105 @@
 
 .release2-plan-actions {
   margin-top: 14px;
+}
+
+.release2-plan-card.release2-plan-active {
+  border-color: color-mix(in srgb, var(--mint) 46%, var(--line));
+}
+
+.release2-plan-card.release2-plan-pending,
+.release2-plan-card.release2-plan-checking {
+  border-color: color-mix(in srgb, var(--amber) 36%, var(--line));
+}
+
+.release2-plan-badge.is-active {
+  color: var(--mint-dark);
+  background: color-mix(in srgb, var(--mint) 18%, var(--panel));
+}
+
+.release2-plan-badge.is-pending {
+  color: var(--amber);
+  background: color-mix(in srgb, var(--amber) 16%, var(--panel));
+}
+
+.release2-plan-badge.is-attention {
+  color: var(--rose);
+  background: color-mix(in srgb, var(--rose) 16%, var(--panel));
+}
+
+.release2-badge-dot {
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.release2-plan-confirmation {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 30px minmax(0, 1fr);
+  align-items: start;
+  gap: 11px;
+  margin: 2px 0 14px;
+  padding: 13px;
+  border: 1px solid color-mix(in srgb, var(--mint) 35%, var(--line));
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--mint) 8%, var(--field-muted));
+}
+
+.release2-plan-check {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  color: var(--panel);
+  border-radius: 50%;
+  background: var(--mint);
+  font-size: 0.95rem;
+  font-weight: 950;
+}
+
+.release2-plan-confirmation strong {
+  display: block;
+  color: var(--ink);
+  font-size: 0.91rem;
+}
+
+.release2-plan-confirmation p {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.release2-plan-management {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.release2-plan-management > div {
+  min-width: 0;
+}
+
+.release2-plan-management strong {
+  display: block;
+  color: var(--ink);
+  font-size: 0.86rem;
+}
+
+.release2-plan-management p {
+  max-width: 420px;
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
 }
 
 .release2-invite-token {
@@ -658,6 +856,24 @@
 }
 
 @media (max-width: 480px) {
+  .release2-account-summary {
+    grid-template-columns: 34px minmax(0, 1fr);
+  }
+
+  .release2-summary-badge {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .release2-plan-management {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .release2-plan-management .btn {
+    width: 100%;
+  }
+
   .release2-inline-form,
   .release2-invite-token {
     grid-template-columns: 1fr;
