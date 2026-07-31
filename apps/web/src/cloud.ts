@@ -45,6 +45,12 @@ export interface BillingSubscription {
   cancel_at_period_end: boolean;
 }
 
+export interface BillingReconciliation {
+  active: boolean;
+  reconciled: boolean;
+  subscription: BillingSubscription | null;
+}
+
 export interface GoogleCalendarStatus {
   connected: boolean;
   googleEmail: string | null;
@@ -226,6 +232,15 @@ export class HarbourlineCloud {
       .maybeSingle();
     if (error) throw error;
     return data as BillingSubscription | null;
+  }
+
+  async reconcileBillingSubscription(): Promise<BillingReconciliation> {
+    const { data, error } = await this.requireClient().functions.invoke("reconcile-billing-subscription", {
+      method: "POST",
+      body: {}
+    });
+    if (error) throw await this.functionError(error);
+    return data as BillingReconciliation;
   }
 
   async hasActiveSubscription(): Promise<boolean> {

@@ -422,13 +422,17 @@ export class AccountPanel {
       return;
     }
     try {
-      const [households, mfa, subscriptionActive, billingSubscription, googleCalendarStatus] = await Promise.all([
+      const [households, mfa, billingReconciliation, googleCalendarStatus] = await Promise.all([
         this.cloud.listHouseholds(),
         this.cloud.getMfaState(),
-        this.cloud.hasActiveSubscription(),
-        this.cloud.getBillingSubscription(),
+        this.cloud.reconcileBillingSubscription().catch((error) => {
+          reportError(error);
+          return null;
+        }),
         this.cloud.getGoogleCalendarStatus().catch(() => this.googleCalendarStatus)
       ]);
+      const subscriptionActive = billingReconciliation?.active ?? await this.cloud.hasActiveSubscription();
+      const billingSubscription = billingReconciliation?.subscription ?? await this.cloud.getBillingSubscription();
       this.state.households = households;
       this.subscriptionActive = subscriptionActive;
       if (subscriptionActive) this.billingConfirmationPending = false;
