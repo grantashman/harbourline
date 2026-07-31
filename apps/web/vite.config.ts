@@ -26,7 +26,11 @@ export default defineConfig({
       includeAssets: [
         "favicon.ico",
         "favicon.svg",
+        "assets/favicon-deep-ocean.svg",
+        "assets/favicon-sunset-ledger.svg",
         "assets/harbourline-mark.svg",
+        "assets/harbourline-mark-deep-ocean.svg",
+        "assets/harbourline-mark-sunset-ledger.svg",
         "assets/harbourline-logo.svg"
       ],
       manifest: {
