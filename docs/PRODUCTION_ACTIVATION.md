@@ -9,6 +9,24 @@ For the commercial launch sequence, member-level cost model and profitability
 thresholds, see
 [`PRODUCTION_AND_PROFITABILITY.md`](PRODUCTION_AND_PROFITABILITY.md).
 
+## Current controlled-beta checkpoint — 31 July 2026
+
+The following public deployment identifiers were verified during the controlled
+beta activation. Secret values remain in Supabase and Vercel only.
+
+- hosted app: `https://harbourline-zeta.vercel.app`
+- Supabase project: `mnnppxznopuoqverlsex`
+- Supabase API host: `https://mnnppxznopuoqverlsex.supabase.co`
+- Supabase region: Northeast Asia (Tokyo), `ap-northeast-1`
+- Google Cloud project: `harbourline-auth`
+- Google Calendar callback: `https://mnnppxznopuoqverlsex.supabase.co/functions/v1/google-calendar-callback`
+- live introductory Stripe price: `price_1TzC9YBha937Q1NNEL5ORsA2` (A$1/week)
+
+The `google_calendar_sync` migration and all five Google Calendar Edge
+Functions are deployed. The project currently reports Supabase Free/NANO with
+no scheduled backups; upgrading to a non-pausing production plan remains a
+launch decision before opening the beta beyond a controlled cohort.
+
 ## 1. Confirm the beta project
 
 The existing project may be used for the controlled beta with:
@@ -79,6 +97,12 @@ deploys all Edge Functions. Keep the database password and access token in the
 GitHub environment only; never commit them or place them in frontend variables.
 The repository CI still runs application, domain, sync, schema and production
 build checks independently.
+
+The current beta project is also linked to `grantashman/harbourline` through
+Supabase. The dashboard currently reports the calendar migration and functions
+as deployed. Keep the protected workflow as the reviewed fallback until its
+production environment secrets are configured and its first manual run is
+recorded.
 
 ## 3. Release database and function changes
 
