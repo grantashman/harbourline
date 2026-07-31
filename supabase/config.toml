@@ -37,3 +37,9 @@ verify_jwt = true
 
 [functions.stripe-webhook]
 verify_jwt = false
+
+[functions.record-beta-progress]
+verify_jwt = true
+
+[functions.get-beta-operations]
+verify_jwt = true
