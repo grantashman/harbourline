@@ -179,6 +179,56 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--mint) 18%, transparent);
 }
 
+.release2-calendar-title-option {
+  display: grid !important;
+  min-width: 0;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 11px !important;
+  margin-top: 14px;
+  padding: 12px;
+  color: var(--ink) !important;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--field-muted);
+  font-size: 0.82rem !important;
+  font-weight: 700 !important;
+  line-height: 1.4;
+}
+
+.release2-calendar-title-option:has(input:checked) {
+  border-color: color-mix(in srgb, var(--mint) 48%, var(--line));
+  background: color-mix(in srgb, var(--mint) 8%, var(--field-muted));
+}
+
+.release2-calendar-title-option input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  padding: 0;
+  accent-color: var(--mint);
+}
+
+.release2-calendar-title-option span {
+  display: block;
+  min-width: 0;
+}
+
+.release2-calendar-title-option strong {
+  display: block;
+  color: var(--ink);
+  font-size: 0.84rem;
+}
+
+.release2-calendar-title-option small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
 .release2-section .btn {
   min-height: 42px;
 }

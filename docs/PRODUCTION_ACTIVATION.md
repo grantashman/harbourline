@@ -206,7 +206,9 @@ OAuth consent screen and an OAuth web client, then add the exact callback URL
 callback should be the deployed `google-calendar-callback` Edge Function URL.
 Generate a random 32-byte base64url key for
 `GOOGLE_CALENDAR_TOKEN_ENCRYPTION_KEY`. The app only requests the
-`calendar.events` scope and syncs generic all-day payday and bill-due events.
+`calendar.events` scope and syncs generic all-day payday and bill-due events by
+default. Customers can opt in to expense names in bill titles from the account
+panel.
 
 Record each rehearsal in
 [`BETA_RELEASE_TEST_MATRIX.md`](BETA_RELEASE_TEST_MATRIX.md). Configure Sentry

@@ -235,6 +235,18 @@ describe("debt simulation", () => {
 });
 
 describe("budget state migration", () => {
+  it("keeps calendar expense titles private unless explicitly enabled", () => {
+    assert.equal(createDefaultBudgetState().showExpenseNamesOnCalendar, false);
+    assert.equal(
+      normaliseBudgetState({ showExpenseNamesOnCalendar: true }).showExpenseNamesOnCalendar,
+      true
+    );
+    assert.equal(
+      normaliseBudgetState({ showExpenseNamesOnCalendar: "true" }).showExpenseNamesOnCalendar,
+      false
+    );
+  });
+
   it("migrates the original single-income format", () => {
     const migrated = normaliseBudgetState({
       incomeAmount: 1218,

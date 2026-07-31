@@ -133,6 +133,7 @@ export class AccountPanel {
       this.dialog.showModal();
     });
     this.dialog.addEventListener("click", (event) => this.handleClick(event));
+    this.dialog.addEventListener("change", (event) => void this.handleCalendarPreferenceChange(event));
     this.dialog.addEventListener("submit", (event) => void this.handleSubmit(event));
     this.dialog.addEventListener("click", (event) => {
       if (event.target === this.dialog) this.dialog.close();
@@ -313,6 +314,63 @@ export class AccountPanel {
       : this.googleCalendarStatus.error
         ? "Sync needs attention"
         : "Not connected";
+  }
+
+  private calendarExpenseNamesEnabled(): boolean {
+    const current = this.bridge.read();
+    return Boolean(
+      current &&
+      typeof current === "object" &&
+      !Array.isArray(current) &&
+      (current as Record<string, unknown>).showExpenseNamesOnCalendar === true
+    );
+  }
+
+  private async handleCalendarPreferenceChange(event: Event): Promise<void> {
+    const target = event.target;
+    if (
+      !(target instanceof HTMLInputElement) ||
+      target.dataset.action !== "calendar-title-preference" ||
+      this.busy ||
+      this.calendarBusy
+    ) return;
+
+    const enabled = target.checked;
+    const current = this.bridge.read();
+    const nextState = current && typeof current === "object" && !Array.isArray(current)
+      ? { ...(current as Record<string, unknown>), showExpenseNamesOnCalendar: enabled }
+      : { showExpenseNamesOnCalendar: enabled };
+    this.bridge.replace(nextState, "calendar-settings");
+    this.notice = enabled
+      ? "Expense names enabled. Updating your connected Google Calendar…"
+      : "Generic calendar titles restored. Updating your connected Google Calendar…";
+    this.render();
+
+    if (!this.googleCalendarStatus.connected || !this.subscriptionActive) {
+      this.notice = enabled
+        ? "Expense names will be used the next time you sync Google Calendar."
+        : "Generic titles will be used the next time you sync Google Calendar.";
+      this.render();
+      return;
+    }
+
+    this.calendarBusy = true;
+    this.updateCalendarControls();
+    try {
+      this.googleCalendarStatus = await this.calendarSync.sync();
+      this.notice = enabled
+        ? "Expense names are now shown in your Google Calendar bill events."
+        : "Google Calendar bill events now use generic titles.";
+    } catch (error) {
+      reportError(error);
+      this.notice = error instanceof Error
+        ? `${error.message} The preference was saved and will apply on the next successful sync.`
+        : "Google Calendar could not be updated. The preference was saved for the next sync.";
+    } finally {
+      this.calendarBusy = false;
+      this.updateCalendarControls();
+      this.render();
+    }
   }
 
   private async handleCalendarButton(): Promise<void> {
@@ -598,6 +656,7 @@ export class AccountPanel {
   private renderSignedIn(): string {
     const linkedId = this.sync.metadata?.householdId;
     const linkedHousehold = this.state.households.find((household) => household.id === linkedId);
+    const showExpenseNamesOnCalendar = this.calendarExpenseNamesEnabled();
     const status = this.state.status;
     const billing = this.billingSubscription;
     const periodEnd = formatBillingDate(billing?.current_period_end ?? null);
@@ -675,7 +734,14 @@ export class AccountPanel {
           <div><span>Calendar connection</span><h3>Google Calendar</h3></div>
           <span class="badge">${this.googleCalendarStatus.connected ? "Connected" : "Optional"}</span>
         </div>
-        <p class="release2-empty">Sync generic planned paydays and bill due dates. Amounts, bill names and household details stay in Harbourline.</p>
+        <p class="release2-empty">Sync planned paydays and bill due dates. Amounts and household details stay in Harbourline.</p>
+        <label class="release2-calendar-title-option">
+          <input type="checkbox" data-action="calendar-title-preference" ${showExpenseNamesOnCalendar ? "checked" : ""} ${this.busy || this.calendarBusy || !this.subscriptionActive ? "disabled" : ""} />
+          <span>
+            <strong>Show expense names on calendar</strong>
+            <small>When enabled, bill events use titles such as “Rent due”. Expense names will be visible in Google Calendar.</small>
+          </span>
+        </label>
         <div class="release2-button-row">
           <button class="btn secondary" type="button" data-action="google-calendar-sync" ${this.busy || this.calendarBusy || !this.subscriptionActive ? "disabled" : ""}>${this.googleCalendarStatus.connected ? "Sync now" : "Connect Google Calendar"}</button>
           ${this.googleCalendarStatus.connected ? `<button class="btn secondary" type="button" data-action="google-calendar-disconnect" ${this.busy || this.calendarBusy ? "disabled" : ""}>Disconnect</button>` : ""}
