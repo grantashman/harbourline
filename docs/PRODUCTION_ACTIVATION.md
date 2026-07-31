@@ -115,11 +115,12 @@ delete events. Confirm the webhook signature and replay handling in Stripe's
 test mode before enabling live payments.
 
 The sandbox checkout and paid-access gate have now passed an end-to-end test.
-The application now includes a Stripe Customer Portal handoff. Before testing
-it, enable payment-method updates, invoice history and cancellation at period
-end in the Stripe Customer Portal configuration. Deploy
-`create-billing-portal` with the same server-side Stripe secret and configure
-the portal's allowed return URL as the hosted Harbourline application.
+Release `8360c92` added the Stripe Customer Portal handoff, duplicate-checkout
+protection and replay-safe webhook processing. The hosted application and
+protected billing functions are deployed. Before testing customer self-service,
+enable payment-method updates, invoice history and cancellation at period end
+in the Stripe Customer Portal configuration, then configure the portal's
+allowed return URL as the hosted Harbourline application.
 
 The remaining release work is a sandbox test of customer self-service, renewal,
 failed payment, refund, cancellation, replay safety and a complete live-mode

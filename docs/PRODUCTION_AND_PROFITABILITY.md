@@ -33,13 +33,15 @@ Completed:
 - Stripe sandbox product, recurring price, first-month discount and webhook
 - successful sandbox checkout at A$2, followed by A$5 per month
 - subscription gate opening after confirmed payment
+- deployed customer billing portal, duplicate-checkout protection and
+  replay-safe subscription webhook processing
 - source control, automated deployment and core project documentation
 
 Still required before live customers:
 
 - Stripe live-mode configuration
-- customer billing portal and cancellation path
-- complete failed-payment and subscription-state handling
+- configure and complete sandbox testing of the customer billing portal,
+  cancellation and payment recovery paths
 - production and staging separation
 - legal and accounting review
 - privacy, terms, billing, cancellation and refund documents
