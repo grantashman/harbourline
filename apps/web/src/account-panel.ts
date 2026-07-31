@@ -737,7 +737,8 @@ export class AccountPanel {
         <p class="release2-empty">Sync planned paydays and bill due dates. Amounts and household details stay in Harbourline.</p>
         <label class="release2-calendar-title-option">
           <input type="checkbox" data-action="calendar-title-preference" ${showExpenseNamesOnCalendar ? "checked" : ""} ${this.busy || this.calendarBusy || !this.subscriptionActive ? "disabled" : ""} />
-          <span>
+          <span class="release2-calendar-title-mark" aria-hidden="true"></span>
+          <span class="release2-calendar-title-copy">
             <strong>Show expense names on calendar</strong>
             <small>When enabled, bill events use titles such as “Rent due”. Expense names will be visible in Google Calendar.</small>
           </span>
