@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sendLifecycleEmail } from "../_shared/beta-email.ts";
+import { lifecycleEmailFor, sendLifecycleEmail, type LifecycleEmailKind } from "../_shared/beta-email.ts";
 
 type StripeObject = Record<string, unknown>;
 
@@ -124,12 +124,66 @@ async function findKnownUserId(
   return null;
 }
 
+interface BillingEventLifecycle {
+  lifecycle_event_name: string | null;
+  lifecycle_user_id: string | null;
+  lifecycle_email_kind: LifecycleEmailKind | null;
+  lifecycle_event_recorded_at: string | null;
+  lifecycle_email_sent_at: string | null;
+}
+
 function lifecycleEventName(previousStatus: string | null, nextStatus: string): string | null {
   if (previousStatus === nextStatus) return null;
   if (nextStatus === "active") return "subscription_activated";
   if (nextStatus === "past_due") return "subscription_past_due";
   if (nextStatus === "canceled") return "subscription_cancelled";
   return null;
+}
+
+async function deliverLifecycleEmail(
+  admin: ReturnType<typeof createClient>,
+  eventId: string,
+  claimToken: string,
+  lifecycle: BillingEventLifecycle,
+  currentPeriodEnd: string | null
+): Promise<void> {
+  if (!lifecycle.lifecycle_email_kind || !lifecycle.lifecycle_user_id || lifecycle.lifecycle_email_sent_at) return;
+
+  try {
+    const { data: account, error: accountError } = await admin.auth.admin.getUserById(lifecycle.lifecycle_user_id);
+    if (accountError || !account.user?.email) {
+      console.error("Lifecycle email could not be addressed", {
+        kind: lifecycle.lifecycle_email_kind,
+        message: accountError?.message ?? "No account email was available"
+      });
+      return;
+    }
+
+    const wasSent = await sendLifecycleEmail({
+      kind: lifecycle.lifecycle_email_kind,
+      recipient: account.user.email,
+      previousStatus: null,
+      nextStatus: "active",
+      currentPeriodEnd,
+      idempotencyKey: `harbourline-lifecycle-${eventId}-${lifecycle.lifecycle_email_kind}`
+    });
+    if (!wasSent) return;
+
+    const { error: sentAtError } = await admin
+      .from("billing_events")
+      .update({ lifecycle_email_sent_at: new Date().toISOString() })
+      .eq("event_id", eventId)
+      .eq("processing_token", claimToken)
+      .is("lifecycle_email_sent_at", null);
+    if (sentAtError) {
+      console.error("Lifecycle email delivery could not be recorded", { kind: lifecycle.lifecycle_email_kind });
+    }
+  } catch (error) {
+    console.error("Lifecycle email work failed", {
+      kind: lifecycle.lifecycle_email_kind,
+      message: error instanceof Error ? error.message : "unknown error"
+    });
+  }
 }
 
 Deno.serve(async (request) => {
@@ -155,20 +209,17 @@ Deno.serve(async (request) => {
   if (!eventId || !eventType) return new Response("Invalid event", { status: 400 });
 
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-  const { error: receivedError } = await admin
-    .from("billing_events")
-    .insert({ event_id: eventId, event_type: eventType });
-  if (receivedError?.code === "23505") {
-    const { data: existing, error: existingError } = await admin
-      .from("billing_events")
-      .select("processed_at")
-      .eq("event_id", eventId)
-      .maybeSingle();
-    if (existingError) return new Response("Event status could not be loaded", { status: 500 });
-    if (existing?.processed_at) return new Response("Already processed", { status: 200 });
-  } else if (receivedError) {
+  const claimToken = crypto.randomUUID();
+  const { data: claimRows, error: claimError } = await admin.rpc("claim_billing_event", {
+    target_event_id: eventId,
+    target_event_type: eventType,
+    claim_token: claimToken
+  });
+  const claim = Array.isArray(claimRows) ? claimRows[0] : null;
+  if (claimError || !claim) {
     return new Response("Event could not be recorded", { status: 500 });
   }
+  if (!claim.claimed) return new Response("Already processed", { status: 200 });
 
   try {
     if (subscriptionEvents.has(eventType)) {
@@ -183,6 +234,14 @@ Deno.serve(async (request) => {
         throw new Error("Subscription could not be matched to a Harbourline account");
       }
 
+      const { data: billingEvent, error: billingEventError } = await admin
+        .from("billing_events")
+        .select("lifecycle_event_name, lifecycle_user_id, lifecycle_email_kind, lifecycle_event_recorded_at, lifecycle_email_sent_at")
+        .eq("event_id", eventId)
+        .eq("processing_token", claimToken)
+        .single();
+      if (billingEventError || !billingEvent) throw new Error(billingEventError?.message ?? "Billing event claim could not be loaded");
+
       const { data: previousBilling, error: previousBillingError } = await admin
         .from("billing_subscriptions")
         .select("status")
@@ -190,6 +249,26 @@ Deno.serve(async (request) => {
         .maybeSingle();
       if (previousBillingError) throw new Error(previousBillingError.message);
       const previousStatus = previousBilling?.status ?? null;
+      let lifecycle = billingEvent as BillingEventLifecycle;
+      if (!lifecycle.lifecycle_event_name) {
+        const lifecycleEvent = lifecycleEventName(previousStatus, snapshot.status);
+        if (lifecycleEvent) {
+          const emailKind = lifecycleEmailFor({ previousStatus, nextStatus: snapshot.status })?.kind ?? null;
+          const { data: plannedLifecycle, error: planError } = await admin
+            .from("billing_events")
+            .update({
+              lifecycle_event_name: lifecycleEvent,
+              lifecycle_user_id: userId,
+              lifecycle_email_kind: emailKind
+            })
+            .eq("event_id", eventId)
+            .eq("processing_token", claimToken)
+            .select("lifecycle_event_name, lifecycle_user_id, lifecycle_email_kind, lifecycle_event_recorded_at, lifecycle_email_sent_at")
+            .single();
+          if (planError || !plannedLifecycle) throw new Error(planError?.message ?? "Lifecycle event could not be planned");
+          lifecycle = plannedLifecycle as BillingEventLifecycle;
+        }
+      }
 
       const { error: subscriptionError } = await admin.from("billing_subscriptions").upsert({
         user_id: userId,
@@ -203,41 +282,45 @@ Deno.serve(async (request) => {
       }, { onConflict: "user_id" });
       if (subscriptionError) throw new Error(subscriptionError.message);
 
-      const lifecycleEvent = lifecycleEventName(previousStatus, snapshot.status);
-      if (lifecycleEvent) {
+      if (lifecycle.lifecycle_event_name && lifecycle.lifecycle_user_id) {
         const { error: lifecycleEventError } = await admin.from("beta_operational_events").insert({
-          user_id: userId,
-          event_name: lifecycleEvent
+          user_id: lifecycle.lifecycle_user_id,
+          event_name: lifecycle.lifecycle_event_name,
+          source_billing_event_id: eventId
         });
-        if (lifecycleEventError) throw new Error(lifecycleEventError.message);
-
-        const { data: account, error: accountError } = await admin.auth.admin.getUserById(userId);
-        if (accountError || !account.user?.email) {
-          console.error("Lifecycle email could not be addressed", {
-            kind: lifecycleEvent,
-            message: accountError?.message ?? "No account email was available"
-          });
-        } else {
-          await sendLifecycleEmail({
-            recipient: account.user.email,
-            previousStatus,
-            nextStatus: snapshot.status,
-            currentPeriodEnd: snapshot.currentPeriodEnd
-          });
+        if (lifecycleEventError && lifecycleEventError.code !== "23505") {
+          throw new Error(lifecycleEventError.message);
         }
+
+        const { error: recordedError } = await admin
+          .from("billing_events")
+          .update({ lifecycle_event_recorded_at: new Date().toISOString() })
+          .eq("event_id", eventId)
+          .eq("processing_token", claimToken)
+          .is("lifecycle_event_recorded_at", null);
+        if (recordedError) throw new Error(recordedError.message);
+
+        lifecycle = { ...lifecycle, lifecycle_event_recorded_at: new Date().toISOString() };
+        await deliverLifecycleEmail(admin, eventId, claimToken, lifecycle, snapshot.currentPeriodEnd);
       }
     }
 
-    const { error: processedError } = await admin
-      .from("billing_events")
-      .update({ processed_at: new Date().toISOString(), last_error: null })
-      .eq("event_id", eventId);
-    if (processedError) throw new Error(processedError.message);
+    const { data: completed, error: completeError } = await admin.rpc("complete_billing_event_claim", {
+      target_event_id: eventId,
+      claim_token: claimToken
+    });
+    if (completeError || completed !== true) {
+      throw new Error(completeError?.message ?? "Billing event claim could not be completed");
+    }
     return new Response("ok", { status: 200 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Billing event could not be processed";
     console.error(message);
-    await admin.from("billing_events").update({ last_error: message }).eq("event_id", eventId);
+    await admin.rpc("release_billing_event_claim", {
+      target_event_id: eventId,
+      claim_token: claimToken,
+      error_message: message
+    });
     return new Response("Billing event could not be processed", { status: 500 });
   }
 });

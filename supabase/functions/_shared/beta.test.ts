@@ -15,7 +15,10 @@ Deno.test("matches normalised operator emails", () => {
 });
 
 Deno.test("sends welcome only when a subscription first becomes active", () => {
+  assertEquals(lifecycleEmailFor({ previousStatus: null, nextStatus: "active" })?.kind, "welcome");
   assertEquals(lifecycleEmailFor({ previousStatus: "incomplete", nextStatus: "active" })?.kind, "welcome");
+  assertEquals(lifecycleEmailFor({ previousStatus: "trialing", nextStatus: "active" })?.kind, "welcome");
+  assertEquals(lifecycleEmailFor({ previousStatus: "past_due", nextStatus: "active" }), null);
   assertEquals(lifecycleEmailFor({ previousStatus: "active", nextStatus: "active" }), null);
 });
 

@@ -10,6 +10,11 @@ function stripeValue(value: string): string {
   return value.trim();
 }
 
+function checkoutIdempotencyKey(userId: string): string {
+  const window = Math.floor(Date.now() / (5 * 60 * 1000));
+  return `harbourline-checkout-${userId}-${window}`;
+}
+
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (request.method !== "POST") return new Response("Method not allowed", { status: 405, headers: corsHeaders });
@@ -39,11 +44,13 @@ Deno.serve(async (request) => {
   }
 
   const admin = createServiceRoleClient();
+  const idempotencyKey = checkoutIdempotencyKey(user.id);
   const { error: checkoutEventError } = await admin.from("beta_operational_events").insert({
     user_id: user.id,
-    event_name: "checkout_started"
+    event_name: "checkout_started",
+    source_checkout_key: idempotencyKey
   });
-  if (checkoutEventError) {
+  if (checkoutEventError && checkoutEventError.code !== "23505") {
     return new Response("Checkout activity could not be recorded", { status: 500, headers: corsHeaders });
   }
 
@@ -69,7 +76,8 @@ Deno.serve(async (request) => {
     method: "POST",
     headers: {
       Authorization: `Bearer ${stripeSecret}`,
-      "Content-Type": "application/x-www-form-urlencoded"
+      "Content-Type": "application/x-www-form-urlencoded",
+      "Idempotency-Key": idempotencyKey
     },
     body: form
   });
