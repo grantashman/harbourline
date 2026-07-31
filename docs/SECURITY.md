@@ -17,7 +17,9 @@ identifiers. Those values must never be collected.
 - Import requires a deliberate file selection.
 - Export produces a user-controlled JSON backup.
 - No analytics, remote logging or third-party scripts receive budget values.
-- The legacy offline application remains available.
+- The production application requires an authenticated paid subscription. The
+  browser retains a working cache for continuity, but it cannot create a
+  standalone account or bypass subscription access.
 - Dependency versions are locked.
 - Type checking, unit tests and a production build run in CI.
 
@@ -36,6 +38,18 @@ identifiers. Those values must never be collected.
   orphan an owned household.
 - Policy tests include owner, member and unrelated-user paths.
 - Financial values are excluded from application telemetry.
+
+## Repository safeguards
+
+- CodeQL scans JavaScript and TypeScript on pull requests, main-branch changes
+  and a weekly schedule.
+- Dependency Review blocks pull requests that add a high or critical known
+  vulnerability.
+- Dependabot opens weekly update pull requests for npm packages and GitHub
+  Actions.
+- GitHub secret scanning and push protection must remain enabled for the public
+  repository. The project owner must review every security alert promptly.
+- Private vulnerability reporting must be enabled before the paid beta opens.
 
 Production still requires an Australian Supabase region, backup restoration
 rehearsal, administrative MFA, operational access logging and an incident

@@ -35,6 +35,7 @@ Completed:
 - subscription gate opening after confirmed payment
 - deployed customer billing portal, duplicate-checkout protection and
   replay-safe subscription webhook processing
+- CodeQL, dependency-review and Dependabot repository safeguards
 - source control, automated deployment and core project documentation
 
 Still required before live customers:

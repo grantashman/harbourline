@@ -74,6 +74,18 @@ Before inviting customers:
 - test household ownership transfer before account deletion
 - confirm a cancelled subscription never deletes a household budget
 
+## 5a. Enable repository safeguards
+
+The repository runs CodeQL, dependency review and Dependabot from `.github`.
+Before inviting the first paid beta cohort:
+
+1. In GitHub, open **Settings > Code security and analysis** for
+   `grantashman/harbourline`.
+2. Enable secret scanning, push protection and private vulnerability reporting.
+3. In **Settings > Branches**, protect `main` and require the Harbourline CI,
+   CodeQL and dependency-review checks before a pull request can merge.
+4. Review the Security tab each week and rotate any credential that is exposed.
+
 ## 6. Activate the hosted app
 
 Set the hosted web application's public environment values:

@@ -104,8 +104,14 @@ Harbourline is designed around Supabase-authenticated planning with a local brow
 - A browser cache keeps the current working copy available between sessions.
 - Hosted household sync uses required Supabase authentication and row-level security.
 - Production responses include security headers through Vercel.
+- GitHub checks each pull request for vulnerable dependency changes and scans
+  the application with CodeQL on pull requests, main-branch releases and a
+  weekly schedule.
 - Repository source does not include personal budget history.
 - Public GitHub Pages content is marketing-only and does not store financial data.
+
+Security reports must never include household financial information. The
+reporting policy is in [`SECURITY.md`](SECURITY.md).
 
 ## Status
 
