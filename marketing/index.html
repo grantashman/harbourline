@@ -429,12 +429,14 @@
 
     .pricing-grid {
       display: grid;
-      grid-template-columns: minmax(0, 640px);
-      justify-content: center;
+      grid-template-columns: minmax(0, 1fr);
       gap: 14px;
     }
 
     .price-card {
+      display: grid;
+      grid-template-columns: minmax(0, 1.08fr) minmax(280px, 0.92fr);
+      gap: 30px;
       padding: 22px;
     }
 
@@ -453,6 +455,61 @@
       color: var(--muted);
       font-size: 0.85rem;
       font-weight: 750;
+    }
+
+    .price-summary {
+      display: flex;
+      min-height: 100%;
+      flex-direction: column;
+      justify-content: center;
+      padding-left: 30px;
+      border-left: 1px solid rgba(177, 240, 218, 0.16);
+    }
+
+    .price-summary > p {
+      max-width: 360px;
+      margin-top: 10px;
+    }
+
+    .price-summary-label {
+      color: var(--mint);
+      font-size: 0.76rem;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .price-breakdown {
+      display: grid;
+      margin: 22px 0;
+      border-top: 1px solid rgba(177, 240, 218, 0.16);
+      border-bottom: 1px solid rgba(177, 240, 218, 0.16);
+    }
+
+    .price-breakdown div {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 13px 0;
+    }
+
+    .price-breakdown div + div {
+      border-top: 1px solid rgba(177, 240, 218, 0.12);
+    }
+
+    .price-breakdown span {
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .price-breakdown strong {
+      color: var(--ink);
+      font-size: 1.1rem;
+    }
+
+    .price-cta {
+      width: 100%;
     }
 
     ul {
@@ -589,9 +646,23 @@
         grid-template-columns: 1fr;
       }
 
-      .feature-grid,
-      .pricing-grid {
+      .feature-grid {
         grid-template-columns: 1fr 1fr;
+      }
+
+      .pricing-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .price-card {
+        grid-template-columns: 1fr;
+      }
+
+      .price-summary {
+        min-height: 0;
+        padding: 26px 0 0;
+        border-top: 1px solid rgba(177, 240, 218, 0.16);
+        border-left: 0;
       }
     }
 
@@ -717,16 +788,28 @@
       </div>
       <div class="pricing-grid">
         <article class="price-card featured">
-          <span class="eyebrow">Introductory offer</span>
-          <h3>Harbourline</h3>
-          <div class="price">A$2<span> for your first month</span></div>
-          <p>Then A$5/month thereafter. One clear plan with the complete Harbourline household planning experience.</p>
-          <ul>
-            <li>Secure account access</li>
-            <li>Household sync</li>
-            <li>Payday, bills, savings and debt planning</li>
-            <li>Calendar, Excel, CSV and PDF reports</li>
-          </ul>
+          <div class="price-main">
+            <span class="eyebrow">Introductory offer</span>
+            <h3>Harbourline</h3>
+            <div class="price">A$2<span> for your first month</span></div>
+            <p>Then A$5/month thereafter. One clear plan with the complete Harbourline household planning experience.</p>
+            <ul>
+              <li>Secure account access</li>
+              <li>Household sync</li>
+              <li>Payday, bills, savings and debt planning</li>
+              <li>Calendar, Excel, CSV and PDF reports</li>
+            </ul>
+          </div>
+          <div class="price-summary">
+            <span class="price-summary-label">One plan. Everything you need.</span>
+            <p>Build a clearer view of your household money, then keep the plan moving from payday to payday.</p>
+            <div class="price-breakdown" aria-label="Harbourline pricing summary">
+              <div><span>First month</span><strong>A$2</strong></div>
+              <div><span>After that</span><strong>A$5 / month</strong></div>
+              <div><span>Cancel</span><strong>Anytime</strong></div>
+            </div>
+            <a class="button secondary price-cta" href="#early-access">Start with Harbourline</a>
+          </div>
         </article>
       </div>
     </section>
