@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(19);
+select plan(21);
 
 select has_table('public', 'households', 'households table exists');
 select has_table('public', 'household_members', 'household membership table exists');
@@ -123,6 +123,20 @@ values (
   '10000000-0000-0000-0000-000000000001'
 );
 
+insert into public.beta_onboarding (user_id, household_id, step)
+values (
+  '10000000-0000-0000-0000-000000000001',
+  '20000000-0000-0000-0000-000000000001',
+  'income'
+);
+
+insert into public.beta_operational_events (user_id, household_id, event_name)
+values (
+  '10000000-0000-0000-0000-000000000001',
+  '20000000-0000-0000-0000-000000000001',
+  'onboarding_started'
+);
+
 set local role authenticated;
 select set_config(
   'request.jwt.claims',
@@ -175,6 +189,15 @@ select lives_ok(
     'fnv1a-test'
   )$$,
   'member can use the guarded sync function'
+);
+select is(
+  (select public.export_my_account() -> 'onboarding' ->> 'step'),
+  'income',
+  'account export includes onboarding progress when available'
+);
+select ok(
+  not (select public.export_my_account() ? 'operationalEvents'),
+  'account export excludes private operational events'
 );
 
 set local "request.jwt.claims" =
