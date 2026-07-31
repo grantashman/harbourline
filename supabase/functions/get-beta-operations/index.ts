@@ -18,6 +18,15 @@ interface UserRow {
   created_at: string;
 }
 
+const BETA_ACTIVITY_DAYS = 90;
+
+function betaActivityCutoff(): Date {
+  const now = new Date();
+  const cutoff = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  cutoff.setUTCDate(cutoff.getUTCDate() - (BETA_ACTIVITY_DAYS - 1));
+  return cutoff;
+}
+
 function dayFromTimestamp(value: string): string {
   return value.slice(0, 10);
 }
@@ -40,30 +49,38 @@ function aggregateDaily(events: EventRow[], users: UserRow[]): BetaOperationsSna
     .sort((left, right) => right.day.localeCompare(left.day) || left.eventName.localeCompare(right.eventName));
 }
 
-async function loadAllEventRows(serviceClient: ReturnType<typeof createServiceRoleClient>): Promise<EventRow[]> {
+async function loadRecentEventRows(
+  serviceClient: ReturnType<typeof createServiceRoleClient>,
+  cutoff: Date
+): Promise<EventRow[]> {
   const rows: EventRow[] = [];
   const pageSize = 1000;
   for (let from = 0; ; from += pageSize) {
     const { data, error } = await serviceClient
       .from("beta_operational_events")
       .select("event_name, occurred_at")
+      .gte("occurred_at", cutoff.toISOString())
       .order("occurred_at", { ascending: false })
       .range(from, from + pageSize - 1);
     if (error) throw error;
-    rows.push(...(data ?? []) as EventRow[]);
+    rows.push(...((data ?? []) as EventRow[]));
     if (!data || data.length < pageSize) return rows;
   }
 }
 
-async function loadAllUsers(serviceClient: ReturnType<typeof createServiceRoleClient>): Promise<UserRow[]> {
+async function loadRecentUsers(
+  serviceClient: ReturnType<typeof createServiceRoleClient>,
+  cutoff: Date
+): Promise<UserRow[]> {
   const rows: UserRow[] = [];
   const perPage = 1000;
   for (let page = 1; ; page += 1) {
     const { data, error } = await serviceClient.auth.admin.listUsers({ page, perPage });
     if (error) throw error;
-    const users = data.users as UserRow[];
-    rows.push(...users);
-    if (users.length < perPage) return rows;
+    const users = (data?.users ?? []) as UserRow[];
+    rows.push(...users.filter((user) => user.created_at >= cutoff.toISOString()));
+    const oldestCreatedAt = users.at(-1)?.created_at;
+    if (users.length < perPage || !oldestCreatedAt || oldestCreatedAt < cutoff.toISOString()) return rows;
   }
 }
 
@@ -79,9 +96,10 @@ Deno.serve(async (request) => {
     }
 
     const serviceClient = createServiceRoleClient();
+    const cutoff = betaActivityCutoff();
     const [events, users, active, pastDue, cancelled] = await Promise.all([
-      loadAllEventRows(serviceClient),
-      loadAllUsers(serviceClient),
+      loadRecentEventRows(serviceClient, cutoff),
+      loadRecentUsers(serviceClient, cutoff),
       serviceClient.from("billing_subscriptions").select("user_id", { count: "exact", head: true }).in("status", ["active", "trialing"]),
       serviceClient.from("billing_subscriptions").select("user_id", { count: "exact", head: true }).eq("status", "past_due"),
       serviceClient.from("billing_subscriptions").select("user_id", { count: "exact", head: true }).eq("status", "canceled")

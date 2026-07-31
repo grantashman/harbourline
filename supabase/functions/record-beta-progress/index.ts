@@ -16,8 +16,24 @@ type RequestAction = "get" | "progress" | "event";
 interface ProgressRequest {
   action: RequestAction;
   householdId?: string | null;
+  householdIdSupplied?: boolean;
   step?: BetaOnboardingStep;
   eventName?: string;
+}
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function hasOwn(value: Record<string, unknown>, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(value, key);
+}
+
+function validateHouseholdId(value: unknown, supplied: boolean): string | null | undefined {
+  if (!supplied) return undefined;
+  if (value === null) return null;
+  if (typeof value !== "string" || !UUID_PATTERN.test(value)) {
+    throw new HttpError(400, "householdId must be a non-empty UUID or null");
+  }
+  return value;
 }
 
 function parseRequestBody(value: unknown): ProgressRequest {
@@ -33,17 +49,50 @@ function parseRequestBody(value: unknown): ProgressRequest {
   if (body.action !== "get" && body.action !== "progress" && body.action !== "event") {
     throw new HttpError(400, "Unsupported beta action");
   }
-  if (body.householdId !== undefined && body.householdId !== null && typeof body.householdId !== "string") {
-    throw new HttpError(400, "householdId must be a string or null");
-  }
-  if (body.step !== undefined && typeof body.step !== "string") {
-    throw new HttpError(400, "step must be a string");
-  }
-  if (body.eventName !== undefined && typeof body.eventName !== "string") {
-    throw new HttpError(400, "eventName must be a string");
+  const householdId = validateHouseholdId(body.householdId, hasOwn(body, "householdId"));
+
+  if (body.action === "get") {
+    if (hasOwn(body, "householdId") || hasOwn(body, "step") || hasOwn(body, "eventName")) {
+      throw new HttpError(400, "get does not accept progress or event fields");
+    }
+    return { action: "get" };
   }
 
-  return body as ProgressRequest;
+  if (body.action === "progress") {
+    if (hasOwn(body, "eventName") || !hasOwn(body, "step")) {
+      throw new HttpError(400, "progress requires step and does not accept eventName");
+    }
+    return {
+      action: "progress",
+      householdId,
+      householdIdSupplied: hasOwn(body, "householdId"),
+      step: validateBetaOnboardingStep(body.step)
+    };
+  }
+
+  if (hasOwn(body, "step") || !hasOwn(body, "eventName")) {
+    throw new HttpError(400, "event requires eventName and does not accept step");
+  }
+  return {
+    action: "event",
+    householdId,
+    eventName: validateBetaEvent(body.eventName)
+  };
+}
+
+async function requireHouseholdMembership(
+  serviceClient: ReturnType<typeof createServiceRoleClient>,
+  householdId: string,
+  userId: string
+): Promise<void> {
+  const { data: membership, error } = await serviceClient
+    .from("household_members")
+    .select("household_id")
+    .eq("household_id", householdId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!membership) throw new HttpError(403, "You do not belong to this household");
 }
 
 function toProgress(row: {
@@ -80,11 +129,14 @@ Deno.serve(async (request) => {
 
     if (body.action === "progress") {
       const step = validateBetaOnboardingStep(body.step);
+      if (body.householdId !== null && body.householdId !== undefined) {
+        await requireHouseholdMembership(serviceClient, body.householdId, user.id);
+      }
       const payload: Record<string, unknown> = {
         user_id: user.id,
-        household_id: body.householdId ?? null,
         step
       };
+      if (body.householdIdSupplied) payload.household_id = body.householdId ?? null;
       if (step === "complete") payload.completed_at = new Date().toISOString();
 
       const { data, error } = await serviceClient
@@ -97,15 +149,8 @@ Deno.serve(async (request) => {
     }
 
     const eventName = validateBetaEvent(body.eventName);
-    if (body.householdId) {
-      const { data: membership, error: membershipError } = await serviceClient
-        .from("household_members")
-        .select("household_id")
-        .eq("household_id", body.householdId)
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (membershipError) throw membershipError;
-      if (!membership) throw new HttpError(403, "You do not belong to this household");
+    if (body.householdId !== null && body.householdId !== undefined) {
+      await requireHouseholdMembership(serviceClient, body.householdId, user.id);
     }
 
     const { error } = await serviceClient.from("beta_operational_events").insert({

@@ -36,8 +36,21 @@ export interface BetaOperationsSnapshot {
   cancelledSubscriptions: number;
 }
 
+const defaultAppOrigin = "https://harbourline-zeta.vercel.app";
+
+function configuredAppOrigin(): string {
+  const appUrl = Deno.env.get("HARBOURLINE_APP_URL");
+  if (!appUrl) return defaultAppOrigin;
+
+  try {
+    return new URL(appUrl).origin;
+  } catch {
+    return defaultAppOrigin;
+  }
+}
+
 export const corsHeaders = {
-  "Access-Control-Allow-Origin": "https://harbourline-zeta.vercel.app",
+  "Access-Control-Allow-Origin": configuredAppOrigin(),
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS"
 };
