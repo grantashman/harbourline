@@ -24,28 +24,32 @@ cannot be changed after creation.
 
 ## 2. GitHub production integration
 
-The Supabase GitHub App is installed on the private
-`grantashman/harbourline` repository only. The Harbourline project is connected
-with:
+The repository contains a manual production workflow at
+`.github/workflows/supabase-production.yml`. It runs only when deliberately
+started from GitHub Actions in the protected `production` environment.
 
-- working directory: `.`
-- production deployment: enabled
-- production branch: `main`
-- automatic preview branches: disabled on the current plan
+Add these GitHub Actions secrets to the `production` environment:
 
-Supabase applies changes under `supabase/` after they are merged into `main`.
+- `SUPABASE_ACCESS_TOKEN`: a Supabase personal access token
+- `SUPABASE_PROJECT_REF`: the Harbourline project ref
+- `SUPABASE_DB_PASSWORD`: the production database password
+
+The workflow links the project, applies migrations in timestamp order, and
+deploys all Edge Functions. Keep the database password and access token in the
+GitHub environment only; never commit them or place them in frontend variables.
 The repository CI still runs application, domain, sync, schema and production
-build checks before merge. No account-wide Supabase access token or database
-password is stored in GitHub.
+build checks independently.
 
 ## 3. Release database and function changes
 
 1. Create a timestamped migration in `supabase/migrations/`.
 2. Update or add Edge Functions under `supabase/functions/`.
-3. Run `pnpm check`.
+3. Run `pnpm check` when local verification is available.
 4. Open and review a pull request.
 5. Merge the reviewed change into `main`.
-6. Confirm the Supabase integration reports a successful production update.
+6. Start **Deploy Supabase production** from GitHub Actions.
+7. Confirm the migration and Edge Function deployments succeeded before
+   enabling the related product surface.
 
 Do not edit the production schema directly in the SQL editor after this
 activation. If an emergency manual change is unavoidable, immediately capture
@@ -110,8 +114,9 @@ The public homepage creates accounts. Enable and brand the Google and Azure
 (Microsoft) providers in the Harbourline authentication settings, and add the
 GitHub Pages URL and hosted app URL to the provider redirect allowlists.
 
-Create one recurring Stripe price for A$5/month and a one-month A$3 discount
-coupon. Store these values only as Edge Function secrets:
+Create one recurring Stripe price for A$5/month and charge A$2 for the first
+month. Store the Stripe price and first-month promotion values only as Edge
+Function secrets:
 
 ```text
 STRIPE_SECRET_KEY
@@ -126,18 +131,11 @@ webhook endpoint for checkout completion and subscription create, update and
 delete events. Confirm the webhook signature and replay handling in Stripe's
 test mode before enabling live payments.
 
-The sandbox checkout and paid-access gate have now passed an end-to-end test.
-Release `8360c92` added the Stripe Customer Portal handoff, duplicate-checkout
-protection and replay-safe webhook processing. The hosted application and
-protected billing functions are deployed. Before testing customer self-service,
-enable payment-method updates, invoice history and cancellation at period end
-in the Stripe Customer Portal configuration. Keep immediate cancellation and
-plan switching disabled for the single-plan launch. The server-side portal
-session already supplies the hosted Harbourline return URL.
-
-The remaining release work is a sandbox test of customer self-service, renewal,
-failed payment, refund, cancellation, replay safety and a complete live-mode
-rehearsal.
+The hosted application has now reached the paid-beta source release. Before
+opening paid signup, deploy the Supabase migration and functions from the
+protected workflow, configure the required Edge Function secrets, and complete
+the first-member billing rehearsal. Keep immediate cancellation and plan
+switching disabled for the single-plan launch.
 
 ## Existing migration history
 
