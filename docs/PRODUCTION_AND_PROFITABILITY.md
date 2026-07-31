@@ -82,7 +82,8 @@ Target: complete and test in sandbox, then reproduce in live mode.
   discount.
 - Create a separate live webhook endpoint and live secrets.
 - Configure and test the customer portal for payment-method updates, invoices
-  and cancellation.
+  and cancellation at period end. Keep immediate cancellation and plan changes
+  disabled for the single-plan launch.
 - Handle these states explicitly: `incomplete`, `active`, `past_due`,
   `unpaid`, `canceled` and `paused`.
 - Process payment failures, successful renewals, cancellations and refunds,

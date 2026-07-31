@@ -119,8 +119,9 @@ Release `8360c92` added the Stripe Customer Portal handoff, duplicate-checkout
 protection and replay-safe webhook processing. The hosted application and
 protected billing functions are deployed. Before testing customer self-service,
 enable payment-method updates, invoice history and cancellation at period end
-in the Stripe Customer Portal configuration, then configure the portal's
-allowed return URL as the hosted Harbourline application.
+in the Stripe Customer Portal configuration. Keep immediate cancellation and
+plan switching disabled for the single-plan launch. The server-side portal
+session already supplies the hosted Harbourline return URL.
 
 The remaining release work is a sandbox test of customer self-service, renewal,
 failed payment, refund, cancellation, replay safety and a complete live-mode
