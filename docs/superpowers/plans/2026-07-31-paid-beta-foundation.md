@@ -29,7 +29,7 @@
 | --- | --- |
 | `packages/domain/src/beta.ts` | Pure onboarding milestones and safe event-name validation. |
 | `packages/domain/test/domain.test.mjs` | Node tests for onboarding state transitions and event payload boundaries. |
-| `supabase/migrations/202607310002_paid_beta_foundation.sql` | Onboarding/event tables, RLS, indexes and private aggregate helpers. |
+| `supabase/migrations/202607310002_paid_beta_foundation.sql` | Onboarding/event tables, RLS and indexes. |
 | `supabase/tests/database/paid_beta_rls.test.sql` | pgTAP checks for event-table isolation and no direct customer writes. |
 | `supabase/functions/_shared/beta.ts` | Deno helpers for event validation, operator allowlists and aggregate mapping. |
 | `supabase/functions/_shared/beta-email.ts` | Resend delivery and fixed welcome/cancellation email bodies. |
@@ -146,7 +146,6 @@ git commit -m "feat: add paid beta onboarding contracts"
 
 **Interfaces:**
 - Produces private `beta_onboarding` and `beta_operational_events` tables.
-- Produces `private.beta_operations_summary()` for service-role use only.
 - Consumed by the beta Edge Functions in Task 3.
 
 - [ ] **Step 1: Write the failing pgTAP assertions**
@@ -197,7 +196,7 @@ create table public.beta_operational_events (
 );
 ```
 
-Enable RLS on both tables, revoke all privileges from `anon` and `authenticated`, add only service-role-compatible helpers, and add indexes on `(user_id, updated_at desc)` and `(event_name, occurred_at desc)`. Define `private.beta_operations_summary()` as `security definer`, set `search_path = ''`, and return only day, event name and count. The operator endpoint derives signups from `auth.users.created_at`; `account_created` is intentionally not stored as an operational event.
+Enable RLS on both tables, revoke all privileges from `anon` and `authenticated`, and add indexes on `(user_id, updated_at desc)` and `(event_name, occurred_at desc)`. The operator endpoint derives signups from `auth.users.created_at`; `account_created` is intentionally not stored as an operational event.
 
 - [ ] **Step 4: Extend account export and deletion coverage**
 
@@ -293,7 +292,7 @@ For `get`, return the signed-in user’s progress row or HTTP 404 when none exis
 
 - [ ] **Step 5: Implement `get-beta-operations`**
 
-Authenticate the caller, lower-case the email, compare it against `HARBOURLINE_OPERATOR_EMAILS`, then call the private aggregate helper with the service-role client. Return 403 for every other signed-in user. Include signups by day from `auth.users.created_at`, plus active, past-due and cancelled subscription counts using aggregate queries. Do not return user IDs, email addresses, household IDs or budget state.
+Authenticate the caller, lower-case the email, compare it against `HARBOURLINE_OPERATOR_EMAILS`, then query the private event table and billing records with the service-role client. Aggregate daily event counts in the Edge Function and derive signups by day from `auth.users.created_at`. Return 403 for every other signed-in user. Include active, past-due and cancelled subscription counts using aggregate queries. Do not return user IDs, email addresses, household IDs or budget state.
 
 - [ ] **Step 6: Register functions and make CI run the helper tests**
 
