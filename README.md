@@ -72,6 +72,10 @@ The current launch gates, cost model, member scaling, break-even assumptions
 and recommended execution order are maintained in
 [`docs/PRODUCTION_AND_PROFITABILITY.md`](docs/PRODUCTION_AND_PROFITABILITY.md).
 
+Draft customer documents and the brief for Australian legal review are in
+[`docs/legal`](docs/legal). They are not customer-facing or final until the
+legal entity, contact details and review outcomes are confirmed.
+
 ## Development
 
 Use Node.js 22 and pnpm 11.9.

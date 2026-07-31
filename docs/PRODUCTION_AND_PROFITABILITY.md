@@ -44,7 +44,8 @@ Still required before live customers:
   cancellation and payment recovery paths
 - production and staging separation
 - legal and accounting review
-- privacy, terms, billing, cancellation and refund documents
+- legal review and publication of privacy, terms, billing, cancellation and
+  refund documents
 - transactional email on a Harbourline-controlled domain
 - error monitoring, alerts and support workflow
 - backup restoration and account deletion rehearsals
@@ -362,8 +363,8 @@ In recommended order:
 4. Add production-safe operational events and an owner dashboard for MRR,
    churn, failed payments and activation.
 5. Configure branded transactional email and customer lifecycle templates.
-6. Draft Privacy Policy, Terms, billing, cancellation and refund documents for
-   professional review.
+6. Finalise the legal-document drafts with an Australian lawyer, then publish
+   the approved Privacy Policy, Terms and billing/cancellation wording.
 7. Build onboarding and the activation funnel without exposing financial data
    to analytics.
 8. Add backup/export automation, a restore rehearsal and incident runbook.
