@@ -340,6 +340,15 @@ describe("paid beta onboarding", () => {
     assert.equal(
       deriveBetaOnboardingStep({
         householdId: "household-1",
+        incomeCount: 0,
+        billCount: 0,
+        paydayViewed: false
+      }),
+      "income"
+    );
+    assert.equal(
+      deriveBetaOnboardingStep({
+        householdId: "household-1",
         incomeCount: 1,
         billCount: 0,
         paydayViewed: false
