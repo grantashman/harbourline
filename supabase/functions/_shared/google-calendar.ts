@@ -42,6 +42,12 @@ function base64UrlDecode(value: string): Uint8Array {
   return Uint8Array.from(binary, (character) => character.charCodeAt(0));
 }
 
+function arrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  const copy = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(copy).set(bytes);
+  return copy;
+}
+
 export function randomBase64Url(byteLength = 32): string {
   const bytes = new Uint8Array(byteLength);
   crypto.getRandomValues(bytes);
@@ -49,7 +55,7 @@ export function randomBase64Url(byteLength = 32): string {
 }
 
 export async function sha256Base64Url(value: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  const digest = await crypto.subtle.digest("SHA-256", arrayBuffer(new TextEncoder().encode(value)));
   return base64UrlEncode(new Uint8Array(digest));
 }
 
@@ -75,7 +81,7 @@ export function requireGoogleConfig(): GoogleConfig {
 }
 
 async function encryptionKey(raw: Uint8Array): Promise<CryptoKey> {
-  return crypto.subtle.importKey("raw", raw, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
+  return crypto.subtle.importKey("raw", arrayBuffer(raw), { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
 }
 
 export async function encryptRefreshToken(refreshToken: string, key: Uint8Array): Promise<{
@@ -85,9 +91,9 @@ export async function encryptRefreshToken(refreshToken: string, key: Uint8Array)
   const nonceBytes = new Uint8Array(12);
   crypto.getRandomValues(nonceBytes);
   const encrypted = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv: nonceBytes },
+    { name: "AES-GCM", iv: arrayBuffer(nonceBytes) },
     await encryptionKey(key),
-    new TextEncoder().encode(refreshToken)
+    arrayBuffer(new TextEncoder().encode(refreshToken))
   );
   return {
     ciphertext: base64UrlEncode(new Uint8Array(encrypted)),
@@ -97,9 +103,9 @@ export async function encryptRefreshToken(refreshToken: string, key: Uint8Array)
 
 export async function decryptRefreshToken(ciphertext: string, nonce: string, key: Uint8Array): Promise<string> {
   const decrypted = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: base64UrlDecode(nonce) },
+    { name: "AES-GCM", iv: arrayBuffer(base64UrlDecode(nonce)) },
     await encryptionKey(key),
-    base64UrlDecode(ciphertext)
+    arrayBuffer(base64UrlDecode(ciphertext))
   );
   return new TextDecoder().decode(decrypted);
 }
