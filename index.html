@@ -5153,7 +5153,13 @@
 
       const weekly = weeklyAmount(amount, expenseFrequency.value);
       const monthly = monthlyAmount(amount, expenseFrequency.value);
-      expenseConversionPreview.innerHTML = `Set aside <strong>${money(weekly)} each week</strong>. That covers an average of ${money(monthly)} per month while the bill remains ${money(amount)} ${frequencyLabel(expenseFrequency.value)}.`;
+      const weeklyValue = document.createElement("strong");
+      weeklyValue.textContent = `${money(weekly)} each week`;
+      expenseConversionPreview.replaceChildren(
+        "Set aside ",
+        weeklyValue,
+        `. That covers an average of ${money(monthly)} per month while the bill remains ${money(amount)} ${frequencyLabel(expenseFrequency.value)}.`
+      );
     }
 
     function beginExpenseEdit(expense) {
@@ -7549,7 +7555,7 @@
           String(expense.category || "Other").slice(0, 12),
           money(expense.amount),
           frequencyLabel(expense.frequency),
-          expense.due ? dueLabel(expense.due).replace(/ /g, " ") : "-",
+          expense.due ? dueLabel(expense.due) : "-",
           money(weeklyAmount(expense.amount, expense.frequency)),
           money(monthlyAmount(expense.amount, expense.frequency))
         ], expenseWidths, {
