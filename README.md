@@ -1,89 +1,63 @@
 # Harbourline
 
-Harbourline is a Supabase-backed household money-planning application for people who want a clear, practical view of paydays, bills, debt, savings and future goals.
+Harbourline is a calm household money plan for paydays, bills, savings, debt and what is safe to spend next.
 
-It began as an Australian-dollar budget planner and is evolving into a web, desktop and mobile-ready subscription product. The product direction is simple: help households move from "what did we spend?" to "what should we do next?"
+It is designed for Australian households who want to move beyond a record of past spending and make a practical plan for the next pay.
 
-## Links
+## Start here
 
-- Product homepage: `https://grantashman.github.io/harbourline/`
-- Live application: `https://harbourline-zeta.vercel.app/`
-- Repository: `https://github.com/grantashman/harbourline`
+- [Visit the Harbourline homepage](https://grantashman.github.io/harbourline/)
+- [Open the hosted application](https://harbourline-zeta.vercel.app/)
+- [Browse the source on GitHub](https://github.com/grantashman/harbourline)
 
-## Product Vision
+The homepage is the starting point for new accounts. Existing members can sign in through the hosted application.
 
-Harbourline combines budgeting, payday planning and lightweight financial guidance in one calm interface.
+## What Harbourline helps with
 
-Core outcomes:
+Harbourline brings the household money rhythm into one view:
 
-- Understand the household position in plain Australian dollars.
-- See income, expenses and bills across weekly, fortnightly, monthly and yearly cycles.
-- Know the shortfall or surplus before it becomes a surprise.
-- Plan bill set-asides in line with pay cycles.
-- Model debt payoff and savings growth.
-- Turn a budget into a forward-looking plan.
+- Map income, bills, expenses, savings goals and debts across weekly, fortnightly, monthly and yearly cycles.
+- Check the next payday: fund upcoming bills, set aside savings and debt payments, and see what is safe to spend.
+- Look ahead with a 13-week bills forecast and a monthly cash-flow calendar.
+- Model savings growth, debt repayment scenarios, goals and net worth.
+- Record actual transactions and compare the plan with reality.
+- Export Excel, CSV, PDF and JSON backup copies when you need to review or keep a record.
 
-## Current Product
+The hosted early-access release also includes optional one-way Google Calendar sync for planned paydays and bill due dates. Calendar events can be kept generic, or expense names can be enabled deliberately from the account panel.
 
-The current application includes:
+## A simple payday rhythm
 
-- Flexible income sources with custom names, frequencies and next pay dates
-- Expense and bill tracking with categories, icons, due dates and editable entries
-- Weekly provision calculations for bills paid at different frequencies
-- Financial summary metrics for income, expenses, surplus, shortfall and expense ratio
-- Payday command centre with a 13-week bills forecast
-- Monthly cash-flow calendar with planned income, planned bills and actual transactions
-- Savings allocation and compound-growth projections
-- Debt repayment planning with payoff scenarios
-- Goals, net worth tracking and scenario modelling
-- CSV import for transactions
-- Excel workbook, CSV, PDF and JSON backup exports
-- Dark mode, responsive layout and local browser caching for continuity
-- Supabase accounts, household sync and password recovery for the hosted product
+1. Add the commitments that matter to your household.
+2. Use the Payday Check-in to decide what moves on the next pay.
+3. Adjust the plan as real life changes, without losing the forward view.
 
-Included in the paid early-access release:
+## Pricing and access
 
-- Optional one-way Google Calendar sync for planned paydays and bill due dates
+Harbourline currently has one introductory early-access plan at **A$1 per week**.
 
-## Commercial Direction
+The hosted product uses secure Supabase accounts. New accounts are created from the public homepage, then confirmed by email before continuing to the hosted account and payment flow. Household sync is available after the plan is active.
 
-Harbourline uses Supabase accounts as its only account model. Account creation is intentionally unavailable inside the app; the public product homepage is the only signup and access-request entry point.
+Payment details are handled by the payment provider and are not stored in Harbourline. The product is a planning tool, not financial advice.
 
-Single-plan subscription positioning:
+## Privacy and security
 
-- One Harbourline plan: A$1/week introductory early-access pricing
-- Included: secure Supabase sign-in, household sync, payday planning, reports, savings and debt tools
+Harbourline keeps a local browser copy so the current working plan can remain available between sessions. Hosted household sync requires authentication and uses Supabase row-level security.
 
-The introductory price is the only planned offer at this stage. Billing, onboarding, privacy terms and support will be completed before broad public launch.
+The public GitHub Pages site is marketing-only and does not store household financial data. Do not include passwords, account numbers or personal budget history in bug reports. See the [security policy](SECURITY.md) for reporting instructions.
 
-## Architecture
+Customer-facing privacy and terms documents are still drafts pending legal review. They are kept in [`docs/legal`](docs/legal) and should not be treated as final terms.
 
-Harbourline is source-controlled as a small monorepo:
+## For contributors
 
-- `index.html` - the core budget interface and browser continuity layer
-- `apps/web` - Vite/TypeScript hosted app wrapper, account panel and sync integration
-- `packages/domain` - pure financial calculations and migrations
-- `packages/sync` - deterministic document hashing, mutation queues and conflict handling
-- `supabase` - required authentication, household data model, row-level security and account lifecycle functions
-- `marketing` - GitHub Pages product homepage
-- `docs` - release, deployment, security and product planning notes
+The repository is a small workspace with:
 
-The live app is deployed on Vercel. The public product homepage is deployed separately to GitHub Pages so the repository homepage can market Harbourline without replacing the application.
-
-## Production And Profitability
-
-The current launch gates, cost model, member scaling, break-even assumptions
-and recommended execution order are maintained in
-[`docs/PRODUCTION_AND_PROFITABILITY.md`](docs/PRODUCTION_AND_PROFITABILITY.md).
-The early-access funnel, positioning, acquisition strategy and automation
-backlog are maintained in
-[`docs/EARLY_ACCESS_LAUNCH_AND_MARKETING.md`](docs/EARLY_ACCESS_LAUNCH_AND_MARKETING.md).
-
-Draft customer documents and the brief for Australian legal review are in
-[`docs/legal`](docs/legal). They are not customer-facing or final until the
-legal entity, contact details and review outcomes are confirmed.
-
-## Development
+- `index.html` — the core browser budget interface and local continuity layer
+- `marketing/` — the public GitHub Pages homepage
+- `apps/web/` — the Vite/TypeScript hosted wrapper, account panel and sync integration
+- `packages/domain/` — financial calculations, state models and migrations
+- `packages/sync/` — household document hashing, queues and conflict handling
+- `supabase/` — authentication, billing, household sync and calendar integrations
+- `docs/` — product, deployment, security and release notes
 
 Use Node.js 22 and pnpm 11.9.
 
@@ -93,38 +67,19 @@ pnpm check
 pnpm dev
 ```
 
-`pnpm check` validates TypeScript, domain/sync tests, schema guards and the production build.
-
-For Supabase-backed hosted builds, copy `.env.example` to `.env.local` and provide:
+For a Supabase-backed hosted build, copy `.env.example` to `.env.local` and provide:
 
 ```text
 VITE_SUPABASE_URL=
 VITE_SUPABASE_PUBLISHABLE_KEY=
 ```
 
-Only use the Supabase publishable browser key in the frontend. Never commit service-role keys or personal financial data.
+Only the Supabase publishable browser key belongs in frontend configuration. Never commit service-role keys or personal financial data.
 
-## Privacy And Security
+`pnpm check` validates the TypeScript packages, domain and sync tests, schema guards and production build.
 
-Harbourline is designed around Supabase-authenticated planning with a local browser cache for continuity.
+## Project status
 
-- A browser cache keeps the current working copy available between sessions.
-- Hosted household sync uses required Supabase authentication and row-level security.
-- Production responses include security headers through Vercel.
-- GitHub checks each pull request for vulnerable dependency changes and scans
-  the application with CodeQL on pull requests, main-branch releases and a
-  weekly schedule.
-- Repository source does not include personal budget history.
-- Public GitHub Pages content is marketing-only and does not store financial data.
+Harbourline is in active product development. The current focus is a polished paid-beta release with homepage-led signup, clear onboarding, billing, household sync and strong account safety.
 
-Security reports must never include household financial information. The
-reporting policy is in [`SECURITY.md`](SECURITY.md).
-
-## Status
-
-Harbourline is in active product development. The current priority is a polished single-plan subscription release with homepage-led signup, clear onboarding, billing, and robust account safety.
-
-The next controlled paid-beta target is the first 20 paid households, with no
-member cap, at least 70% first-payday-plan activation and at least 60%
-four-week retention. Paid signup remains gated until the production activation
-checklist and release matrix pass.
+Launch planning and release gates are documented in [`docs/PRODUCTION_AND_PROFITABILITY.md`](docs/PRODUCTION_AND_PROFITABILITY.md), [`docs/PRODUCTION_ACTIVATION.md`](docs/PRODUCTION_ACTIVATION.md) and [`docs/EARLY_ACCESS_LAUNCH_AND_MARKETING.md`](docs/EARLY_ACCESS_LAUNCH_AND_MARKETING.md).

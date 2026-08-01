@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Harbourline | Household Money Planning</title>
-  <meta name="description" content="Harbourline helps households plan paydays, bills, debt, savings and goals in one calm financial command centre." />
-  <meta property="og:title" content="Harbourline | Household Money Planning" />
-  <meta property="og:description" content="Budgeting, payday planning, debt payoff and savings projections for modern households." />
+  <title>Harbourline | Make payday feel predictable</title>
+  <meta name="description" content="Harbourline helps Australian households plan paydays, bills, debt, savings and goals in one calm financial command centre." />
+  <meta property="og:title" content="Harbourline | Make payday feel predictable" />
+  <meta property="og:description" content="A calm household money plan for paydays, bills, savings, debt and what is safe to spend next." />
   <meta property="og:type" content="website" />
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
   <style>
@@ -115,6 +115,70 @@
       justify-content: flex-end;
     }
 
+    .nav-desktop-links {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-menu {
+      display: none;
+      position: relative;
+    }
+
+    .nav-menu summary {
+      display: inline-flex;
+      min-height: 42px;
+      align-items: center;
+      padding: 0 13px;
+      color: var(--muted);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.04);
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-weight: 800;
+      list-style: none;
+    }
+
+    .nav-menu summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .nav-menu[open] summary,
+    .nav-menu summary:hover {
+      color: var(--ink);
+      border-color: rgba(92, 224, 179, 0.46);
+    }
+
+    .nav-menu-links {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      z-index: 2;
+      display: grid;
+      min-width: 180px;
+      gap: 4px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+    }
+
+    .nav-menu-links a {
+      padding: 10px 11px;
+      border-radius: 7px;
+      color: var(--muted);
+      font-size: 0.84rem;
+      font-weight: 750;
+    }
+
+    .nav-menu-links a:hover {
+      color: var(--ink);
+      background: rgba(255, 255, 255, 0.07);
+    }
+
     .nav-links a {
       padding: 10px 12px;
       border-radius: 8px;
@@ -221,7 +285,8 @@
       margin: 14px 0 18px;
       font-size: clamp(2.8rem, 7vw, 5.7rem);
       line-height: 0.93;
-      letter-spacing: 0;
+      letter-spacing: -0.035em;
+      text-wrap: balance;
     }
 
     .hero p {
@@ -287,6 +352,13 @@
       background:
         linear-gradient(180deg, rgba(17, 40, 36, 0.92), rgba(9, 23, 20, 0.96)),
         url("assets/harbourline-waterfront.jpg") center / cover;
+    }
+
+    .app-example-label {
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 750;
     }
 
     .app-top {
@@ -391,6 +463,49 @@
       line-height: 1.55;
     }
 
+    .section-head h2 {
+      text-wrap: balance;
+    }
+
+    .flow-steps {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .flow-step {
+      position: relative;
+      min-height: 156px;
+      padding: 18px;
+      border: 1px solid rgba(92, 224, 179, 0.24);
+      border-radius: 10px;
+      background: linear-gradient(145deg, rgba(17, 40, 36, 0.88), rgba(13, 29, 26, 0.72));
+    }
+
+    .flow-step-number {
+      display: inline-grid;
+      width: 28px;
+      height: 28px;
+      place-items: center;
+      color: #031410;
+      border-radius: 50%;
+      background: var(--mint);
+      font-size: 0.78rem;
+      font-weight: 950;
+    }
+
+    .flow-step h3 {
+      margin: 18px 0 8px;
+      font-size: 1.08rem;
+    }
+
+    .flow-step p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
     .feature-grid {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -421,10 +536,25 @@
 
     .section-card p,
     .price-card p,
-    .signup-card p {
+    .signup-card p,
+    .trust-card p {
       margin: 0;
       color: var(--muted);
       line-height: 1.55;
+    }
+
+    .feature-supporting-label {
+      margin: 24px 0 12px;
+      color: var(--mint);
+      font-size: 0.72rem;
+      font-weight: 850;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .feature-grid-secondary .section-card {
+      min-height: 164px;
+      background: rgba(13, 29, 26, 0.58);
     }
 
     .pricing-grid {
@@ -469,6 +599,13 @@
     .price-summary > p {
       max-width: 360px;
       margin-top: 10px;
+    }
+
+    .pricing-note {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      line-height: 1.45;
     }
 
     .price-summary-label {
@@ -591,6 +728,115 @@
       gap: 9px;
     }
 
+    .password-field {
+      position: relative;
+    }
+
+    .password-field input {
+      padding-right: 78px;
+    }
+
+    .password-toggle {
+      position: absolute;
+      right: 8px;
+      bottom: 7px;
+      min-height: 32px;
+      padding: 0 8px;
+      color: var(--muted);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.04);
+      cursor: pointer;
+      font-size: 0.72rem;
+      font-weight: 800;
+    }
+
+    .password-toggle:hover,
+    .password-toggle:focus-visible {
+      color: var(--ink);
+      border-color: var(--mint);
+    }
+
+    .field-help {
+      display: block;
+      margin-top: -2px;
+      color: var(--muted);
+      font-size: 0.72rem;
+      line-height: 1.4;
+    }
+
+    .signup-steps {
+      display: grid;
+      gap: 12px;
+      margin: 24px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .signup-steps li {
+      display: grid;
+      grid-template-columns: 28px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+    }
+
+    .signup-steps li::before {
+      content: none;
+    }
+
+    .signup-step-number {
+      display: inline-grid;
+      width: 28px;
+      height: 28px;
+      place-items: center;
+      color: var(--mint);
+      border: 1px solid rgba(92, 224, 179, 0.38);
+      border-radius: 50%;
+      background: rgba(92, 224, 179, 0.08);
+      font-size: 0.72rem;
+      font-weight: 900;
+    }
+
+    .signup-steps strong,
+    .signup-steps span {
+      display: block;
+    }
+
+    .signup-steps strong {
+      color: var(--ink);
+      font-size: 0.88rem;
+    }
+
+    .signup-steps span {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      line-height: 1.45;
+    }
+
+    .trust-section {
+      padding-top: 32px;
+    }
+
+    .trust-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .trust-card {
+      min-height: 150px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(13, 29, 26, 0.58);
+    }
+
+    .trust-card h3 {
+      margin: 0 0 9px;
+      font-size: 1rem;
+    }
+
     .provider-icon {
       width: 18px;
       height: 18px;
@@ -635,9 +881,27 @@
       display: flex;
       justify-content: space-between;
       gap: 16px;
+      align-items: center;
+      flex-wrap: wrap;
       padding: 28px 0 44px;
       color: var(--muted);
       border-top: 1px solid var(--line);
+    }
+
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .footer-links a {
+      color: var(--mint);
+      font-size: 0.8rem;
+      font-weight: 750;
+    }
+
+    .footer-links a:hover {
+      color: var(--ink);
     }
 
     @media (max-width: 920px) {
@@ -648,6 +912,11 @@
 
       .feature-grid {
         grid-template-columns: 1fr 1fr;
+      }
+
+      .flow-steps,
+      .trust-grid {
+        grid-template-columns: 1fr;
       }
 
       .pricing-grid {
@@ -664,6 +933,10 @@
         border-top: 1px solid rgba(177, 240, 218, 0.16);
         border-left: 0;
       }
+
+      .feature-grid-secondary {
+        grid-template-columns: 1fr 1fr;
+      }
     }
 
     @media (max-width: 660px) {
@@ -673,18 +946,54 @@
 
       .nav {
         position: static;
-        align-items: flex-start;
-        flex-direction: column;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
       }
 
       .nav-links {
-        width: 100%;
-        justify-content: flex-start;
+        width: auto;
+        align-items: center;
+        gap: 6px;
       }
 
-      .nav-links a,
-      .button {
-        width: 100%;
+      .nav-desktop-links {
+        display: none;
+      }
+
+      .nav-menu {
+        display: none;
+      }
+
+      .brand img {
+        width: 38px;
+        height: 38px;
+      }
+
+      .brand .eyebrow {
+        display: none;
+      }
+
+      .brand strong {
+        font-size: 1rem;
+      }
+
+      .nav-links .button {
+        width: auto;
+        min-height: 42px;
+        padding-inline: 12px;
+      }
+
+    .nav-links .button.secondary {
+        display: inline-flex;
+        padding-inline: 10px;
+        font-size: 0.78rem;
+      }
+
+      .nav-menu summary {
+        min-height: 42px;
+        padding-inline: 9px;
+        font-size: 0.78rem;
       }
 
       .hero {
@@ -693,9 +1002,15 @@
 
       .trust-row,
       .feature-grid,
+      .feature-grid-secondary,
       .pricing-grid,
       .field-row,
       .auth-options {
+        grid-template-columns: 1fr;
+      }
+
+      .flow-steps,
+      .trust-grid {
         grid-template-columns: 1fr;
       }
 
@@ -705,6 +1020,11 @@
 
       .metric-grid {
         grid-template-columns: 1fr;
+      }
+
+      .footer {
+        align-items: flex-start;
+        flex-direction: column;
       }
     }
   </style>
@@ -719,9 +1039,19 @@
       </span>
     </a>
     <nav class="nav-links" aria-label="Main navigation">
-      <a href="#features">Features</a>
-      <a href="#pricing">Pricing</a>
-      <a href="#early-access">Sign up</a>
+      <div class="nav-desktop-links">
+        <a href="#features">Features</a>
+        <a href="#pricing">Pricing</a>
+      </div>
+      <details class="nav-menu">
+        <summary>Explore</summary>
+        <div class="nav-menu-links">
+          <a href="#how-it-works">How it works</a>
+          <a href="#features">Features</a>
+          <a href="#pricing">Pricing</a>
+        </div>
+      </details>
+      <a class="button" href="#early-access">Start planning</a>
       <a class="button secondary" href="https://harbourline-zeta.vercel.app/?account=signin">Sign in</a>
     </nav>
   </header>
@@ -733,7 +1063,7 @@
         <h1>Your household money plan, finally in one clear view.</h1>
         <p>Harbourline brings income, bills, savings, debt and future goals together so households can see what is coming, what is safe to spend, and what needs attention.</p>
         <div class="hero-actions">
-          <a class="button" href="#early-access">Sign up from the homepage</a>
+          <a class="button" href="#early-access">Create your plan</a>
           <a class="button secondary" href="#pricing">See pricing</a>
         </div>
         <div class="trust-row" aria-label="Product highlights">
@@ -763,7 +1093,32 @@
           <div class="timeline-row"><strong>Savings</strong><span class="bar"><i style="width: 46%"></i></span><span>-$124</span></div>
           <div class="timeline-row"><strong>Debt</strong><span class="bar"><i style="width: 34%"></i></span><span>-$80</span></div>
         </div>
+        <p class="app-example-label">Example household · demo data</p>
       </aside>
+    </section>
+
+    <section id="how-it-works">
+      <div class="section-head">
+        <h2>Build the plan once. Use it every payday.</h2>
+        <p>Harbourline turns a scattered list of commitments into a repeatable household money rhythm.</p>
+      </div>
+      <div class="flow-steps">
+        <article class="flow-step">
+          <span class="flow-step-number">1</span>
+          <h3>Map the commitments</h3>
+          <p>Add income, bills, savings goals and debts with the dates and frequencies that fit your household.</p>
+        </article>
+        <article class="flow-step">
+          <span class="flow-step-number">2</span>
+          <h3>Check each payday</h3>
+          <p>See what needs to be set aside, what is covered and what is genuinely safe to spend next.</p>
+        </article>
+        <article class="flow-step">
+          <span class="flow-step-number">3</span>
+          <h3>Keep making progress</h3>
+          <p>Use the forecast, savings and debt views to adjust the plan as real life changes.</p>
+        </article>
+      </div>
     </section>
 
     <section id="features">
@@ -775,7 +1130,10 @@
         <article class="section-card"><span class="icon">$</span><h3>Flexible income</h3><p>Add one income stream or many, each with its own amount, frequency and next pay date.</p></article>
         <article class="section-card"><span class="icon">UP</span><h3>Payday command centre</h3><p>See what to set aside every pay cycle and whether upcoming bills are fully funded.</p></article>
         <article class="section-card"><span class="icon">OK</span><h3>Debt and savings plans</h3><p>Model savings growth, debt payoff order and realistic monthly trade-offs.</p></article>
-        <article class="section-card"><span class="icon">CAL</span><h3>Calendar visibility + Google Calendar sync</h3><p>View planned income, bills and actual transactions in Harbourline, then sync generic paydays and bill due dates to Google Calendar.</p></article>
+      </div>
+      <p class="feature-supporting-label">Also included</p>
+      <div class="feature-grid feature-grid-secondary">
+        <article class="section-card"><span class="icon">CAL</span><h3>Optional calendar sync</h3><p>View planned income and bills in Harbourline, then optionally sync generic paydays and due dates to Google Calendar.</p></article>
         <article class="section-card"><span class="icon">PDF</span><h3>Reports and exports</h3><p>Download Excel, CSV, PDF and backup files for review, advice or record keeping.</p></article>
         <article class="section-card"><span class="icon">SYNC</span><h3>Household sync</h3><p>Keep your shared household plan available across supported devices.</p></article>
       </div>
@@ -812,6 +1170,7 @@
           </div>
         </article>
       </div>
+      <p class="pricing-note">Early-access pricing is shown before payment. You’ll see the next step clearly, and you can cancel anytime.</p>
     </section>
 
     <section id="early-access">
@@ -820,12 +1179,19 @@
           <span class="eyebrow">Sign up</span>
           <h2>Create your Harbourline account.</h2>
           <p>Start with the introductory A$1/week price. Your plan and payment stay under your control.</p>
+          <ol class="signup-steps">
+            <li><span class="signup-step-number">1</span><span><strong>Create your account</strong><span>Use your email or continue with Google.</span></span></li>
+            <li><span class="signup-step-number">2</span><span><strong>Confirm your email</strong><span>We’ll send a secure confirmation link before you continue.</span></span></li>
+            <li><span class="signup-step-number">3</span><span><strong>Continue to payment</strong><span>Review the early-access price and choose what happens next.</span></span></li>
+          </ol>
         </div>
         <div class="signup-card">
           <form id="earlyAccessForm">
             <label>Name<input id="name" name="name" autocomplete="name" required /></label>
             <label>Email<input id="email" name="email" type="email" autocomplete="email" required /></label>
-            <label>Password<input id="password" name="password" type="password" autocomplete="new-password" minlength="8" required /></label>
+            <label class="password-field">Password<input id="password" name="password" type="password" autocomplete="new-password" minlength="8" aria-describedby="passwordHelp" required /><button class="password-toggle" type="button" data-password-toggle="password" aria-controls="password" aria-pressed="false">Show</button></label>
+            <small id="passwordHelp" class="field-help">Use at least 8 characters.</small>
+            <label class="password-field">Confirm password<input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" required /><button class="password-toggle" type="button" data-password-toggle="confirmPassword" aria-controls="confirmPassword" aria-pressed="false">Show</button></label>
             <button class="button" id="createAccountButton" type="submit"><span data-button-label>Create account</span></button>
             <div class="auth-divider">or continue with</div>
             <div class="auth-options">
@@ -840,22 +1206,22 @@
                   <span data-button-label>Google</span>
                 </span>
               </button>
-              <button class="button secondary provider-button is-coming-soon" type="button" disabled aria-disabled="true" title="Microsoft sign-in is coming soon">
-                <span class="button-label">
-                  <svg class="provider-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <path fill="#F35325" d="M2 2h9.5v9.5H2z"/>
-                    <path fill="#81BC06" d="M12.5 2H22v9.5h-9.5z"/>
-                    <path fill="#05A6F0" d="M2 12.5h9.5V22H2z"/>
-                    <path fill="#FFBA08" d="M12.5 12.5H22V22h-9.5z"/>
-                  </svg>
-                  <span data-button-label>Microsoft</span>
-                </span>
-                <span class="button-status">Coming soon</span>
-              </button>
             </div>
             <p id="formNote" class="form-note" role="status">Already registered? <a href="https://harbourline-zeta.vercel.app/?account=signin">Sign in to Harbourline</a>.</p>
           </form>
         </div>
+      </div>
+    </section>
+
+    <section id="trust" class="trust-section">
+      <div class="section-head">
+        <h2>Clear about access, price and privacy.</h2>
+        <p>Harbourline is designed to make the important parts of household money easier to understand before you commit.</p>
+      </div>
+      <div class="trust-grid">
+        <article class="trust-card"><h3>Private by default</h3><p>Your household plan is for your household. Account access is protected, and optional calendar sync is clearly labelled.</p></article>
+        <article class="trust-card"><h3>No surprise step</h3><p>Create your account and confirm your email first. You’ll see the early-access price and next action before payment.</p></article>
+        <article class="trust-card"><h3>Australian household first</h3><p>Plan in AUD with weekly, fortnightly, monthly and yearly rhythms that match how households actually get paid and spend.</p></article>
       </div>
     </section>
   </main>
@@ -863,6 +1229,11 @@
   <footer class="page footer">
     <span>&copy; 2026 Harbourline</span>
     <span>Clearer money planning for everyday households.</span>
+    <div class="footer-links">
+      <a href="#trust">Privacy &amp; access</a>
+      <a href="#pricing">Pricing</a>
+      <a href="https://harbourline-zeta.vercel.app/?account=signin">Sign in</a>
+    </div>
   </footer>
 
   <script src="config.js"></script>
@@ -873,6 +1244,7 @@
     const form = document.querySelector("#earlyAccessForm");
     const note = document.querySelector("#formNote");
     const createAccountButton = document.querySelector("#createAccountButton");
+    const confirmPassword = document.querySelector("#confirmPassword");
     const client = config?.supabaseUrl && config?.publishableKey
       ? createClient(config.supabaseUrl, config.publishableKey)
       : null;
@@ -889,13 +1261,29 @@
       if (state) button.classList.add(`is-${state}`);
     }
 
+    document.querySelectorAll("[data-password-toggle]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const input = document.getElementById(button.dataset.passwordToggle);
+        if (!input) return;
+        const isVisible = input.type === "text";
+        input.type = isVisible ? "password" : "text";
+        button.textContent = isVisible ? "Show" : "Hide";
+        button.setAttribute("aria-pressed", String(!isVisible));
+      });
+    });
+
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       if (!client) return setNote("Account creation is temporarily unavailable. Please try again shortly.", "error");
+      const data = new FormData(form);
+      if (String(data.get("password") || "") !== String(data.get("confirmPassword") || "")) {
+        setNote("Passwords do not match.", "error");
+        confirmPassword.focus();
+        return;
+      }
       createAccountButton.disabled = true;
       setButtonState(createAccountButton, "Creating account...", "pending");
       setNote("Creating your secure Harbourline account...", "");
-      const data = new FormData(form);
       const { error } = await client.auth.signUp({
         email: String(data.get("email") || "").trim(),
         password: String(data.get("password") || ""),
@@ -910,6 +1298,12 @@
         return setNote(error.message, "error");
       }
       form.reset();
+      document.querySelectorAll("[data-password-toggle]").forEach((button) => {
+        const input = document.getElementById(button.dataset.passwordToggle);
+        if (input) input.type = "password";
+        button.textContent = "Show";
+        button.setAttribute("aria-pressed", "false");
+      });
       setButtonState(createAccountButton, "Account created", "success");
       setNote("Your account is ready to confirm. Check your email, then sign in to Harbourline.", "success");
       window.setTimeout(() => {

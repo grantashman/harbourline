@@ -3746,6 +3746,135 @@
         text-align: left;
       }
     }
+
+    .summary-stack {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .summary-stack .summary-grid {
+      margin-bottom: 0;
+    }
+
+    .summary-grid-primary {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .summary-grid-secondary {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      opacity: 0.9;
+    }
+
+    .workspace-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(132px, 0.8fr);
+      overflow: visible;
+    }
+
+    .planning-workspace {
+      overflow: visible;
+    }
+
+    .workspace-tabs > .workspace-tab {
+      min-width: 0;
+      flex: initial;
+    }
+
+    .workspace-more {
+      position: relative;
+      min-width: 0;
+    }
+
+    .workspace-more-summary {
+      display: flex;
+      min-height: 48px;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 14px;
+      color: var(--muted);
+      border-left: 1px solid var(--line);
+      cursor: pointer;
+      font-size: 0.84rem;
+      font-weight: 850;
+      list-style: none;
+      white-space: nowrap;
+    }
+
+    .workspace-more-summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .workspace-more-summary::after {
+      content: "⌄";
+      color: var(--mint-dark);
+      font-size: 1rem;
+      line-height: 1;
+    }
+
+    .workspace-more[open] .workspace-more-summary,
+    .workspace-more-summary:hover {
+      color: var(--ink);
+      background: var(--panel-soft);
+    }
+
+    .workspace-more-menu {
+      position: absolute;
+      top: calc(100% + 1px);
+      right: 0;
+      z-index: 12;
+      display: grid;
+      min-width: 230px;
+      gap: 4px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 0 0 8px 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .workspace-more-menu .workspace-tab {
+      width: 100%;
+      min-width: 0;
+      min-height: 42px;
+      padding: 0 12px;
+      border: 1px solid transparent;
+      border-radius: 5px;
+      text-align: left;
+    }
+
+    .workspace-more-menu .workspace-tab[aria-selected="true"] {
+      border-color: color-mix(in srgb, var(--mint) 40%, var(--line));
+      box-shadow: inset 3px 0 0 var(--mint);
+    }
+
+    @media (max-width: 680px) {
+      .summary-grid-primary,
+      .summary-grid-secondary {
+        grid-template-columns: 1fr;
+      }
+
+      .workspace-tabs {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .workspace-more {
+        grid-column: 1 / -1;
+      }
+
+      .workspace-more-summary {
+        border-top: 1px solid var(--line);
+        border-left: 0;
+      }
+
+      .workspace-more-menu {
+        position: static;
+        min-width: 0;
+        border-radius: 0;
+        box-shadow: none;
+      }
+    }
   </style>
 </head>
 <body>
@@ -3835,32 +3964,36 @@
       </aside>
     </section>
 
-    <section class="summary-grid" aria-label="Financial summary">
-      <article class="summary-panel" style="--accent: var(--blue)">
-        <p class="summary-label">Monthly income</p>
-        <p class="summary-value" id="summaryIncome">$0.00</p>
-        <p class="summary-note" id="incomeSummaryNote">Combined household income.</p>
-      </article>
-      <article class="summary-panel" style="--accent: var(--amber)">
-        <p class="summary-label">Monthly expenses</p>
-        <p class="summary-value" id="summaryExpenses">$0.00</p>
-        <p class="summary-note" id="expenseCount">No expenses added yet.</p>
-      </article>
-      <article class="summary-panel" style="--accent: var(--mint)">
-        <p class="summary-label">Left over</p>
-        <p class="summary-value" id="summaryRemaining">$0.00</p>
-        <p class="summary-note" id="remainingNote">Add income and bills to start.</p>
-      </article>
-      <article class="summary-panel" style="--accent: var(--rose)">
-        <p class="summary-label">Shortfall</p>
-        <p class="summary-value" id="summaryShortfall">$0.00</p>
-        <p class="summary-note" id="shortfallNote">No extra income or cuts needed.</p>
-      </article>
-      <article class="summary-panel" style="--accent: var(--rose)">
-        <p class="summary-label">Expense ratio</p>
-        <p class="summary-value" id="summaryRatio">0%</p>
-        <p class="summary-note">Share of monthly income already committed.</p>
-      </article>
+    <section class="summary-stack" aria-label="Financial summary">
+      <div class="summary-grid summary-grid-primary">
+        <article class="summary-panel" style="--accent: var(--blue)">
+          <p class="summary-label">Monthly income</p>
+          <p class="summary-value" id="summaryIncome">$0.00</p>
+          <p class="summary-note" id="incomeSummaryNote">Combined household income.</p>
+        </article>
+        <article class="summary-panel" style="--accent: var(--amber)">
+          <p class="summary-label">Monthly expenses</p>
+          <p class="summary-value" id="summaryExpenses">$0.00</p>
+          <p class="summary-note" id="expenseCount">No expenses added yet.</p>
+        </article>
+        <article class="summary-panel" style="--accent: var(--mint)">
+          <p class="summary-label">Left over</p>
+          <p class="summary-value" id="summaryRemaining">$0.00</p>
+          <p class="summary-note" id="remainingNote">Add income and bills to start.</p>
+        </article>
+      </div>
+      <div class="summary-grid summary-grid-secondary">
+        <article class="summary-panel" style="--accent: var(--rose)">
+          <p class="summary-label">Shortfall</p>
+          <p class="summary-value" id="summaryShortfall">$0.00</p>
+          <p class="summary-note" id="shortfallNote">No extra income or cuts needed.</p>
+        </article>
+        <article class="summary-panel" style="--accent: var(--rose)">
+          <p class="summary-label">Expense ratio</p>
+          <p class="summary-value" id="summaryRatio">0%</p>
+          <p class="summary-note">Share of monthly income already committed.</p>
+        </article>
+      </div>
     </section>
 
     <section class="planning-workspace" aria-label="Household planning workspace">
@@ -3868,10 +4001,15 @@
         <button class="workspace-tab" id="paydayTab" type="button" role="tab" aria-selected="true" aria-controls="paydayPanel" data-workspace-tab="payday">Payday</button>
         <button class="workspace-tab" id="calendarTab" type="button" role="tab" aria-selected="false" aria-controls="calendarPanel" data-workspace-tab="calendar">Calendar</button>
         <button class="workspace-tab" id="realityTab" type="button" role="tab" aria-selected="false" aria-controls="realityPanel" data-workspace-tab="reality">Reality check</button>
-        <button class="workspace-tab" id="householdTab" type="button" role="tab" aria-selected="false" aria-controls="householdPanel" data-workspace-tab="household">Household plan</button>
-        <button class="workspace-tab" id="savingsTab" type="button" role="tab" aria-selected="false" aria-controls="savingsPanel" data-workspace-tab="savings">Savings plan</button>
-        <button class="workspace-tab" id="debtTab" type="button" role="tab" aria-selected="false" aria-controls="debtPanel" data-workspace-tab="debt">Debt plan</button>
-        <button class="workspace-tab" id="coachTab" type="button" role="tab" aria-selected="false" aria-controls="coachPanel" data-workspace-tab="coach">Financial coach</button>
+        <details class="workspace-more" id="workspaceMore">
+          <summary class="workspace-more-summary">More tools</summary>
+          <div class="workspace-more-menu">
+            <button class="workspace-tab" id="householdTab" type="button" role="tab" aria-selected="false" aria-controls="householdPanel" data-workspace-tab="household">Household plan</button>
+            <button class="workspace-tab" id="savingsTab" type="button" role="tab" aria-selected="false" aria-controls="savingsPanel" data-workspace-tab="savings">Savings plan</button>
+            <button class="workspace-tab" id="debtTab" type="button" role="tab" aria-selected="false" aria-controls="debtPanel" data-workspace-tab="debt">Debt plan</button>
+            <button class="workspace-tab" id="coachTab" type="button" role="tab" aria-selected="false" aria-controls="coachPanel" data-workspace-tab="coach">Financial coach</button>
+          </div>
+        </details>
       </div>
 
       <div class="workspace-panel active" id="paydayPanel" role="tabpanel" aria-labelledby="paydayTab" data-workspace-panel="payday">
@@ -8641,6 +8779,10 @@
       workspaceTabs.forEach((tab) => {
         tab.setAttribute("aria-selected", tab.dataset.workspaceTab === selected ? "true" : "false");
       });
+      const workspaceMore = document.querySelector("#workspaceMore");
+      if (workspaceMore instanceof HTMLDetailsElement) {
+        workspaceMore.open = ["household", "savings", "debt", "coach"].includes(selected);
+      }
       workspacePanels.forEach((panel) => {
         const active = panel.dataset.workspacePanel === selected;
         panel.classList.toggle("active", active);
