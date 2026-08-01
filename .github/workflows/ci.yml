@@ -37,6 +37,6 @@ jobs:
           VITE_HARBOURLINE_DEPLOYMENT: staging
           VITE_SUPABASE_URL: https://staging.example.supabase.co
           VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_fixture
-          VITE_HARBOURLINE_SUPPORT_EMAIL: support@example.com
+          VITE_HARBOURLINE_SUPPORT_EMAIL: support@harbourline.app
         run: pnpm deploy:verify
       - run: pnpm check

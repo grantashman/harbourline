@@ -30,8 +30,17 @@ no scheduled backups; upgrading to a non-pausing production plan remains a
 launch decision before opening the beta beyond a controlled cohort.
 
 The domain migration is being staged with the new app domain as canonical and
-the old Vercel URL retained for rollback. Cloudflare email-related DNS records
-are intentionally unchanged until Google Workspace is configured.
+the old Vercel URL retained for rollback. Google Workspace root email records
+remain intact; Resend uses the isolated `auth.harbourline.app` sending
+subdomain.
+
+Resend DNS records were added in Cloudflare for `auth.harbourline.app`:
+
+- DKIM TXT: `resend._domainkey.auth.harbourline.app`
+- SPF MX/TXT: `send.auth.harbourline.app`
+- Optional DMARC TXT: `_dmarc.auth.harbourline.app`
+
+Resend still reports the domain as pending while DNS verification propagates.
 
 ## 1. Confirm the beta project
 
