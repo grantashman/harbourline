@@ -396,6 +396,10 @@
   opacity: 0.62;
 }
 
+.release2-calendar-title-option + .release2-button-row {
+  margin-top: 14px;
+}
+
 .release2-calendar-title-mark {
   display: grid;
   width: 22px;

@@ -1060,6 +1060,10 @@ export class AccountPanel {
     const action = button?.dataset.action;
     if (!action || this.busy) return;
 
+    // The checkbox is handled by the delegated change listener. Do not let
+    // the click listener treat it as a button action and start a no-op run.
+    if (action === "calendar-title-preference") return;
+
     if (action === "close") {
       this.dialog.close();
       return;
