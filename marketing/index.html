@@ -1190,7 +1190,7 @@
           <h2>Create your Harbourline account.</h2>
           <p>Start with the introductory A$1/week price. Your plan and payment stay under your control.</p>
           <ol class="signup-steps">
-            <li><span class="signup-step-number">1</span><span><strong>Create your account</strong><span>Use your email or continue with Google.</span></span></li>
+            <li><span class="signup-step-number">1</span><span><strong>Create your account</strong><span>Use your email, an email link, or continue with Google.</span></span></li>
             <li><span class="signup-step-number">2</span><span><strong>Confirm your email</strong><span>We’ll send a secure confirmation link before you continue.</span></span></li>
             <li><span class="signup-step-number">3</span><span><strong>Continue to payment</strong><span>Review the early-access price and choose what happens next.</span></span></li>
           </ol>
@@ -1203,8 +1203,11 @@
             <small id="passwordHelp" class="field-help">Use at least 8 characters.</small>
             <label class="password-field">Confirm password<input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" required /><button class="password-toggle" type="button" data-password-toggle="confirmPassword" aria-controls="confirmPassword" aria-pressed="false">Show</button></label>
             <button class="button" id="createAccountButton" type="submit"><span data-button-label>Create account</span></button>
-            <div class="auth-divider">or continue with</div>
+            <div class="auth-divider">or choose a quicker sign-in</div>
             <div class="auth-options">
+              <button class="button secondary" id="magicLinkButton" type="button">
+                <span data-button-label>Email me a sign-in link</span>
+              </button>
               <button class="button secondary provider-button" type="button" data-provider="google">
                 <span class="button-label">
                   <svg class="provider-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -1255,7 +1258,10 @@
     const form = document.querySelector("#earlyAccessForm");
     const note = document.querySelector("#formNote");
     const createAccountButton = document.querySelector("#createAccountButton");
+    const magicLinkButton = document.querySelector("#magicLinkButton");
     const confirmPassword = document.querySelector("#confirmPassword");
+    const emailInput = document.querySelector("#email");
+    const nameInput = document.querySelector("#name");
     const client = config?.supabaseUrl && config?.publishableKey
       ? createClient(config.supabaseUrl, config.publishableKey)
       : null;
@@ -1320,6 +1326,38 @@
       window.setTimeout(() => {
         createAccountButton.disabled = false;
         setButtonState(createAccountButton, "Create account");
+      }, 2200);
+    });
+
+    magicLinkButton.addEventListener("click", async () => {
+      if (!client) return setNote("Account creation is temporarily unavailable. Please try again shortly.", "error");
+      const email = String(emailInput.value || "").trim();
+      if (!email || !emailInput.checkValidity()) {
+        setNote("Enter a valid email address first.", "error");
+        emailInput.focus();
+        return;
+      }
+      magicLinkButton.disabled = true;
+      setButtonState(magicLinkButton, "Sending link...", "pending");
+      setNote("Sending a secure sign-in link to your email...", "");
+      const { error } = await client.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: true,
+          data: { display_name: String(nameInput.value || "").trim() },
+          emailRedirectTo: `${config.appUrl}?account=signin`
+        }
+      });
+      if (error) {
+        magicLinkButton.disabled = false;
+        setButtonState(magicLinkButton, "Email me a sign-in link");
+        return setNote(error.message, "error");
+      }
+      setButtonState(magicLinkButton, "Link sent", "success");
+      setNote("Check your email for a secure sign-in link. It will open Harbourline so you can continue to payment.", "success");
+      window.setTimeout(() => {
+        magicLinkButton.disabled = false;
+        setButtonState(magicLinkButton, "Email me a sign-in link");
       }, 2200);
     });
 
