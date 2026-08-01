@@ -57,11 +57,13 @@ export class AccountPanel {
   private readonly cloud = new HarbourlineCloud();
   private readonly sync: SyncController;
   private readonly dialog: HTMLDialogElement;
+  private readonly newsDialog: HTMLDialogElement;
   private readonly accountButton: HTMLButtonElement;
   private readonly onboarding: OnboardingFlow;
   private state: AccountState;
   private notice = "";
   private busy = false;
+  private sessionResolved = false;
   private subscriptionActive: boolean | null = null;
   private billingConfirmationPending = false;
   private billingSubscription: BillingSubscription | null = null;
@@ -118,6 +120,7 @@ export class AccountPanel {
     this.calendarSync = new GoogleCalendarSync(bridge, this.cloud);
     this.accountButton = this.createAccountButton();
     this.dialog = this.createDialog();
+    this.newsDialog = this.createNewsDialog();
     this.updateAccessGate();
   }
 
@@ -138,6 +141,7 @@ export class AccountPanel {
     this.dialog.addEventListener("click", (event) => {
       if (event.target === this.dialog) this.dialog.close();
     });
+    this.newsDialog.addEventListener("click", (event) => this.handleNewsClick(event));
 
     if (!this.cloud.configured) {
       this.render();
@@ -162,7 +166,13 @@ export class AccountPanel {
     await this.refreshAccount();
     this.handleBillingRedirect(billingRedirect);
     this.handleCalendarRedirect(calendarRedirect);
-    if ((shouldOpenAccount || billingRedirect || calendarRedirect) && !this.dialog.open) this.dialog.showModal();
+    if (billingRedirect || calendarRedirect) {
+      if (!this.dialog.open) this.dialog.showModal();
+    } else if (shouldOpenAccount && this.state.session) {
+      this.newsDialog.showModal();
+    } else if (shouldOpenAccount && !this.dialog.open) {
+      this.dialog.showModal();
+    }
   }
 
   private consumeAccountRedirect(): boolean {
@@ -287,10 +297,62 @@ export class AccountPanel {
     return dialog;
   }
 
+  private createNewsDialog(): HTMLDialogElement {
+    const dialog = document.createElement("dialog");
+    dialog.className = "release2-dialog release2-news-dialog";
+    dialog.setAttribute("aria-labelledby", "release2NewsTitle");
+    dialog.innerHTML = `
+      <div class="release2-dialog-shell">
+        <header class="release2-dialog-header">
+          <div>
+            <p class="eyebrow">Harbourline update</p>
+            <h2 id="release2NewsTitle">What’s new</h2>
+          </div>
+          <button class="release2-icon-button" type="button" data-news-action="close" aria-label="Close Harbourline update" title="Close">×</button>
+        </header>
+        <div class="release2-dialog-body release2-news-body">
+          <section class="release2-news-hero">
+            <span class="eyebrow">August 2026</span>
+            <h3>Plan the payday. See the next move.</h3>
+            <p>Harbourline is getting better at turning your household plan into a calm, repeatable weekly rhythm.</p>
+          </section>
+          <div class="release2-news-list" aria-label="Latest Harbourline features">
+            <article class="release2-news-item">
+              <span class="release2-news-index">01</span>
+              <h3>Payday Check-in</h3>
+              <p>Move bills, protect savings and debt, then confirm what is safe to spend before money moves.</p>
+            </article>
+            <article class="release2-news-item">
+              <span class="release2-news-index">02</span>
+              <h3>Reality in the plan</h3>
+              <p>Mark bills paid to keep reserves, recurring dates and the 13-week forecast aligned.</p>
+            </article>
+            <article class="release2-news-item">
+              <span class="release2-news-index">03</span>
+              <h3>Calendar control</h3>
+              <p>Sync planned paydays and bills to Google Calendar, with expense names optional and private by default.</p>
+            </article>
+          </div>
+          <footer class="release2-news-footer">
+            <p>You’re signed in and ready to continue your household plan.</p>
+            <div class="release2-news-actions">
+              <button class="btn secondary" type="button" data-news-action="account">Open account</button>
+              <button class="btn" type="button" data-news-action="close">Keep planning</button>
+            </div>
+          </footer>
+        </div>
+      </div>
+    `;
+    document.body.append(dialog);
+    return dialog;
+  }
+
   private applySession(session: Session | null): void {
+    this.sessionResolved = true;
     this.state.session = session;
     this.state.user = session?.user ?? null;
     this.updateAccountButton();
+    this.updateAccessGate();
   }
 
   private bindCalendarControls(): void {
@@ -475,6 +537,9 @@ export class AccountPanel {
   }
 
   private updateAccessGate(): void {
+    const waitingForSession = this.cloud.configured && !this.sessionResolved;
+    const waitingForPlan = this.cloud.configured && this.sessionResolved && Boolean(this.state.session) && this.subscriptionActive === null;
+    const checking = waitingForSession || waitingForPlan;
     const active = Boolean(this.state.session && this.subscriptionActive);
     let gate = document.querySelector<HTMLElement>("#release2-access-gate");
     if (active) {
@@ -493,6 +558,30 @@ export class AccountPanel {
       });
       document.body.append(gate);
     }
+    if (checking) {
+      gate.classList.add("release2-access-gate-checking");
+      gate.setAttribute("role", "status");
+      gate.setAttribute("aria-live", "polite");
+      gate.setAttribute("aria-busy", "true");
+      gate.innerHTML = `
+        <div class="release2-access-gate-card">
+          <span class="eyebrow">Harbourline account</span>
+          <div class="release2-gate-status">
+            <span class="release2-status-dot" aria-hidden="true"></span>
+            <span>${waitingForSession ? "Restoring your secure session" : "Checking your plan access"}</span>
+          </div>
+          <h1>${waitingForSession ? "Getting your plan ready" : "Almost there"}</h1>
+          <p>${waitingForSession
+            ? "We’re checking this device before showing the right account options."
+            : "Your account is restored. We’re confirming your Harbourline plan now."}</p>
+        </div>
+      `;
+      return;
+    }
+    gate.classList.remove("release2-access-gate-checking");
+    gate.removeAttribute("role");
+    gate.removeAttribute("aria-live");
+    gate.removeAttribute("aria-busy");
     gate.innerHTML = `
       <div class="release2-access-gate-card">
         <span class="eyebrow">Harbourline</span>
@@ -937,6 +1026,25 @@ export class AccountPanel {
       }
       form.reset();
     });
+  }
+
+  private handleNewsClick(event: MouseEvent): void {
+    const target = event.target;
+    if (target === this.newsDialog) {
+      this.newsDialog.close();
+      return;
+    }
+    if (!(target instanceof Element)) return;
+    const action = target.closest<HTMLElement>("[data-news-action]")?.dataset.newsAction;
+    if (action === "close") {
+      this.newsDialog.close();
+      return;
+    }
+    if (action === "account") {
+      this.newsDialog.close();
+      this.render();
+      if (!this.dialog.open) this.dialog.showModal();
+    }
   }
 
   private handleClick(event: MouseEvent): void {
