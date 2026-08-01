@@ -1,10 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { createServiceRoleClient } from "../_shared/beta.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "https://harbourline-zeta.vercel.app",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type"
-};
+import { corsHeaders, createServiceRoleClient, configuredAppOrigin } from "../_shared/beta.ts";
 
 function stripeValue(value: string): string {
   return value.trim();
@@ -30,7 +25,7 @@ Deno.serve(async (request) => {
 
   const stripeSecret = Deno.env.get("STRIPE_SECRET_KEY");
   const priceId = Deno.env.get("STRIPE_PRICE_ID");
-  const appUrl = Deno.env.get("HARBOURLINE_APP_URL") ?? "https://harbourline-zeta.vercel.app/";
+  const appUrl = configuredAppOrigin();
   if (!stripeSecret || !priceId) return new Response("Billing is not configured", { status: 503, headers: corsHeaders });
 
   const { data: existingBilling, error: billingError } = await supabase
