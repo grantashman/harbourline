@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Blog | Harbourline</title>
+  <meta name="description" content="Harbourline release notes and practical ideas for making household money feel more predictable." />
+  <meta property="og:title" content="Blog | Harbourline" />
+  <meta property="og:description" content="Release notes and practical ideas for making household money feel more predictable." />
+  <meta property="og:type" content="article" />
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #06110f;
+      --panel: #0d1d1a;
+      --panel-2: #112824;
+      --ink: #f4fffb;
+      --muted: #adc5bd;
+      --line: rgba(174, 230, 211, 0.18);
+      --mint: #5ce0b3;
+      --blue: #7fa7ff;
+      --amber: #ffc66d;
+      --shadow: 0 30px 90px rgba(0, 0, 0, 0.38);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 12% 8%, rgba(92, 224, 179, 0.18), transparent 30%),
+        radial-gradient(circle at 84% 16%, rgba(127, 167, 255, 0.14), transparent 32%),
+        linear-gradient(180deg, #071512 0%, #06110f 58%, #091714 100%);
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    .page { width: min(1180px, calc(100% - 32px)); margin: 0 auto; }
+
+    .nav {
+      position: sticky;
+      top: 14px;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin: 18px auto 0;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(7, 21, 18, 0.78);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+    }
+
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .brand img { width: 44px; height: 44px; border-radius: 8px; box-shadow: 0 10px 28px rgba(92, 224, 179, 0.16); }
+    .eyebrow { color: var(--mint); font-size: 0.72rem; font-weight: 850; letter-spacing: 0.08em; text-transform: uppercase; }
+    .brand strong { display: block; margin-top: 2px; font-size: 1.15rem; line-height: 1; }
+
+    .nav-links { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .nav-desktop-links { display: flex; align-items: center; gap: 8px; }
+    .nav-links a { padding: 10px 12px; border-radius: 8px; color: var(--muted); font-size: 0.88rem; font-weight: 750; }
+    .nav-links a:hover, .nav-links a[aria-current="page"] { color: var(--ink); background: rgba(255, 255, 255, 0.07); }
+
+    .nav-menu { display: none; position: relative; }
+    .nav-menu summary {
+      display: inline-flex;
+      min-height: 42px;
+      align-items: center;
+      padding: 0 13px;
+      color: var(--muted);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.04);
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-weight: 800;
+      list-style: none;
+    }
+    .nav-menu summary::-webkit-details-marker { display: none; }
+    .nav-menu[open] summary, .nav-menu summary:hover { color: var(--ink); border-color: rgba(92, 224, 179, 0.46); }
+    .nav-menu-links {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      z-index: 2;
+      display: grid;
+      min-width: 180px;
+      gap: 4px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+    }
+    .nav-menu-links a { padding: 10px 11px; border-radius: 7px; color: var(--muted); font-size: 0.84rem; font-weight: 750; }
+    .nav-menu-links a:hover { color: var(--ink); background: rgba(255, 255, 255, 0.07); }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 0 16px;
+      border: 1px solid rgba(92, 224, 179, 0.36);
+      border-radius: 8px;
+      color: #04130f;
+      background: linear-gradient(135deg, var(--mint), #96f2d2);
+      font-weight: 850;
+      box-shadow: 0 18px 36px rgba(52, 202, 155, 0.18);
+    }
+    .button.secondary { color: var(--ink); background: rgba(255, 255, 255, 0.07); border-color: var(--line); box-shadow: none; }
+    .button:hover { transform: translateY(-1px); border-color: rgba(92, 224, 179, 0.72); }
+    .button:focus-visible, a:focus-visible { outline: 3px solid rgba(126, 165, 255, 0.62); outline-offset: 3px; }
+
+    .article-shell { padding: 82px 0 68px; }
+    .article { max-width: 800px; margin: 0 auto; }
+    .post-kicker { display: inline-flex; align-items: center; gap: 8px; color: var(--mint); font-size: 0.76rem; font-weight: 850; letter-spacing: 0.08em; text-transform: uppercase; }
+    .post-kicker::before { content: ""; width: 28px; height: 1px; background: var(--mint); }
+    h1 { max-width: 800px; margin: 18px 0 20px; font-size: clamp(2.8rem, 7vw, 5.4rem); line-height: 0.96; letter-spacing: -0.045em; text-wrap: balance; }
+    .post-dek { max-width: 700px; margin: 0; color: var(--muted); font-size: clamp(1.1rem, 2vw, 1.35rem); line-height: 1.55; text-wrap: pretty; }
+    .post-meta { display: flex; flex-wrap: wrap; gap: 12px 18px; margin-top: 24px; color: var(--muted); font-size: 0.82rem; font-weight: 700; }
+    .post-meta span + span { padding-left: 18px; border-left: 1px solid var(--line); }
+    .post-rule { height: 1px; margin: 42px 0 34px; background: var(--line); }
+
+    .post-body { font-size: 1.04rem; line-height: 1.75; }
+    .post-body p { margin: 0 0 22px; color: #d7e8e2; }
+    .post-body h2 { margin: 42px 0 14px; font-size: clamp(1.65rem, 3vw, 2.35rem); line-height: 1.08; letter-spacing: -0.025em; }
+    .post-body h3 { margin: 28px 0 8px; color: var(--ink); font-size: 1.1rem; }
+    .post-body ul { display: grid; gap: 12px; margin: 18px 0 28px; padding: 0; list-style: none; }
+    .post-body li { position: relative; padding-left: 28px; color: #d7e8e2; }
+    .post-body li::before { content: ""; position: absolute; top: 0.78em; left: 3px; width: 8px; height: 8px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 0 5px rgba(92, 224, 179, 0.1); }
+    .post-body strong { color: var(--ink); }
+
+    .release-card {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(190px, 0.48fr);
+      gap: 24px;
+      margin: 30px 0 34px;
+      padding: 24px;
+      border: 1px solid rgba(92, 224, 179, 0.34);
+      border-radius: 10px;
+      background: linear-gradient(145deg, rgba(17, 40, 36, 0.92), rgba(13, 29, 26, 0.72));
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset;
+    }
+    .release-card h2 { margin: 0 0 12px; font-size: 1.45rem; }
+    .release-card p { margin: 0; color: var(--muted); font-size: 0.94rem; line-height: 1.55; }
+    .release-facts { display: grid; gap: 12px; margin: 0; }
+    .release-facts div { padding-left: 14px; border-left: 1px solid rgba(92, 224, 179, 0.38); }
+    .release-facts dt { color: var(--mint); font-size: 0.7rem; font-weight: 850; letter-spacing: 0.08em; text-transform: uppercase; }
+    .release-facts dd { margin: 4px 0 0; color: var(--ink); font-size: 0.98rem; font-weight: 800; }
+
+    .post-cta { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 46px; padding-top: 26px; border-top: 1px solid var(--line); }
+    .post-cta p { max-width: 430px; margin: 0; color: var(--muted); font-size: 0.92rem; line-height: 1.5; }
+    .footer { display: flex; justify-content: space-between; gap: 16px; align-items: center; flex-wrap: wrap; padding: 28px 0 44px; color: var(--muted); border-top: 1px solid var(--line); }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 12px; }
+    .footer-links a { color: var(--mint); font-size: 0.8rem; font-weight: 750; }
+    .footer-links a:hover { color: var(--ink); }
+
+    @media (max-width: 760px) {
+      .release-card { grid-template-columns: 1fr; }
+      .post-cta { align-items: flex-start; flex-direction: column; }
+    }
+
+    @media (max-width: 660px) {
+      .page { width: min(100% - 20px, 1180px); }
+      .nav { position: static; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+      .nav-desktop-links { display: none; }
+      .nav-menu { display: block; }
+      .brand img { width: 38px; height: 38px; }
+      .brand .eyebrow { display: none; }
+      .brand strong { font-size: 1rem; }
+      .nav-links { gap: 6px; }
+      .nav-links .button { min-height: 42px; padding-inline: 10px; font-size: 0.78rem; }
+      .nav-links .button.secondary { display: none; }
+      .article-shell { padding-top: 52px; }
+      .post-meta span + span { padding-left: 0; border-left: 0; }
+      .footer { align-items: flex-start; flex-direction: column; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .button:hover { transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="page nav">
+    <a class="brand" href="../" aria-label="Harbourline homepage">
+      <img src="../assets/harbourline-mark.svg" alt="" />
+      <span>
+        <span class="eyebrow">Household money planning</span>
+        <strong>Harbourline</strong>
+      </span>
+    </a>
+    <nav class="nav-links" aria-label="Main navigation">
+      <div class="nav-desktop-links">
+        <a href="../#features">Features</a>
+        <a href="../#pricing">Pricing</a>
+        <a href="./" aria-current="page">Blog</a>
+      </div>
+      <details class="nav-menu">
+        <summary>Explore</summary>
+        <div class="nav-menu-links">
+          <a href="../#how-it-works">How it works</a>
+          <a href="../#features">Features</a>
+          <a href="../#pricing">Pricing</a>
+          <a href="./" aria-current="page">Blog</a>
+        </div>
+      </details>
+      <a class="button" href="../#early-access">Start planning</a>
+      <a class="button secondary" href="https://harbourline.app/?account=signin">Sign in</a>
+    </nav>
+  </header>
+
+  <main class="page article-shell">
+    <article class="article">
+      <div class="post-kicker">First release announcement</div>
+      <h1>Harbourline is now open for early access.</h1>
+      <p class="post-dek">A calmer way to see what your household money needs to do next, from payday through to the bills, savings and goals ahead.</p>
+      <div class="post-meta">
+        <span>1 August 2026</span>
+        <span>Harbourline team</span>
+        <span>3 min read</span>
+      </div>
+
+      <div class="post-rule"></div>
+
+      <div class="post-body">
+        <p>Today we’re opening Harbourline to early-access households in Australia.</p>
+        <p>Most budgeting tools ask you to look back at what happened last month. Harbourline starts with the next payday. It brings your income, bills, savings, debt and goals into one view so you can answer the useful question: <strong>what is safe to spend next?</strong></p>
+
+        <div class="release-card">
+          <div>
+            <h2>What’s in the first release</h2>
+            <p>Build a household plan around the dates and rhythms you already use. Harbourline keeps the plan practical, visible and ready for the next decision.</p>
+          </div>
+          <dl class="release-facts">
+            <div><dt>Early access</dt><dd>A$1 per week</dd></div>
+            <div><dt>Built for</dt><dd>Australian households</dd></div>
+            <div><dt>Forecast</dt><dd>13 weeks ahead</dd></div>
+          </dl>
+        </div>
+
+        <h2>A plan that starts with payday</h2>
+        <p>Add the income that comes in, the commitments that need to be covered and the goals you want to keep moving. Harbourline uses the dates and frequencies you provide to show what each pay cycle needs to carry.</p>
+        <ul>
+          <li>See upcoming income and bills in one cash-flow forecast.</li>
+          <li>Set aside money for savings and debt without losing sight of the week ahead.</li>
+          <li>Check the amount that remains safe to spend after planned commitments.</li>
+          <li>Use weekly, fortnightly, monthly and yearly rhythms that fit your household.</li>
+        </ul>
+
+        <h2>Keep the useful parts close</h2>
+        <p>The first release also includes household sync, optional Google Calendar support and reports you can export for review or record keeping. You can keep the plan available across supported devices, then take a clear copy with you when you need one.</p>
+        <p>Harbourline is designed to make money conversations easier. You should be able to see the same picture, talk through the next choice and adjust the plan as real life changes.</p>
+
+        <h2>What happens during early access</h2>
+        <p>Early access gives us room to improve the product with real household feedback. We’ll watch the places where planning feels unclear, listen to what you need at payday and keep the product focused on the decisions that matter.</p>
+        <p>Create an account, confirm your email and review the introductory price before you continue. You stay in control of the plan and can cancel at any time.</p>
+
+        <div class="post-cta">
+          <p>Ready to see your next payday more clearly?</p>
+          <a class="button" href="../#early-access">Start planning with Harbourline</a>
+        </div>
+      </div>
+    </article>
+  </main>
+
+  <footer class="page footer">
+    <span>&copy; 2026 Harbourline</span>
+    <span>Clearer money planning for everyday households.</span>
+    <div class="footer-links">
+      <a href="../#trust">Privacy &amp; access</a>
+      <a href="../#pricing">Pricing</a>
+      <a href="./" aria-current="page">Blog</a>
+      <a href="https://harbourline.app/?account=signin">Sign in</a>
+    </div>
+  </footer>
+</body>
+</html>

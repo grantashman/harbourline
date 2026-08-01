@@ -606,7 +606,7 @@ Add a daily event table with `en-AU` dates, event labels and counts. Refresh whe
 Document this public value in `.env.example`:
 
 ```text
-VITE_HARBOURLINE_SUPPORT_EMAIL=support@example.com
+VITE_HARBOURLINE_SUPPORT_EMAIL=support@harbourline.app
 ```
 
 In the signed-in Account panel, render `mailto:${encodeURIComponent(supportEmail)}` only when the value is configured. The mail subject is `Harbourline support request`; the body says to avoid including account numbers, passwords or a budget export. On click, call `recordBetaEvent("support_requested")` without blocking the mail link.
