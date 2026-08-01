@@ -6,8 +6,8 @@ It is designed for Australian households who want to move beyond a record of pas
 
 ## Start here
 
-- [Visit the Harbourline homepage](https://grantashman.github.io/harbourline/)
-- [Open the hosted application](https://harbourline-zeta.vercel.app/)
+- [Visit the Harbourline homepage](https://www.harbourline.app/)
+- [Open the hosted application](https://harbourline.app/)
 - [Browse the source on GitHub](https://github.com/grantashman/harbourline)
 
 The homepage is the starting point for new accounts. Existing members can sign in through the hosted application.

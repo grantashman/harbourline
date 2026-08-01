@@ -9,12 +9,14 @@ For the commercial launch sequence, member-level cost model and profitability
 thresholds, see
 [`PRODUCTION_AND_PROFITABILITY.md`](PRODUCTION_AND_PROFITABILITY.md).
 
-## Current controlled-beta checkpoint — 31 July 2026
+## Current controlled-beta checkpoint — 1 August 2026
 
 The following public deployment identifiers were verified during the controlled
 beta activation. Secret values remain in Supabase and Vercel only.
 
-- hosted app: `https://harbourline-zeta.vercel.app`
+- public homepage: `https://www.harbourline.app`
+- hosted app: `https://harbourline.app`
+- legacy rollback app: `https://harbourline-zeta.vercel.app`
 - Supabase project: `mnnppxznopuoqverlsex`
 - Supabase API host: `https://mnnppxznopuoqverlsex.supabase.co`
 - Supabase region: Northeast Asia (Tokyo), `ap-northeast-1`
@@ -26,6 +28,10 @@ The `google_calendar_sync` migration and all five Google Calendar Edge
 Functions are deployed. The project currently reports Supabase Free/NANO with
 no scheduled backups; upgrading to a non-pausing production plan remains a
 launch decision before opening the beta beyond a controlled cohort.
+
+The domain migration is being staged with the new app domain as canonical and
+the old Vercel URL retained for rollback. Cloudflare email-related DNS records
+are intentionally unchanged until Google Workspace is configured.
 
 ## 1. Confirm the beta project
 

@@ -591,7 +591,7 @@ export class AccountPanel {
           : "Sign in or create your Harbourline account to access the hosted planning workspace."}</p>
         <div class="release2-gate-actions">
           <button class="btn" type="button" data-action="open-account">${this.state.session ? "Continue to payment" : "Sign in to continue"}</button>
-          ${this.state.session ? "" : `<a class="btn secondary" href="https://grantashman.github.io/harbourline/#early-access" target="_blank" rel="noreferrer">Create account</a>`}
+          ${this.state.session ? "" : `<a class="btn secondary" href="https://www.harbourline.app/#early-access" target="_blank" rel="noreferrer">Create account</a>`}
         </div>
         <p class="release2-gate-note">${this.state.session
           ? "Payment is handled securely by Stripe. Your card details are never stored in Harbourline."
@@ -655,7 +655,7 @@ export class AccountPanel {
             <div><span>New here?</span><h3>Create your account first</h3></div>
           </div>
           <p class="release2-empty">Create your account on the homepage, confirm your email, then return here to sign in and continue to secure payment.</p>
-          <a class="btn secondary release2-homepage-button" href="https://grantashman.github.io/harbourline/#early-access" target="_blank" rel="noreferrer">Create account on homepage</a>
+          <a class="btn secondary release2-homepage-button" href="https://www.harbourline.app/#early-access" target="_blank" rel="noreferrer">Create account on homepage</a>
         </section>
         <form class="release2-section" data-form="sign-in">
           <div class="release2-section-heading">
