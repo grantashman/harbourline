@@ -38,13 +38,15 @@ export interface BetaOperationsSnapshot {
 }
 
 const defaultAppOrigin = "https://harbourline.app";
+const legacyAppOrigins = new Set(["https://harbourline-zeta.vercel.app"]);
 
 export function configuredAppOrigin(): string {
   const appUrl = Deno.env.get("HARBOURLINE_APP_URL");
   if (!appUrl) return defaultAppOrigin;
 
   try {
-    return new URL(appUrl).origin;
+    const origin = new URL(appUrl).origin;
+    return legacyAppOrigins.has(origin) ? defaultAppOrigin : origin;
   } catch {
     return defaultAppOrigin;
   }
