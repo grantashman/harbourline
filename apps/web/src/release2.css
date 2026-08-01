@@ -17,7 +17,7 @@
 .release2-access-gate {
   position: fixed;
   inset: 0;
-  z-index: 15;
+  z-index: 40;
   display: grid;
   place-items: center;
   padding: 24px;
@@ -44,6 +44,23 @@
   color: var(--muted);
   font-size: 1.05rem;
   line-height: 1.55;
+}
+
+.release2-gate-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.release2-gate-actions .btn {
+  flex: 1 1 190px;
+}
+
+.release2-gate-note {
+  margin: 14px 0 0 !important;
+  color: var(--muted);
+  font-size: 0.78rem !important;
+  line-height: 1.45 !important;
 }
 
 .release2-access-gate-checking .release2-access-gate-card {
@@ -446,6 +463,36 @@
   display: grid;
   align-content: start;
   gap: 13px;
+}
+
+.release2-password-field {
+  position: relative;
+}
+
+.release2-password-field input {
+  padding-right: 72px;
+}
+
+.release2-password-toggle {
+  position: absolute;
+  right: 8px;
+  bottom: 7px;
+  min-height: 30px;
+  padding: 0 8px;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--field-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.release2-password-toggle:hover,
+.release2-password-toggle:focus-visible {
+  color: var(--mint-dark);
+  border-color: var(--mint);
 }
 
 .release2-auth-divider {

@@ -589,7 +589,13 @@ export class AccountPanel {
         <p>${this.state.session
           ? "Your account is ready. Continue to secure payment to unlock your household planning workspace and cloud sync."
           : "Sign in or create your Harbourline account to access the hosted planning workspace."}</p>
-        <button class="btn" type="button" data-action="open-account">${this.state.session ? "Continue to payment" : "Sign in to continue"}</button>
+        <div class="release2-gate-actions">
+          <button class="btn" type="button" data-action="open-account">${this.state.session ? "Continue to payment" : "Sign in to continue"}</button>
+          ${this.state.session ? "" : `<a class="btn secondary" href="https://grantashman.github.io/harbourline/#early-access" target="_blank" rel="noreferrer">Create account</a>`}
+        </div>
+        <p class="release2-gate-note">${this.state.session
+          ? "Payment is handled securely by Stripe. Your card details are never stored in Harbourline."
+          : "New to Harbourline? Create your account on the homepage first. Already registered? Sign in here."}</p>
       </div>
     `;
   }
@@ -640,16 +646,23 @@ export class AccountPanel {
         <span class="release2-status-dot"></span>
         <div>
           <h3>Sign in to Harbourline</h3>
-          <p>Sign in securely to access your household plan across supported devices. New accounts are created on the public Harbourline homepage.</p>
+          <p>Returning to Harbourline? Sign in below. New accounts start on the public homepage, where you can review the plan and early-access price first.</p>
         </div>
       </section>
       <div class="release2-auth-grid">
+        <section class="release2-section release2-account-path">
+          <div class="release2-section-heading">
+            <div><span>New here?</span><h3>Create your account first</h3></div>
+          </div>
+          <p class="release2-empty">Create your account on the homepage, confirm your email, then return here to sign in and continue to secure payment.</p>
+          <a class="btn secondary release2-homepage-button" href="https://grantashman.github.io/harbourline/#early-access" target="_blank" rel="noreferrer">Create account on homepage</a>
+        </section>
         <form class="release2-section" data-form="sign-in">
           <div class="release2-section-heading">
             <div><span>Welcome back</span><h3>Sign in</h3></div>
           </div>
           <label>Email<input name="email" type="email" autocomplete="email" required /></label>
-          <label>Password<input name="password" type="password" autocomplete="current-password" minlength="8" required /></label>
+          <label class="release2-password-field">Password<input id="signInPassword" name="password" type="password" autocomplete="current-password" minlength="8" required /><button class="release2-password-toggle" type="button" data-action="toggle-password" data-password-target="signInPassword" aria-controls="signInPassword" aria-pressed="false">Show</button></label>
           <button class="btn" type="submit" ${this.busy ? "disabled" : ""}>Sign in</button>
           <div class="release2-auth-divider" role="separator"><span>or continue with</span></div>
           <button class="btn secondary release2-google-button" type="button" data-action="google-sign-in" ${this.busy ? "disabled" : ""}>
@@ -664,13 +677,6 @@ export class AccountPanel {
           <button class="btn secondary" type="button" data-action="magic-link" ${this.busy ? "disabled" : ""}>Email a sign-in link</button>
           <button class="btn secondary" type="button" data-action="password-reset" ${this.busy ? "disabled" : ""}>Forgot password?</button>
         </form>
-        <section class="release2-section">
-          <div class="release2-section-heading">
-            <div><span>New accounts</span><h3>Join from the homepage</h3></div>
-          </div>
-          <p class="release2-empty">Account creation is handled on the Harbourline homepage. Create your account there, then return here to sign in and continue to secure payment.</p>
-          <a class="btn secondary release2-homepage-button" href="https://grantashman.github.io/harbourline/#early-access" target="_blank" rel="noreferrer">Create account on homepage</a>
-        </section>
       </div>
     `;
   }
@@ -735,8 +741,8 @@ export class AccountPanel {
         </div>
       </section>
       <form class="release2-section" data-form="update-password">
-        <label>New password<input name="password" type="password" autocomplete="new-password" minlength="8" required /></label>
-        <label>Confirm new password<input name="confirmation" type="password" autocomplete="new-password" minlength="8" required /></label>
+        <label class="release2-password-field">New password<input id="recoveryPassword" name="password" type="password" autocomplete="new-password" minlength="8" required /><button class="release2-password-toggle" type="button" data-action="toggle-password" data-password-target="recoveryPassword" aria-controls="recoveryPassword" aria-pressed="false">Show</button></label>
+        <label class="release2-password-field">Confirm new password<input id="recoveryConfirmation" name="confirmation" type="password" autocomplete="new-password" minlength="8" required /><button class="release2-password-toggle" type="button" data-action="toggle-password" data-password-target="recoveryConfirmation" aria-controls="recoveryConfirmation" aria-pressed="false">Show</button></label>
         <button class="btn" type="submit" ${this.busy ? "disabled" : ""}>Update password</button>
       </form>
     `;
@@ -1061,6 +1067,17 @@ export class AccountPanel {
     if (action === "support") {
       void this.cloud.recordBetaEvent("support_requested", this.sync.metadata?.householdId)
         .catch(() => undefined);
+      return;
+    }
+    if (action === "toggle-password") {
+      const input = document.getElementById(button?.dataset.passwordTarget ?? "");
+      if (!(input instanceof HTMLInputElement)) return;
+      const visible = input.type === "text";
+      input.type = visible ? "password" : "text";
+      if (button) {
+        button.textContent = visible ? "Show" : "Hide";
+        button.setAttribute("aria-pressed", String(!visible));
+      }
       return;
     }
     void this.run(async () => {
