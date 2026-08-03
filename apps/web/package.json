@@ -12,7 +12,8 @@
     "@harbourline/domain": "workspace:*",
     "@harbourline/sync": "workspace:*",
     "@sentry/browser": "^10.69.0",
-    "@supabase/supabase-js": "^2.57.4"
+    "@supabase/supabase-js": "^2.57.4",
+    "@vercel/analytics": "^2.0.1"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",
