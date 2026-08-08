@@ -12,8 +12,10 @@ identifiers. Those values must never be collected.
 ## Local controls
 
 - Financial calculations execute locally.
-- The budget document remains in localStorage for direct-file compatibility.
-- Pending cloud mutations and sync metadata use IndexedDB.
+- The budget document remains in account-scoped localStorage for direct-file
+  compatibility; signing out switches to a clean anonymous workspace.
+- Pending cloud mutations and sync metadata use IndexedDB and are cleared before
+  an account transition so one account cannot upload another account's queue.
 - Import requires a deliberate file selection.
 - Export produces a user-controlled JSON backup.
 - No analytics, remote logging or third-party scripts receive budget values.

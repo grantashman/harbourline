@@ -11,6 +11,11 @@ const googleMigrationUrl = new URL(
   import.meta.url
 );
 const googleSql = await readFile(googleMigrationUrl, "utf8");
+const entitlementMigrationUrl = new URL(
+  "../supabase/migrations/202608080001_household_cloud_entitlements.sql",
+  import.meta.url
+);
+const entitlementSql = await readFile(entitlementMigrationUrl, "utf8");
 
 const requiredTables = [
   "profiles",
@@ -77,5 +82,29 @@ for (const table of ["google_calendar_connections", "google_calendar_oauth_state
 }
 assert.match(googleSql, /encrypted_refresh_token text not null/i);
 assert.match(googleSql, /code_verifier text not null/i);
+
+assert.match(
+  entitlementSql,
+  /create or replace function private\.has_household_cloud_access/i,
+  "household entitlement access must be defined in the private schema"
+);
+assert.match(
+  entitlementSql,
+  /status in \('active', 'trialing'\)/i,
+  "household entitlement access must use authoritative active billing states"
+);
+for (const triggerName of [
+  "households_require_subscription",
+  "household_members_require_entitlement",
+  "household_invites_require_entitlement",
+  "budget_documents_require_entitlement",
+  "sync_mutations_require_entitlement"
+]) {
+  assert.match(
+    entitlementSql,
+    new RegExp(`create trigger ${triggerName}`, "i"),
+    `${triggerName} must protect the corresponding cloud write path`
+  );
+}
 
 console.log("Release 2 schema guard: passed");
