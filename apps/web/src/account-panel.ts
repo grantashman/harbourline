@@ -150,18 +150,19 @@ export class AccountPanel {
     }
 
     this.pendingRecoveryRedirect = this.consumeRecoveryRedirect();
-    this.applySession(await this.cloud.getSession());
+    await this.handleSessionChange(await this.cloud.getSession());
     this.openPendingRecoveryIfReady();
     this.cloud.onAuthChange((event, session) => {
       if (event === "PASSWORD_RECOVERY") {
         this.openRecoveryMode();
       }
-      this.applySession(session);
-      this.openPendingRecoveryIfReady();
-      void this.refreshAccount();
-      if (event === "PASSWORD_RECOVERY" && !this.dialog.open) {
-        this.dialog.showModal();
-      }
+      void this.handleSessionChange(session).then(() => {
+        this.openPendingRecoveryIfReady();
+        void this.refreshAccount();
+        if (event === "PASSWORD_RECOVERY" && !this.dialog.open) {
+          this.dialog.showModal();
+        }
+      });
     });
     await this.refreshAccount();
     this.handleBillingRedirect(billingRedirect);
@@ -353,6 +354,18 @@ export class AccountPanel {
     this.state.user = session?.user ?? null;
     this.updateAccountButton();
     this.updateAccessGate();
+  }
+
+  private async handleSessionChange(session: Session | null): Promise<void> {
+    const previousUserId = this.state.user?.id ?? null;
+    const nextUserId = session?.user.id ?? null;
+    if (previousUserId !== nextUserId) {
+      await this.sync.disconnectDevice();
+      this.bridge.setUserScope(nextUserId);
+      this.state.metadata = null;
+      this.state.conflict = null;
+    }
+    this.applySession(session);
   }
 
   private bindCalendarControls(): void {
@@ -1102,9 +1115,8 @@ export class AccountPanel {
         await this.cloud.sendPasswordReset(email);
         this.notice = "Check your email for a password recovery link.";
       } else if (action === "sign-out") {
-        await this.cloud.unsubscribeFromBudget();
         await this.cloud.signOut();
-        this.notice = "Signed out. The cached budget remains on this device.";
+        this.notice = "Signed out. This device is ready for another account.";
       } else if (action === "start-checkout") {
         const checkoutUrl = await this.cloud.createCheckoutSession();
         window.location.assign(checkoutUrl);

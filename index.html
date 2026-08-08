@@ -4650,12 +4650,13 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="assets/vendor/pdf-lib.min.js"></script>
   <script>
     const PRODUCT_NAME = "Harbourline";
     const PRODUCT_SLUG = "harbourline";
     const STORAGE_KEY = "harbourline-aud-v1";
     const LEGACY_STORAGE_KEYS = ["pocket-harbour-aud-v1", "budget-studio-aud-v1"];
+    const ACCOUNT_OWNER_KEY = `${STORAGE_KEY}:owner`;
+    const USER_STORAGE_PREFIX = `${STORAGE_KEY}:user:`;
     const THEME_KEY = "harbourline-theme";
     const LEGACY_THEME_KEYS = ["pocket-harbour-theme", "budget-studio-theme"];
     const DEFAULT_THEME = "harbour-night";
@@ -4848,6 +4849,7 @@
 
     const defaultState = createDefaultState();
 
+    let activeStorageKey = STORAGE_KEY;
     let state = loadState();
     let stateChangeSource = "local";
     let editingExpenseId = null;
@@ -5009,11 +5011,17 @@
       };
     }
 
-    function loadState() {
+    function storageKeyForUser(userId) {
+      return `${USER_STORAGE_PREFIX}${encodeURIComponent(userId)}`;
+    }
+
+    function loadState(storageKey = activeStorageKey) {
       try {
-        const saved = localStorage.getItem(STORAGE_KEY)
-          || LEGACY_STORAGE_KEYS.map((key) => localStorage.getItem(key)).find(Boolean);
-        if (saved && !localStorage.getItem(STORAGE_KEY)) {
+        const saved = localStorage.getItem(storageKey)
+          || (storageKey === STORAGE_KEY
+            ? LEGACY_STORAGE_KEYS.map((key) => localStorage.getItem(key)).find(Boolean)
+            : null);
+        if (saved && storageKey === STORAGE_KEY && !localStorage.getItem(STORAGE_KEY)) {
           localStorage.setItem(STORAGE_KEY, saved);
         }
         return saved ? normaliseState(JSON.parse(saved)) : createDefaultState();
@@ -5023,7 +5031,7 @@
     }
 
     function saveState() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(activeStorageKey, JSON.stringify(state));
       window.dispatchEvent(new CustomEvent("harbourline:state-changed", {
         detail: {
           source: stateChangeSource,
@@ -5035,9 +5043,35 @@
     window.HarbourlineLocal = Object.freeze({
       version: 1,
       schemaVersion: 3,
-      storageKey: STORAGE_KEY,
+      get storageKey() {
+        return activeStorageKey;
+      },
       read() {
         return JSON.parse(JSON.stringify(state));
+      },
+      setUserScope(userId) {
+        const nextStorageKey = userId ? storageKeyForUser(userId) : STORAGE_KEY;
+        if (nextStorageKey === activeStorageKey) return;
+
+        if (userId && !localStorage.getItem(nextStorageKey)) {
+          const anonymousState = localStorage.getItem(STORAGE_KEY);
+          const anonymousOwner = localStorage.getItem(ACCOUNT_OWNER_KEY);
+          if (anonymousState && !anonymousOwner) {
+            localStorage.setItem(nextStorageKey, anonymousState);
+            localStorage.setItem(ACCOUNT_OWNER_KEY, userId);
+            localStorage.removeItem(STORAGE_KEY);
+          }
+        }
+
+        activeStorageKey = nextStorageKey;
+        stateChangeSource = "account-switch";
+        try {
+          state = loadState(activeStorageKey);
+          saveState();
+          render();
+        } finally {
+          stateChangeSource = "local";
+        }
       },
       replace(nextState, source = "external") {
         stateChangeSource = source;

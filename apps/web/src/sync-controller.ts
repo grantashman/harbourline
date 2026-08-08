@@ -44,7 +44,11 @@ export class SyncController {
   async initialise(): Promise<void> {
     this.metadata = await getSyncMetadata();
     window.addEventListener("harbourline:state-changed", (event) => {
-      if (event.detail.source === "cloud" || !this.metadata) return;
+      if (
+        event.detail.source === "cloud" ||
+        event.detail.source === "account-switch" ||
+        !this.metadata
+      ) return;
       void this.queueState(event.detail.state);
     });
     window.addEventListener("online", () => void this.flush());
@@ -83,11 +87,11 @@ export class SyncController {
 
   async disconnectDevice(): Promise<void> {
     window.clearTimeout(this.flushTimer);
+    this.metadata = null;
+    this.setConflict(null);
     await this.cloud.unsubscribeFromBudget();
     await clearPendingMutations();
     await clearSyncMetadata();
-    this.metadata = null;
-    this.setConflict(null);
     await this.report("Harbourline sync disconnected.", "neutral");
   }
 

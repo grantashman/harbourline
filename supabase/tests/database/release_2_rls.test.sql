@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(25);
+select plan(28);
 
 select has_table('public', 'households', 'households table exists');
 select has_table('public', 'household_members', 'household membership table exists');
@@ -98,6 +98,12 @@ values
     now()
   );
 
+insert into public.billing_subscriptions (user_id, status)
+values (
+  '10000000-0000-0000-0000-000000000001',
+  'active'
+);
+
 insert into public.households (id, name, created_by)
 values (
   '20000000-0000-0000-0000-000000000001',
@@ -176,6 +182,11 @@ select lives_ok(
 set local "request.jwt.claims" =
   '{"sub":"10000000-0000-0000-0000-000000000002","email":"member@example.com","role":"authenticated"}';
 
+select ok(
+  public.has_active_subscription(),
+  'household members inherit the active owner entitlement'
+);
+
 select is(
   (select count(*) from public.budget_documents),
   1::bigint,
@@ -200,6 +211,49 @@ select lives_ok(
   )$$,
   'member can use the guarded sync function'
 );
+
+set local role postgres;
+update public.billing_subscriptions
+set status = 'canceled'
+where user_id = '10000000-0000-0000-0000-000000000001';
+set local role authenticated;
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000002","email":"member@example.com","role":"authenticated"}',
+  true
+);
+
+select throws_ok(
+  $$select public.sync_budget(
+    '20000000-0000-0000-0000-000000000001',
+    '30000000-0000-0000-0000-000000000003',
+    1,
+    3,
+    '{"expenses":[]}',
+    'fnv1a-canceled'
+  )$$,
+  '42501',
+  'An active household Harbourline subscription is required for cloud changes',
+  'canceled household cannot write through sync'
+);
+select throws_ok(
+  $$select public.create_household('Unpaid household')$$,
+  '42501',
+  'An active Harbourline subscription is required to create a household',
+  'unpaid account cannot create a household'
+);
+
+set local role postgres;
+update public.billing_subscriptions
+set status = 'active'
+where user_id = '10000000-0000-0000-0000-000000000001';
+set local role authenticated;
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000002","email":"member@example.com","role":"authenticated"}',
+  true
+);
+
 select is(
   (select public.export_my_account() -> 'onboarding' ->> 'step'),
   'income',

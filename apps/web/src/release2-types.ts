@@ -10,6 +10,7 @@ export interface HarbourlineLocalBridge {
   schemaVersion: number;
   storageKey: string;
   read(): unknown;
+  setUserScope(userId: string | null): void;
   replace(state: unknown, source?: string): void;
   openWorkspace(tab: "payday"): void;
 }
