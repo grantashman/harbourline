@@ -13,7 +13,7 @@ export interface OnboardingDependencies {
   bridge: HarbourlineLocalBridge;
   cloud: Pick<HarbourlineCloud, "getBetaOnboarding" | "saveBetaProgress" | "recordBetaEvent">;
   createHousehold(name: string): Promise<string>;
-  linkHousehold(householdId: string): Promise<void>;
+  linkHousehold(householdId: string): Promise<boolean>;
 }
 
 interface OnboardingContext {
@@ -56,10 +56,15 @@ export class OnboardingFlow {
   private busy = false;
   private startedForUser: string | null = null;
   private fiveBillsRecorded = false;
+  private refreshGeneration = 0;
+  private interactionGeneration = 0;
 
   constructor(private readonly dependencies: OnboardingDependencies) {}
 
   async refresh(context: OnboardingContext): Promise<void> {
+    const previousUserId = this.context?.session?.user.id ?? null;
+    if (previousUserId !== context.session?.user.id) this.interactionGeneration += 1;
+    const refreshGeneration = ++this.refreshGeneration;
     this.context = context;
     if (!context.session || !context.subscriptionActive) {
       this.dispose();
@@ -72,6 +77,7 @@ export class OnboardingFlow {
     }
 
     const progress = await this.dependencies.cloud.getBetaOnboarding();
+    if (refreshGeneration !== this.refreshGeneration) return;
     this.progress = progress;
     if (progress?.step === "complete" || (!progress && context.households.length > 0)) {
       this.dispose();
@@ -80,15 +86,34 @@ export class OnboardingFlow {
 
     this.step = progress?.step ?? "household";
     if (!this.overlay) {
-      void this.dependencies.cloud.recordBetaEvent("onboarding_started", progress?.householdId ?? null)
-        .catch(() => undefined);
+      const interactionGeneration = this.interactionGeneration;
+      await this.dependencies.cloud.recordBetaEvent("onboarding_started", progress?.householdId ?? null).catch(() => undefined);
+      if (
+        refreshGeneration !== this.refreshGeneration ||
+        interactionGeneration !== this.interactionGeneration
+      ) return;
     }
     this.render();
   }
 
   dispose(): void {
+    this.refreshGeneration += 1;
+    this.interactionGeneration += 1;
     this.overlay?.remove();
     this.overlay = null;
+    this.context = null;
+    this.busy = false;
+  }
+
+  private ensureActive(expectedGeneration = this.interactionGeneration): void {
+    if (
+      expectedGeneration !== this.interactionGeneration ||
+      !this.overlay ||
+      !this.context?.session ||
+      !this.context.subscriptionActive
+    ) {
+      throw new Error("Household onboarding is no longer active.");
+    }
   }
 
   private render(): void {
@@ -192,31 +217,51 @@ export class OnboardingFlow {
     this.busy = true;
     this.notice = "";
     this.render();
+    const operationGeneration = this.interactionGeneration;
     try {
+      this.ensureActive(operationGeneration);
       const action = form.dataset.onboardingForm;
-      if (action === "household") await this.saveHousehold(form);
-      else if (action === "income") await this.saveIncome(form);
-      else if (action === "bills") await this.saveBill(form);
+      if (action === "household") await this.saveHousehold(form, operationGeneration);
+      else if (action === "income") await this.saveIncome(form, operationGeneration);
+      else if (action === "bills") await this.saveBill(form, operationGeneration);
+      if (
+        operationGeneration !== this.interactionGeneration ||
+        !this.overlay ||
+        !this.context?.subscriptionActive
+      ) return;
       await this.refresh(this.context);
     } catch (error) {
-      this.notice = error instanceof Error ? error.message : "This step could not be saved.";
-      this.render();
+      if (
+        operationGeneration === this.interactionGeneration &&
+        this.overlay &&
+        this.context?.subscriptionActive
+      ) {
+        this.notice = error instanceof Error ? error.message : "This step could not be saved.";
+        this.render();
+      }
     } finally {
+      if (operationGeneration !== this.interactionGeneration) return;
       this.busy = false;
       if (this.overlay) this.render();
     }
   }
 
-  private async saveHousehold(form: HTMLFormElement): Promise<void> {
+  private async saveHousehold(form: HTMLFormElement, operationGeneration: number): Promise<void> {
+    this.ensureActive(operationGeneration);
     const name = formValue(form, "name");
     if (!name) throw new Error("Enter a household name.");
     const householdId = await this.dependencies.createHousehold(name);
-    await this.dependencies.linkHousehold(householdId);
+    this.ensureActive(operationGeneration);
+    const linked = await this.dependencies.linkHousehold(householdId);
+    if (!linked) throw new Error("The household could not be connected while access was changing.");
+    this.ensureActive(operationGeneration);
     await this.dependencies.cloud.saveBetaProgress({ householdId, step: "income" });
+    this.ensureActive(operationGeneration);
     await this.dependencies.cloud.recordBetaEvent("household_created", householdId);
   }
 
-  private async saveIncome(form: HTMLFormElement): Promise<void> {
+  private async saveIncome(form: HTMLFormElement, operationGeneration: number): Promise<void> {
+    this.ensureActive(operationGeneration);
     const amount = Math.max(Number(formValue(form, "amount")) || 0, 0);
     const nextState = cloneState(this.dependencies.bridge.read());
     const incomes = Array.isArray(nextState.incomes) ? [...nextState.incomes] : [];
@@ -231,11 +276,16 @@ export class OnboardingFlow {
     this.dependencies.bridge.replace(nextState, "onboarding");
 
     const householdId = this.progress?.householdId ?? this.context?.households[0]?.id ?? null;
+    this.ensureActive(operationGeneration);
     await this.dependencies.cloud.saveBetaProgress({ householdId, step: "bills" });
-    if (amount > 0) await this.dependencies.cloud.recordBetaEvent("income_added", householdId);
+    if (amount > 0) {
+      this.ensureActive(operationGeneration);
+      await this.dependencies.cloud.recordBetaEvent("income_added", householdId);
+    }
   }
 
-  private async saveBill(form: HTMLFormElement): Promise<void> {
+  private async saveBill(form: HTMLFormElement, operationGeneration: number): Promise<void> {
+    this.ensureActive(operationGeneration);
     const name = formValue(form, "name");
     const amount = Math.max(Number(formValue(form, "amount")) || 0, 0);
     if (!name || !amount) throw new Error("Enter a bill name and amount.");
@@ -260,29 +310,43 @@ export class OnboardingFlow {
     this.dependencies.bridge.replace(nextState, "onboarding");
 
     const householdId = this.progress?.householdId ?? this.context?.households[0]?.id ?? null;
+    this.ensureActive(operationGeneration);
     await this.dependencies.cloud.saveBetaProgress({ householdId, step: "bills" });
     if (!this.fiveBillsRecorded && expenses.length < 5 && nextExpenses.length >= 5) {
       this.fiveBillsRecorded = true;
+      this.ensureActive(operationGeneration);
       await this.dependencies.cloud.recordBetaEvent("five_bills_added", householdId);
     }
   }
 
   private async advanceToPayday(): Promise<void> {
-    if (!this.context || this.busy) return;
+    if (!this.context || !this.overlay || !this.context.subscriptionActive || this.busy) return;
     this.busy = true;
     this.notice = "";
     this.render();
+    const operationGeneration = this.interactionGeneration;
     try {
+      this.ensureActive(operationGeneration);
       const householdId = this.progress?.householdId ?? this.context.households[0]?.id ?? null;
       this.dependencies.bridge.openWorkspace("payday");
+      this.ensureActive(operationGeneration);
       await this.dependencies.cloud.recordBetaEvent("payday_viewed", householdId);
+      this.ensureActive(operationGeneration);
       await this.dependencies.cloud.saveBetaProgress({ householdId, step: "complete" });
+      this.ensureActive(operationGeneration);
       await this.dependencies.cloud.recordBetaEvent("onboarding_completed", householdId);
       this.dispose();
     } catch (error) {
-      this.notice = error instanceof Error ? error.message : "The payday plan could not be opened.";
-      this.render();
+      if (
+        operationGeneration === this.interactionGeneration &&
+        this.overlay &&
+        this.context?.subscriptionActive
+      ) {
+        this.notice = error instanceof Error ? error.message : "The payday plan could not be opened.";
+        this.render();
+      }
     } finally {
+      if (operationGeneration !== this.interactionGeneration) return;
       this.busy = false;
     }
   }

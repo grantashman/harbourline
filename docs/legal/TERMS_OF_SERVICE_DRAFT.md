@@ -34,7 +34,7 @@ to use.
 
 ## Subscription and billing
 
-Harbourline currently offers one subscription at an introductory price of A$1
+Harbourline currently offers one subscription at an introductory price of A$2.50
 per week for paid early access. The price presentation and any applicable taxes
 will be confirmed before payment.
 

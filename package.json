@@ -7,7 +7,7 @@
     "dev": "pnpm --filter @harbourline/web dev",
     "build": "pnpm --recursive --workspace-concurrency=1 build",
     "typecheck": "pnpm --recursive typecheck",
-    "test": "pnpm --filter @harbourline/domain test && pnpm --filter @harbourline/sync test",
+    "test": "pnpm --filter @harbourline/web test && pnpm --filter @harbourline/domain test && pnpm --filter @harbourline/sync test",
     "db:verify": "node scripts/verify-release2-schema.mjs",
     "pdf:verify": "node scripts/verify-pdf-build.mjs",
     "db:test": "supabase test db",

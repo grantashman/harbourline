@@ -2,6 +2,7 @@ import { stableStateHash } from "./canonical.js";
 import type { PendingMutation } from "./types.js";
 
 export function createPendingMutation(input: {
+  ownerId: string;
   householdId: string;
   baseRevision: number;
   schemaVersion: number;
@@ -10,6 +11,7 @@ export function createPendingMutation(input: {
   createdAt?: string;
 }): PendingMutation {
   return {
+    ownerId: input.ownerId,
     id: input.id ?? crypto.randomUUID(),
     householdId: input.householdId,
     baseRevision: Math.max(Math.trunc(input.baseRevision), 0),
@@ -24,9 +26,10 @@ export function createPendingMutation(input: {
 export function compactMutations(mutations: PendingMutation[]): PendingMutation[] {
   const latestByHousehold = new Map<string, PendingMutation>();
   for (const mutation of mutations) {
-    const existing = latestByHousehold.get(mutation.householdId);
+    const key = `${mutation.ownerId}\u0000${mutation.householdId}`;
+    const existing = latestByHousehold.get(key);
     if (!existing || mutation.createdAt >= existing.createdAt) {
-      latestByHousehold.set(mutation.householdId, mutation);
+      latestByHousehold.set(key, mutation);
     }
   }
   return [...latestByHousehold.values()].sort((a, b) => (

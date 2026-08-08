@@ -5,8 +5,8 @@ Status: accepted
 ## Decision
 
 The single Harbourline subscription is attached to a household. Billing status may
-control cloud-only capabilities such as synchronisation, history, reminders,
-advanced comparisons and additional household members.
+control cloud-only capabilities such as synchronisation, history, reminders and
+additional household members.
 
 Subscription status must never control:
 
@@ -31,6 +31,6 @@ Checkout, is the authority for entitlement changes.
 ## Consequences
 
 - A payment outage cannot erase or strand a household budget.
-- The product has one clear Supabase-backed plan rather than free and paid tiers.
+- The product has one clear paid Supabase-backed plan while the free starter remains local-only.
 - Release 3 requires an entitlement read model before Checkout is exposed.
 - Grace-period and retention rules must be written before paid beta launch.

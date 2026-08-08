@@ -10,28 +10,28 @@ along to support this, but live billing should not be enabled until customer
 self-service, failed-payment handling, legal wording, recovery testing and
 production monitoring are complete.
 
-The commercial model remains:
+The commercial model is now:
 
-- one subscription
-- A$1 per week introductory early-access price
-- no free plan
-- no customer access without an active subscription
+- a free local starter for first value;
+- one paid Household subscription for cloud continuity;
+- A$2.50 per week introductory early-access price
+- no cloud household access without an active subscription
 
-At A$1/week, payment fixed fees make the first few members economically thin;
-the model improves as recurring volume grows. The main economic risks are
-customer acquisition, churn, support time and compliance, not database or
-hosting cost.
+At A$2.50/week, payment fixed fees are a smaller share of each invoice, while
+the main economic risks remain customer acquisition, churn, support time and
+compliance rather than database or hosting cost.
 
 ## Current position
 
 Completed:
 
 - public product homepage and hosted application
-- account-based access with no customer local-budget option
+- local starter access without an account or payment card
+- account-based access for paid cloud features
 - Google authentication
 - Supabase household data and subscription state
 - Stripe sandbox product, recurring price and webhook flow
-- successful sandbox checkout flow ready for the A$1/week recurring price
+- successful sandbox checkout flow ready for the A$2.50/week recurring price
 - subscription gate opening after confirmed payment
 - deployed customer billing portal, duplicate-checkout protection and
   replay-safe subscription webhook processing
@@ -53,7 +53,7 @@ Still required before live customers:
 - transactional email on a Harbourline-controlled domain
 - error monitoring, alerts and support workflow
 - backup restoration and account deletion rehearsals
-- closed-beta onboarding and product analytics
+- closed-beta onboarding, free-to-paid funnel analytics and product analytics
 - staging and production execution of the paid early-access test matrix
 
 ## Production pathway
@@ -64,7 +64,7 @@ Target: complete before accepting live payment.
 
 - Confirm the operating entity, ABN, business bank account and bookkeeping
   process with an accountant.
-- Decide whether the advertised A$1/week price is GST-inclusive. Consumer
+- Decide whether the advertised A$2.50/week price is GST-inclusive. Consumer
   pricing should be unambiguous.
 - Obtain an Australian lawyer's review of the Terms of Service, Privacy Policy,
   subscription renewal, cancellation, refund and financial-guidance wording.
@@ -84,7 +84,7 @@ Australian legal review.
 
 Target: complete and test in sandbox, then reproduce in live mode.
 
-- Create the live Stripe product with one recurring A$1/week price. Do not add
+- Create the live Stripe product with one recurring A$2.50/week price. Do not add
   a coupon or trial to the introductory price.
 - Create a separate live webhook endpoint and live secrets.
 - Configure and test the customer portal for payment-method updates, invoices
@@ -146,7 +146,9 @@ Target: 20 to 50 paying households over four to six weeks.
 Exit criteria:
 
 - checkout completion above 70%
-- at least 70% of paid users complete the activation event
+- 70% or more of paid users complete the activation event
+- free starter users can reach a first payday plan without creating an account
+- upgrade prompts do not include financial amounts or descriptions in analytics
 - at least 60% four-week retained usage for the founding cohort
 - no unresolved cross-household data exposure
 - no confirmed data loss
@@ -175,11 +177,11 @@ Stripe states that Australian card-processing fees include GST.
 
 | Charge | Customer pays | Payments fee | Billing fee | Net before platform costs |
 | --- | ---: | ---: | ---: | ---: |
-| One week | A$1.00 | A$0.317 | A$0.007 | A$0.676 |
-| 52-week member | A$52.00 | A$16.484 | A$0.364 | A$35.152 |
+| One week | A$2.50 | A$0.343 | A$0.018 | A$2.140 |
+| 52-week member | A$130.00 | A$17.810 | A$0.910 | A$111.280 |
 
 The 52-week figure assumes 52 weekly invoices. Total estimated Stripe Payments
-and Billing fees are A$16.848 per member-year.
+and Billing fees are A$18.720 per member-year.
 
 International cards cost more. Keep the initial market and settlement currency
 Australian where practical, and monitor the domestic/international mix rather
@@ -233,39 +235,39 @@ security scope merely to make the spreadsheet look profitable.
 
 ### Member scaling model
 
-The table shows a steady-state month where every member is paying A$1/week
+The table shows a steady-state month where every member is paying A$2.50/week
 with a domestic card, using 52/12 weeks per month. "Contribution" is revenue
 less estimated Stripe fees and core software. It is not accounting profit and
 excludes GST, tax, support labour, marketing and professional services.
 
 | Paying members | MRR | Stripe fees | Core software | Contribution before overhead |
 | ---: | ---: | ---: | ---: | ---: |
-| 25 | A$108.33 | A$35.10 | A$75 | -A$1.77 |
-| 100 | A$433.33 | A$140.40 | A$75 | A$217.93 |
-| 500 | A$2,166.67 | A$702.00 | A$75 | A$1,389.67 |
-| 1,000 | A$4,333.33 | A$1,404.00 | A$107 | A$2,822.33 |
-| 2,500 | A$10,833.33 | A$3,510.00 | A$107 | A$7,216.33 |
-| 5,000 | A$21,666.67 | A$7,020.00 | A$107 | A$14,539.67 |
+| 25 | A$270.83 | A$39.00 | A$75 | A$156.83 |
+| 100 | A$1,083.33 | A$156.00 | A$75 | A$852.33 |
+| 500 | A$5,416.67 | A$780.00 | A$75 | A$4,561.67 |
+| 1,000 | A$10,833.33 | A$1,560.00 | A$107 | A$9,166.33 |
+| 2,500 | A$27,083.33 | A$3,900.00 | A$107 | A$23,076.33 |
+| 5,000 | A$54,166.67 | A$7,800.00 | A$107 | A$46,259.67 |
 
-Core platform break-even is approximately 26 steady-state subscribers:
+Core platform break-even is approximately 9 steady-state subscribers:
 
 ```text
-A$75 / A$2.929 net contribution per A$1/week member-month = 25.6
+A$75 / A$9.273 net contribution per A$2.50/week member-month = 8.1
 ```
 
 A more realistic operating break-even should include a monthly allowance for
 accounting, support, monitoring, insurance, legal work and marketing. With
 A$500 of monthly overhead in addition to the core stack, break-even becomes
-approximately 197 steady-state subscribers.
+approximately 62 steady-state subscribers.
 
 ### GST and tax planning
 
 The ATO requires most Australian businesses to register for GST when GST
-turnover reaches A$75,000. At a steady A$1/week, that is roughly 1,443 paying
+turnover reaches A$75,000. At a steady A$2.50/week, that is roughly 577 paying
 members:
 
 ```text
-A$75,000 / (A$1 x 52) = 1,442.3 members
+A$75,000 / (A$2.50 x 52) = 576.9 members
 ```
 
 The actual threshold timing depends on current and projected GST turnover, the
@@ -281,19 +283,19 @@ percentage with an accountant.
 
 ### Retention before acquisition
 
-At A$1/week, Harbourline cannot support careless paid acquisition. The
-strongest early profit lever is keeping customers long enough for the recurring
-margin to accumulate.
+At A$2.50/week, Harbourline has more room for careful paid acquisition. The
+strongest early profit lever is still keeping customers long enough for the
+recurring margin to accumulate.
 
 Approximate contribution lifetime before fixed platform costs:
 
 | Monthly churn | Approximate lifetime | Approximate contribution lifetime |
 | ---: | ---: | ---: |
-| 3% | 33 months | about A$97 |
-| 5% | 20 months | about A$59 |
-| 8% | 13 months | about A$38 |
+| 3% | 33 months | about A$309 |
+| 5% | 20 months | about A$185 |
+| 8% | 13 months | about A$116 |
 
-These are directional estimates using a recurring A$1/week price and the
+These are directional estimates using a recurring A$2.50/week price and the
 estimated net contribution before fixed platform costs. Cohort data should
 replace them as soon as Harbourline has real customers.
 
@@ -307,8 +309,8 @@ Until retention is known:
 
 ### Reduce payment friction
 
-The A$0.30 fixed card fee is 30% of a A$1 weekly invoice before percentage fees.
-Do not change the one-plan launch now, but after retention is proven, test an
+The A$0.30 fixed card fee is 12% of a A$2.50 weekly invoice before percentage
+fees. Do not change the one-plan launch now, but after retention is proven, test an
 optional annual payment. Fewer invoices can improve payment margin and reduce
 involuntary churn. Any annual offer should be a billing-frequency option for
 the same product, not a confusing second feature tier.

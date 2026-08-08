@@ -30,33 +30,47 @@ On payday, a household should be able to answer:
 
 ## Product principles
 
-- Account-based: hosted access requires a Harbourline account and an internet connection.
-- Household-first: plans belong to a household, not a single device or person.
+- Account-based for continuity: paid hosted access requires a Harbourline account and an internet connection; the Free Starter does not.
+- Household-first for cloud plans: paid plans belong to a household, not a single device or person; the Free Starter remains local to one browser and device.
 - Explainable: every projection exposes the inputs and calculation behind it.
 - Australian by default: AUD, en-AU dates and Australian pay cycles.
 - No advertising or sale of financial data.
 - Portable: users can export and delete their data at any time.
-- Focused: every supported customer uses the same Supabase-backed product and
-  receives the same core planning experience.
+- Focused: every supported customer receives the same core planning experience;
+  only paid cloud continuity uses Supabase-backed account and household services.
 
 ## Commercial model
 
 ### Harbourline
 
-The only plan includes:
+#### Free Starter
+
+The Free Starter lets a household:
+
+- build a local income, bills, savings and debt plan;
+- use the payday planning and safe-to-spend views;
+- keep the plan on one browser and device; and
+- export a portable copy at any time.
+
+No account or payment card is required. The browser copy is not a cloud backup
+and may be lost if the browser storage is cleared.
+
+#### Paid Household plan
+
+The paid plan includes:
 
 - secure cloud backup
 - multi-device synchronisation
 - one shared household
 - household member invitations
 - reminders and history
-- advanced plan comparisons
 - priority support during the introductory release
+- optional Google Calendar synchronisation
 
-Introductory early-access pricing is A$1 per week on one recurring plan.
+Introductory early-access pricing is A$2.50 per week on one recurring plan.
 Account creation is available from the public Harbourline homepage only. The
-hosted application provides sign-in and payment handoff, but does not expose
-registration.
+hosted application provides sign-in and payment handoff, but the local starter
+does not require registration.
 
 ### Bank connectivity
 

@@ -14,6 +14,76 @@
   top: 7px;
 }
 
+.release2-free-starter-banner {
+  position: sticky;
+  top: 0;
+  z-index: 35;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 12px max(16px, calc((100vw - 1180px) / 2));
+  color: var(--ink);
+  border-bottom: 1px solid color-mix(in srgb, var(--mint) 25%, var(--line));
+  background: color-mix(in srgb, var(--panel) 94%, var(--mint) 6%);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.12);
+}
+
+.release2-free-starter-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.release2-free-starter-copy .eyebrow {
+  margin: 0;
+  font-size: 0.68rem;
+}
+
+.release2-free-starter-copy strong {
+  font-size: 0.94rem;
+}
+
+.release2-free-starter-copy > span:last-child {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.release2-free-starter-banner .btn {
+  flex: 0 0 auto;
+}
+
+.release2-locked-feature {
+  border-color: color-mix(in srgb, var(--mint) 30%, var(--line));
+  background: linear-gradient(145deg, color-mix(in srgb, var(--panel-soft) 92%, var(--mint) 8%), var(--panel));
+}
+
+.release2-locked-feature .btn {
+  margin-top: 14px;
+}
+
+@media (max-width: 680px) {
+  .release2-free-starter-banner {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+    padding-block: 10px;
+  }
+
+  .release2-free-starter-copy > span:last-child {
+    overflow: visible;
+    white-space: normal;
+  }
+
+  .release2-free-starter-banner .btn {
+    width: 100%;
+  }
+}
+
 .release2-access-gate {
   position: fixed;
   inset: 0;

@@ -8,7 +8,7 @@ transactions. The service calculates cash-flow forecasts, bill set-asides, debt
 projections and savings projections.
 
 The commercial model is one recurring subscription at an introductory price of
-A$1/week for paid early access.
+A$2.50/week for paid early access.
 Customers subscribe through Stripe Checkout, then manage invoices, payment
 methods and cancellation through Stripe's customer portal.
 
@@ -29,7 +29,7 @@ retention wording, complaint process and contact details.
    shared household access, browser storage, Tokyo hosting and overseas
    disclosure?
 4. Are subscription, renewal, cancellation-at-period-end and refund terms
-   suitable for an Australian A$1/week digital service?
+   suitable for an Australian A$2.50/week digital service?
 5. What notices, records and complaint process should Harbourline maintain?
 
 ## Facts to validate
