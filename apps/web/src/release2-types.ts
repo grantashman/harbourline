@@ -39,6 +39,7 @@ declare global {
 
   interface WindowEventMap {
     "harbourline:ready": CustomEvent<void>;
+    "harbourline:workspace-viewed": CustomEvent<{ tab: string | undefined }>;
     "harbourline:state-changed": CustomEvent<{
       source: string;
       state: unknown;

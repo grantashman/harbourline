@@ -30,6 +30,7 @@ describe("sync decisions", () => {
     const result = compareSyncState(
       { income: 1000 },
       {
+        ownerId: "user-1",
         householdId: "household-1",
         revision: 3,
         lastSyncedHash: stableStateHash({ income: 1000 }),
@@ -44,6 +45,7 @@ describe("sync decisions", () => {
     const result = compareSyncState(
       { income: 1300 },
       {
+        ownerId: "user-1",
         householdId: "household-1",
         revision: 4,
         lastSyncedHash: stableStateHash(remote.state),
@@ -58,6 +60,7 @@ describe("sync decisions", () => {
     const result = compareSyncState(
       { income: 1300 },
       {
+        ownerId: "user-1",
         householdId: "household-1",
         revision: 3,
         lastSyncedHash: stableStateHash({ income: 1000 }),
@@ -76,6 +79,7 @@ describe("sync decisions", () => {
 describe("offline mutations", () => {
   it("creates deterministic queue metadata", () => {
     const mutation = createPendingMutation({
+      ownerId: "user-1",
       householdId: "household-1",
       baseRevision: 2,
       schemaVersion: 3,
@@ -89,6 +93,7 @@ describe("offline mutations", () => {
 
   it("keeps only the newest pending state for each household", () => {
     const older = createPendingMutation({
+      ownerId: "user-1",
       householdId: "household-1",
       baseRevision: 1,
       schemaVersion: 3,
@@ -97,6 +102,7 @@ describe("offline mutations", () => {
       createdAt: "2026-07-30T00:00:00.000Z"
     });
     const newer = createPendingMutation({
+      ownerId: "user-1",
       householdId: "household-1",
       baseRevision: 1,
       schemaVersion: 3,
@@ -105,5 +111,27 @@ describe("offline mutations", () => {
       createdAt: "2026-07-30T00:01:00.000Z"
     });
     assert.deepEqual(compactMutations([newer, older]).map((item) => item.id), ["newer"]);
+  });
+
+  it("does not compact pending states across account owners", () => {
+    const firstOwner = createPendingMutation({
+      ownerId: "user-1",
+      householdId: "household-1",
+      baseRevision: 1,
+      schemaVersion: 3,
+      state: { value: 1 },
+      id: "first-owner",
+      createdAt: "2026-07-30T00:00:00.000Z"
+    });
+    const secondOwner = createPendingMutation({
+      ownerId: "user-2",
+      householdId: "household-1",
+      baseRevision: 1,
+      schemaVersion: 3,
+      state: { value: 2 },
+      id: "second-owner",
+      createdAt: "2026-07-30T00:01:00.000Z"
+    });
+    assert.deepEqual(compactMutations([firstOwner, secondOwner]).map((item) => item.id), ["first-owner", "second-owner"]);
   });
 });

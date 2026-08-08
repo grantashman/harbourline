@@ -15,6 +15,7 @@ jobs:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      STRIPE_PRICE_ID: ${{ vars.STRIPE_PRICE_ID }}
     steps:
       - uses: actions/checkout@v4
 
@@ -24,6 +25,12 @@ jobs:
 
       - name: Link production project
         run: supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Set live Stripe price
+        run: |
+          test -n "$STRIPE_PRICE_ID"
+          test "$STRIPE_PRICE_ID" = "price_1U2AOcBha937Q1NNu8HrnIRJ"
+          supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" --yes "STRIPE_PRICE_ID=$STRIPE_PRICE_ID"
 
       - name: Apply production migrations
         run: supabase db push --linked

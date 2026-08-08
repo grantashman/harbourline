@@ -134,6 +134,7 @@ export function buildGoogleCalendarEvents(input: unknown, start = todayDate()): 
 
 export class GoogleCalendarSync {
   private status: GoogleCalendarStatus = EMPTY_STATUS;
+  private operationGeneration = 0;
 
   constructor(private readonly bridge: { read(): unknown }, private readonly cloud: HarbourlineCloud) {}
 
@@ -141,24 +142,38 @@ export class GoogleCalendarSync {
     return this.status;
   }
 
+  reset(): void {
+    this.operationGeneration += 1;
+    this.status = EMPTY_STATUS;
+  }
+
   async refresh(): Promise<GoogleCalendarStatus> {
-    this.status = await this.cloud.getGoogleCalendarStatus();
+    const generation = ++this.operationGeneration;
+    const status = await this.cloud.getGoogleCalendarStatus();
+    if (generation !== this.operationGeneration) return this.status;
+    this.status = status;
     return this.status;
   }
 
-  async connect(): Promise<void> {
+  async connect(): Promise<string | null> {
+    const generation = ++this.operationGeneration;
     const url = await this.cloud.startGoogleCalendarConnect(location.pathname);
-    window.location.assign(url);
+    return generation === this.operationGeneration ? url : null;
   }
 
   async sync(): Promise<GoogleCalendarStatus> {
+    const generation = ++this.operationGeneration;
     const events = buildGoogleCalendarEvents(this.bridge.read());
-    this.status = await this.cloud.syncGoogleCalendar(events);
+    const status = await this.cloud.syncGoogleCalendar(events);
+    if (generation !== this.operationGeneration) return this.status;
+    this.status = status;
     return this.status;
   }
 
   async disconnect(deleteEvents: boolean): Promise<void> {
+    const generation = ++this.operationGeneration;
     await this.cloud.disconnectGoogleCalendar(deleteEvents);
+    if (generation !== this.operationGeneration) return;
     this.status = EMPTY_STATUS;
   }
 }

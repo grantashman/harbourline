@@ -4,13 +4,15 @@ Last reviewed: 31 July 2026
 
 ## Launch decision
 
-Run Harbourline as a controlled paid beta before opening broad public signup.
-Recruit 20 to 50 Australian households over four to six weeks at the single
-introductory price of A$1 per week.
+Run Harbourline as a free-starter funnel with a controlled paid beta before
+opening broad public signup. Recruit free starter users and 20 to 50 Australian
+paying households over four to six weeks at the single introductory price of
+A$2.50 per week.
 
 The beta has one job: prove that households who build a first payday plan keep
-using it. Marketing should bring in the right households, help them reach that
-first plan, and show where the funnel loses them.
+using it and see enough value in cloud continuity to upgrade. Marketing should
+bring in the right households, help them reach that first plan, and show where
+the funnel loses them.
 
 ### Beta exit criteria
 
@@ -50,8 +52,8 @@ plan the household can review each payday.
 | Product | Harbourline shows what to set aside, what is safe to spend and what needs attention. |
 | Proof | 13-week bills forecast, payday planning, shared household sync, savings and debt scenarios, exports. |
 | Trust | AUD-first, account-protected, no bank credentials, no advertising or sale of financial data. |
-| Offer | One plan at A$1 per week during early access. |
-| CTA | Build your first payday plan. |
+| Offer | Build the first plan free; pay A$2.50 per week during early access for cloud continuity. |
+| CTA | Try the payday plan free. |
 
 Use budgeting, cash-flow planning and financial education language. Keep
 personalised investment, lending, insurance, superannuation and product
@@ -62,7 +64,7 @@ recommendations outside the product and its marketing.
 The current homepage has the right feature set. Change the conversion path in
 the next marketing pass:
 
-- Replace “Sign up from the homepage” with “Build your first payday plan”.
+- Replace “Sign up from the homepage” with “Try the payday plan free”.
 - Put “Built for Australian households paid weekly or fortnightly” above the
   first call to action.
 - Show the first-use sequence: add income, add five bills, open the payday plan.
@@ -70,7 +72,8 @@ the next marketing pass:
   Export or delete your data when you choose.”
 - Add a FAQ covering price, cancellation, data location, Google Calendar sync,
   household sharing and the limits of the product.
-- Keep the A$1/week price visible beside the primary CTA.
+- Explain that no account or card is needed for the local starter, and keep the
+  A$2.50/week price visible beside the cloud-sync upgrade CTA.
 - Add campaign attribution without sending budget amounts, bill names or free
   text to analytics.
 
@@ -81,9 +84,9 @@ Suggested hero copy:
 > Harbourline helps Australian households set aside for bills, see what is safe
 > to spend and keep savings and debt moving.
 
-Primary CTA: `Start A$1/week early access`
+Primary CTA: `Try the payday plan free`
 
-Secondary CTA: `See how the payday plan works`
+Secondary CTA: `Unlock household sync for A$2.50/week`
 
 ## Launch sequence
 
@@ -109,12 +112,12 @@ Invite households through direct conversations and warm introductions. Offer a
 15-minute setup call to the first five households. Watch them complete the
 following path:
 
-1. Create an account.
-2. Subscribe.
-3. Create a household.
-4. Add income.
-5. Add five recurring bills.
-6. Open the payday plan.
+1. Open the free local starter.
+2. Add income.
+3. Add five recurring bills.
+4. Open the payday plan.
+5. Create an account when cloud continuity is useful.
+6. Subscribe and create or join a household.
 
 Record the language customers use when they describe the problem. Use those
 words in the homepage, onboarding and support replies.
@@ -235,6 +238,9 @@ Add these privacy-safe events to the marketing funnel:
 
 - `landing_viewed`
 - `cta_clicked`
+- `free_starter_viewed`
+- `free_starter_payday_viewed`
+- `free_starter_upgrade_clicked`
 - `signup_started`
 - `signup_completed`
 - `checkout_started`
@@ -298,8 +304,9 @@ Show these counts by week and acquisition source:
 9. failed-payment cancellations; and
 10. support minutes per active household.
 
-The main decision metric is paid household to payday-plan activation. The
-secondary metric is four-week retained usage. Page views and email opens support
+The main decision metrics are free-starter to payday-plan activation and paid
+household to payday-plan activation. The secondary metrics are free-to-paid
+conversion and four-week retained usage. Page views and email opens support
 diagnosis; they do not decide channel investment.
 
 ### Campaign naming
@@ -321,7 +328,7 @@ addresses or financial information in a URL parameter.
 Add referrals after the first 20 paid households complete onboarding. Give each
 active household a private invite link for a partner or another household.
 Start with recognition or early feedback access instead of a discount. The
-A$1/week price leaves little room for referral economics, and a discount would
+The A$2.50/week price leaves more room for referral economics, but a discount would
 complicate the single-plan message.
 
 Track:
@@ -416,8 +423,9 @@ evidence.
 
 Already in the repository:
 
-- homepage-led account creation;
-- A$1/week Stripe subscription flow;
+- homepage-led account creation for cloud features;
+- free local starter access without an account or card;
+- A$2.50/week Stripe subscription flow;
 - subscription lifecycle webhooks;
 - welcome and cancellation emails;
 - onboarding progress and activation events;

@@ -10,6 +10,7 @@ export interface HouseholdSummary {
 }
 
 export interface LocalSyncMetadata {
+  ownerId: string;
   householdId: string;
   revision: number;
   lastSyncedHash: string;
@@ -17,6 +18,7 @@ export interface LocalSyncMetadata {
 }
 
 export interface PendingMutation {
+  ownerId: string;
   id: string;
   householdId: string;
   baseRevision: number;

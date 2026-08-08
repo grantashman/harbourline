@@ -22,7 +22,7 @@ beta activation. Secret values remain in Supabase and Vercel only.
 - Supabase region: Northeast Asia (Tokyo), `ap-northeast-1`
 - Google Cloud project: `harbourline-auth`
 - Google Calendar callback: `https://mnnppxznopuoqverlsex.supabase.co/functions/v1/google-calendar-callback`
-- live introductory Stripe price: `price_1TzC9YBha937Q1NNEL5ORsA2` (A$1/week)
+- live introductory Stripe price: `price_1U2AOcBha937Q1NNu8HrnIRJ` (A$2.50/week)
 
 The `google_calendar_sync` migration and all five Google Calendar Edge
 Functions are deployed. The project currently reports Supabase Free/NANO with
@@ -101,6 +101,11 @@ GOOGLE_CALENDAR_CLIENT_SECRET
 GOOGLE_OAUTH_REDIRECT_URI
 GOOGLE_CALENDAR_TOKEN_ENCRYPTION_KEY
 ```
+
+`STRIPE_PRICE_ID` is a non-secret production environment variable in GitHub
+(`vars.STRIPE_PRICE_ID`) and is copied into the Edge Function runtime secret by
+the protected deployment workflow. It must remain the verified live price ID;
+do not store it as a GitHub secret or replace it with a test-mode price.
 
 Staging and production must use different Supabase projects, Stripe modes,
 webhook signing secrets, email sender configuration and monitoring
@@ -193,13 +198,14 @@ The public homepage creates accounts. Enable and brand the Google and Azure
 (Microsoft) providers in the Harbourline authentication settings, and add the
 GitHub Pages URL and hosted app URL to the provider redirect allowlists.
 
-Create one recurring Stripe price for A$1/week. Do not attach a coupon or
-trial to the introductory price. Store the Stripe price and billing values only
-as Edge Function secrets:
+Create one recurring Stripe price for A$2.50/week. Do not attach a coupon or
+trial to the introductory price. Store the public Stripe price ID as the protected
+GitHub production environment variable `vars.STRIPE_PRICE_ID`; the deployment
+workflow copies it into the Supabase Edge Function secret. Keep secret billing
+values only as Edge Function secrets:
 
 ```text
 STRIPE_SECRET_KEY
-STRIPE_PRICE_ID
 STRIPE_WEBHOOK_SECRET
 HARBOURLINE_APP_URL
 ```

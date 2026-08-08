@@ -8823,6 +8823,9 @@
         panel.hidden = !active;
       });
       if (selected === "calendar") renderCalendar();
+      window.dispatchEvent(new CustomEvent("harbourline:workspace-viewed", {
+        detail: { tab: selected }
+      }));
     }
 
     workspaceTabs.forEach((tab) => {
