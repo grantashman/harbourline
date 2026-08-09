@@ -33,18 +33,18 @@ The hosted early-access release also includes optional one-way Google Calendar s
 
 ## Pricing and access
 
-Harbourline starts with a free local planner. You can build a payday plan on one
-browser without an account or payment card, then export your data whenever you
-choose.
+Harbourline starts with a free local planner. Create an account and sign in to
+build a payday plan on one browser. No payment card is required, and you can
+export your data whenever you choose.
 
 The paid Household plan is currently **A$2.50 per week** during introductory early
-access. It adds secure cloud backup, multi-device synchronisation, household
-member invitations, reminders and history, and optional Google Calendar sync.
+access. It adds secure cloud sync, multi-device synchronisation, household
+member invitations, and optional Google Calendar sync.
 
-The hosted product uses secure Supabase accounts for paid cloud features. New
+The hosted product uses secure Supabase accounts for all application access. New
 accounts are created from the public homepage, then confirmed by email before
-continuing to the hosted account and payment flow. Cloud household sync is
-available after the plan is active.
+signing in. The free local starter is available after sign-in; cloud household
+sync is available after the paid plan is active.
 
 Payment details are handled by the payment provider and are not stored in Harbourline. The product is a planning tool, not financial advice.
 

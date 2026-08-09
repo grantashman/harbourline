@@ -64,7 +64,8 @@ recommendations outside the product and its marketing.
 The current homepage has the right feature set. Change the conversion path in
 the next marketing pass:
 
-- Replace “Sign up from the homepage” with “Try the payday plan free”.
+- Lead with “Create a free account” and explain that sign-in is required before
+  using the local payday plan.
 - Put “Built for Australian households paid weekly or fortnightly” above the
   first call to action.
 - Show the first-use sequence: add income, add five bills, open the payday plan.
@@ -72,8 +73,9 @@ the next marketing pass:
   Export or delete your data when you choose.”
 - Add a FAQ covering price, cancellation, data location, Google Calendar sync,
   household sharing and the limits of the product.
-- Explain that no account or card is needed for the local starter, and keep the
-  A$2.50/week price visible beside the cloud-sync upgrade CTA.
+- Explain that a free account and sign-in are required for the local starter,
+  while no payment card is needed, and keep the A$2.50/week price visible
+  beside the cloud-sync upgrade CTA.
 - Add campaign attribution without sending budget amounts, bill names or free
   text to analytics.
 
@@ -112,11 +114,11 @@ Invite households through direct conversations and warm introductions. Offer a
 15-minute setup call to the first five households. Watch them complete the
 following path:
 
-1. Open the free local starter.
-2. Add income.
-3. Add five recurring bills.
-4. Open the payday plan.
-5. Create an account when cloud continuity is useful.
+1. Create a free account and confirm the email.
+2. Sign in to the hosted application.
+3. Add income.
+4. Add five recurring bills.
+5. Open the payday plan and decide whether cloud continuity is useful.
 6. Subscribe and create or join a household.
 
 Record the language customers use when they describe the problem. Use those
@@ -423,8 +425,8 @@ evidence.
 
 Already in the repository:
 
-- homepage-led account creation for cloud features;
-- free local starter access without an account or card;
+- homepage-led account creation for all application access;
+- free local starter access after sign-in without a payment card;
 - A$2.50/week Stripe subscription flow;
 - subscription lifecycle webhooks;
 - welcome and cancellation emails;

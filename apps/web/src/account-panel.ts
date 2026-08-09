@@ -1,14 +1,25 @@
 import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import type { HouseholdSummary, RemoteBudgetDocument } from "@harbourline/sync";
 import { track } from "@vercel/analytics";
-import { resolveWorkspaceAccess, type WorkspaceAccess } from "./access-model";
+import {
+  isVerifiedAccountUser,
+  resolveWorkspaceAccess,
+  type WorkspaceAccess
+} from "./access-model";
+import { getFocusWrapTarget } from "./auth-gate-focus";
 import {
   shouldNotifySignupForAuthEvent,
   shouldPreserveRecoveryForSession
 } from "./auth-event-policy";
 import { HarbourlineCloud, type BillingSubscription, type GoogleCalendarStatus } from "./cloud";
 import { GoogleCalendarSync } from "./calendar-sync";
-import { clearCleanupLatch, getCleanupLatch, setCleanupLatch } from "./local-sync-store";
+import {
+  CLEANUP_LATCH_CHANNEL_NAME,
+  clearCleanupLatch,
+  getCleanupLatch,
+  setCleanupLatch,
+  withCleanupLatchLock
+} from "./local-sync-store";
 import { reportError } from "./monitoring";
 import { OnboardingFlow } from "./onboarding-flow";
 import { SyncController } from "./sync-controller";
@@ -19,7 +30,7 @@ import type {
 } from "./release2-types";
 
 const INITIAL_STATUS: Release2Status = {
-  message: "Local starter ready. Sign in and subscribe to enable cloud sync.",
+  message: "Sign in to use the local starter. Subscribe to enable cloud sync.",
   tone: "neutral",
   queued: 0,
   online: navigator.onLine
@@ -82,6 +93,10 @@ function emptyGoogleCalendarStatus(): GoogleCalendarStatus {
   };
 }
 
+function verifiedSession(session: Session | null): Session | null {
+  return isVerifiedAccountUser(session?.user) ? session : null;
+}
+
 export class AccountPanel {
   private readonly cloud = new HarbourlineCloud();
   private readonly sync: SyncController;
@@ -97,13 +112,14 @@ export class AccountPanel {
   private authEventGeneration = 0;
   private subscriptionActive: boolean | null = null;
   private billingReconciled = false;
-  private workspaceAccess: WorkspaceAccess = "free";
+  private workspaceAccess: WorkspaceAccess = "signed-out";
   private freeStarterViewed = false;
   private billingConfirmationPending = false;
   private billingSubscription: BillingSubscription | null = null;
   private accountRefreshGeneration = 0;
   private cleanupBlocked = false;
   private cleanupLatchOwnerId: string | null = null;
+  private cleanupLatchChannel: BroadcastChannel | null = null;
   private readonly calendarSync: GoogleCalendarSync;
   private googleCalendarStatus: GoogleCalendarStatus = emptyGoogleCalendarStatus();
   private calendarBusy = false;
@@ -157,6 +173,29 @@ export class AccountPanel {
     this.dialog = this.createDialog();
     this.newsDialog = this.createNewsDialog();
     this.updateAccessGate();
+    if (typeof BroadcastChannel !== "undefined") {
+      try {
+        this.cleanupLatchChannel = new BroadcastChannel(CLEANUP_LATCH_CHANNEL_NAME);
+        this.cleanupLatchChannel.addEventListener("message", (event) => {
+          const payload = event.data as { type?: unknown; latch?: { ownerId?: unknown } | null };
+          if (
+            payload?.type !== "cleanup-latch" ||
+            !payload.latch ||
+            typeof payload.latch.ownerId !== "string" ||
+            payload.latch.ownerId.length === 0
+          ) return;
+          this.cleanupBlocked = true;
+          this.cleanupLatchOwnerId = this.sync.metadata?.ownerId ?? this.state.user?.id ?? payload.latch.ownerId;
+          this.accountRefreshGeneration += 1;
+          this.actionGeneration += 1;
+          this.calendarOperationGeneration += 1;
+          this.sync.setCloudAccess(false, true);
+          this.render();
+        });
+      } catch {
+        this.cleanupLatchChannel = null;
+      }
+    }
     window.addEventListener("harbourline:workspace-viewed", (event) => {
       if (event.detail.tab === "payday" && this.workspaceAccess === "free") {
         track("free_starter_payday_viewed");
@@ -195,9 +234,13 @@ export class AccountPanel {
     const recoveryRedirect = this.consumeRecoveryRedirect();
     this.pendingRecoveryRedirect = recoveryRedirect;
     this.cloud.onAuthChange((event, session) => {
+      const adoptedSession = verifiedSession(session);
+      if (session && !adoptedSession) {
+        void this.cloud.signOut().catch(reportError);
+      }
       const authEventGeneration = ++this.authEventGeneration;
       const recoveryRedirectAtEvent = this.pendingRecoveryRedirect;
-      void this.handleSessionChange(session, event).then((accepted) => {
+      void this.handleSessionChange(adoptedSession, event).then((accepted) => {
         if (!accepted || authEventGeneration !== this.authEventGeneration) return;
         if (event === "PASSWORD_RECOVERY") this.openRecoveryMode();
         if (shouldNotifySignupForAuthEvent(
@@ -205,7 +248,7 @@ export class AccountPanel {
           this.recoveryMode,
           recoveryRedirectAtEvent,
           this.recoveryFlowUserId,
-          session?.user.id ?? null
+          adoptedSession?.user.id ?? null
         )) {
           void this.notifySignupIfCurrent();
         }
@@ -215,8 +258,13 @@ export class AccountPanel {
         }
       });
     });
-    const initialSessionAccepted = await this.handleSessionChange(await this.cloud.getSession());
-    if (initialSessionAccepted) {
+    const initialSession = await this.cloud.getSession();
+    const adoptedInitialSession = verifiedSession(initialSession);
+    if (initialSession && !adoptedInitialSession) {
+      void this.cloud.signOut().catch(reportError);
+    }
+    const initialSessionAccepted = await this.handleSessionChange(adoptedInitialSession);
+    if (initialSessionAccepted && adoptedInitialSession) {
       await this.refreshAccount();
     }
     this.handleBillingRedirect(billingRedirect);
@@ -419,8 +467,9 @@ export class AccountPanel {
   }
 
   private applySession(session: Session | null): void {
-    this.state.session = session;
-    this.state.user = session?.user ?? null;
+    const adoptedSession = verifiedSession(session);
+    this.state.session = adoptedSession;
+    this.state.user = adoptedSession?.user ?? null;
     this.updateAccountButton();
     this.updateAccessGate();
   }
@@ -429,8 +478,9 @@ export class AccountPanel {
     session: Session | null,
     authEvent: AuthChangeEvent | null = null
   ): Promise<boolean> {
+    const adoptedSession = verifiedSession(session);
     const previousUserId = this.state.user?.id ?? null;
-    const nextUserId = session?.user.id ?? null;
+    const nextUserId = adoptedSession?.user.id ?? null;
     if (previousUserId !== nextUserId) {
       const preserveRecovery = shouldPreserveRecoveryForSession(
         this.pendingRecoveryRedirect,
@@ -452,8 +502,8 @@ export class AccountPanel {
       this.calendarOperationGeneration += 1;
       this.sync.setCloudAccess(false, true);
       this.bridge.setUserScope(nextUserId);
-      this.state.session = session;
-      this.state.user = session?.user ?? null;
+      this.state.session = adoptedSession;
+      this.state.user = adoptedSession?.user ?? null;
       this.resetCloudState(null);
       this.billingConfirmationPending = false;
       this.state.status = INITIAL_STATUS;
@@ -475,10 +525,10 @@ export class AccountPanel {
         sessionChangeGeneration !== this.accountRefreshGeneration ||
         sessionGeneration !== this.sessionGeneration
       ) return false;
-      this.applySession(session);
+      this.applySession(adoptedSession);
       return true;
     }
-    this.applySession(session);
+    this.applySession(adoptedSession);
     return true;
   }
 
@@ -700,7 +750,7 @@ export class AccountPanel {
       this.state.households = households;
       this.subscriptionActive = subscriptionActive;
       this.workspaceAccess = resolveWorkspaceAccess({
-        signedIn: true,
+        signedIn: isVerifiedAccountUser(this.state.user),
         billingReconciled: this.billingReconciled,
         subscriptionActive
       });
@@ -735,7 +785,22 @@ export class AccountPanel {
       this.googleCalendarStatus = googleCalendarStatus;
       this.updateCalendarControls();
       if (subscriptionActive && this.state.user?.id && !this.cleanupBlocked) {
-        this.sync.setCloudAccess(true, false, this.state.user.id);
+        const cloudActivated = await withCleanupLatchLock(async () => {
+          const remainingLatch = await getCleanupLatch();
+          if (remainingLatch) return false;
+          if (
+            refreshGeneration !== this.accountRefreshGeneration ||
+            !this.state.session ||
+            !this.state.user?.id
+          ) return false;
+          this.sync.setCloudAccess(true, false, this.state.user.id);
+          return true;
+        });
+        if (cloudActivated !== true) {
+          this.cleanupBlocked = true;
+          this.sync.setCloudAccess(false, true);
+          return;
+        }
       }
       this.mfa.verifiedCount = mfa.verified.length;
       this.mfa.currentLevel = mfa.currentLevel;
@@ -779,7 +844,7 @@ export class AccountPanel {
     this.state.conflict = null;
     this.subscriptionActive = subscriptionActive;
     this.billingReconciled = false;
-    this.workspaceAccess = "free";
+    this.workspaceAccess = this.state.session ? "free" : "signed-out";
     this.billingSubscription = null;
     this.googleCalendarStatus = emptyGoogleCalendarStatus();
     this.calendarSync.reset();
@@ -829,9 +894,38 @@ export class AccountPanel {
         expectedRefreshGeneration !== this.accountRefreshGeneration
       ) return false;
       const latchOwnerId = this.cleanupLatchOwnerId;
-      if (latchOwnerId && !await clearCleanupLatch(latchOwnerId)) {
-        throw new Error("The cleanup latch belongs to a different account.");
+      const cleanupLatch = latchOwnerId ? await getCleanupLatch() : null;
+      if (
+        expectedSessionGeneration !== this.sessionGeneration ||
+        expectedRefreshGeneration !== this.accountRefreshGeneration
+      ) return false;
+      if (
+        latchOwnerId &&
+        cleanupLatch &&
+        cleanupLatch.ownerId !== latchOwnerId
+      ) {
+        this.cleanupBlocked = true;
+        return false;
       }
+      if (latchOwnerId && cleanupLatch && !await clearCleanupLatch(cleanupLatch)) {
+        this.cleanupBlocked = true;
+        return false;
+      }
+      const authoritativeCleanupLatch = await getCleanupLatch();
+      if (
+        expectedSessionGeneration !== this.sessionGeneration ||
+        expectedRefreshGeneration !== this.accountRefreshGeneration
+      ) return false;
+      if (authoritativeCleanupLatch) {
+        this.cleanupBlocked = true;
+        this.cleanupLatchOwnerId = authoritativeCleanupLatch.ownerId;
+        return false;
+      }
+      if (
+        expectedSessionGeneration !== this.sessionGeneration ||
+        expectedRefreshGeneration !== this.accountRefreshGeneration ||
+        latchOwnerId !== this.cleanupLatchOwnerId
+      ) return false;
       this.cleanupLatchOwnerId = null;
       this.cleanupBlocked = false;
       return true;
@@ -865,29 +959,97 @@ export class AccountPanel {
     this.updateCalendarControls();
     const body = this.dialog.querySelector(".release2-dialog-body");
     if (!body) return;
+    const hasVerifiedSession = isVerifiedAccountUser(this.state.user);
     body.innerHTML = !this.state.configured
       ? this.renderUnconfigured()
-      : this.recoveryMode && this.state.session
+      : this.recoveryMode && hasVerifiedSession
         ? this.renderRecovery()
-        : this.state.session
+        : hasVerifiedSession
         ? this.renderSignedIn()
         : this.renderSignedOut();
   }
 
   private updateAccessGate(): void {
     this.workspaceAccess = resolveWorkspaceAccess({
-      signedIn: Boolean(this.state.session),
+      signedIn: isVerifiedAccountUser(this.state.user),
       billingReconciled: this.billingReconciled,
       subscriptionActive: this.subscriptionActive
     });
-    let banner = document.querySelector<HTMLElement>("#release2-free-starter-banner");
+    const app = document.querySelector<HTMLElement>("main.app");
+    const gateId = "release2-access-gate";
+    const bannerId = "release2-free-starter-banner";
+    let gate = document.querySelector<HTMLElement>(`#${gateId}`);
+    let banner = document.querySelector<HTMLElement>(`#${bannerId}`);
+
+    if (this.workspaceAccess === "signed-out") {
+      app?.setAttribute("inert", "");
+      app?.setAttribute("aria-hidden", "true");
+      banner?.remove();
+      const gateWasCreated = !gate;
+      const gateHadFocus = Boolean(gate?.contains(document.activeElement));
+      const documentNeedsGateFocus = document.activeElement === document.body;
+      if (!gate) {
+        gate = document.createElement("section");
+        gate.id = gateId;
+        gate.className = "release2-access-gate";
+        gate.setAttribute("role", "dialog");
+        gate.setAttribute("aria-modal", "true");
+        gate.setAttribute("aria-labelledby", "release2AccessGateTitle");
+        const accessGate = gate;
+        accessGate.addEventListener("keydown", (event) => {
+          if (event.key !== "Tab") return;
+          const focusable = Array.from(
+            accessGate.querySelectorAll<HTMLElement>("button:not([disabled]), a[href]")
+          );
+          if (!focusable.length) return;
+          const target = getFocusWrapTarget(
+            focusable,
+            document.activeElement instanceof HTMLElement ? document.activeElement : null,
+            event.shiftKey
+          );
+          if (!target) return;
+          event.preventDefault();
+          target.focus();
+        });
+        accessGate.addEventListener("click", (event) => {
+          const target = event.target;
+          if (!(target instanceof Element) || !target.closest("[data-action='open-account']")) return;
+          track("auth_gate_sign_in_clicked");
+          this.render();
+          if (!this.dialog.open) this.dialog.showModal();
+        });
+        document.body.append(accessGate);
+      }
+      gate.innerHTML = `
+        <div class="release2-access-gate-card">
+          <span class="eyebrow">Free Starter</span>
+          <h1 id="release2AccessGateTitle">Create an account to start planning.</h1>
+          <p>Sign up for a free Harbourline account, then sign in to use the local planner and exports. No payment is required. Upgrade later if you want cloud sync, household sharing or multi-device access.</p>
+          <div class="release2-gate-actions">
+            <button class="btn" type="button" data-action="open-account">Sign in</button>
+            <a class="btn secondary" href="https://www.harbourline.app/#early-access" target="_blank" rel="noreferrer">Create free account</a>
+          </div>
+          <p class="release2-gate-note">Already registered? Sign in here. New accounts are created on the Harbourline homepage.</p>
+        </div>
+      `;
+      if (!this.dialog.open && (gateWasCreated || gateHadFocus || documentNeedsGateFocus)) {
+        gate.querySelector<HTMLElement>("[data-action='open-account']")?.focus();
+      }
+      return;
+    }
+
+    const focusGateTarget = gate?.contains(document.activeElement) ? this.accountButton : null;
+    app?.removeAttribute("inert");
+    app?.removeAttribute("aria-hidden");
+    gate?.remove();
+    focusGateTarget?.focus();
     if (this.workspaceAccess === "paid") {
       banner?.remove();
       return;
     }
     if (!banner) {
       banner = document.createElement("section");
-      banner.id = "release2-free-starter-banner";
+      banner.id = bannerId;
       banner.className = "release2-free-starter-banner";
       banner.addEventListener("click", (event) => {
         const target = event.target;
@@ -905,17 +1067,17 @@ export class AccountPanel {
     banner.innerHTML = `
       <div class="release2-free-starter-copy">
         <span class="eyebrow">Free Starter</span>
-        <strong>Build your payday plan on this device.</strong>
-        <span>No account or card required. Export anytime. Cloud backup, household sharing and Calendar sync are included with the paid plan.</span>
+        <strong>Your local planner is ready.</strong>
+        <span>Account required. Plan and export on this device. Secure cloud sync, household sharing and Calendar sync are included with the paid plan.</span>
       </div>
       ${this.cloud.configured
-        ? `<button class="btn secondary" type="button" data-action="open-account">Unlock cloud sync</button>`
+        ? `<button class="btn secondary" type="button" data-action="open-account">Explore cloud sync</button>`
         : ""}
     `;
   }
 
   private updateAccountButton(): void {
-    const signedIn = Boolean(this.state.session);
+    const signedIn = isVerifiedAccountUser(this.state.user);
     const active = signedIn && this.billingReconciled && this.subscriptionActive === true;
     this.accountButton.classList.toggle("release2-signed-in", signedIn);
     this.accountButton.classList.toggle("release2-plan-active", active);
@@ -1021,13 +1183,13 @@ export class AccountPanel {
       attention: {
         eyebrow: "Account status",
         title: "Payment needs attention",
-        message: "Update your payment method to restore cloud backup, household sharing and sync.",
+        message: "Update your payment method to restore cloud sync, household sharing and multi-device access.",
         icon: "!"
       },
       "not-started": {
         eyebrow: "Account status",
         title: "Ready to unlock cloud continuity",
-        message: "Complete secure payment to unlock cloud backup, household sharing and multi-device sync.",
+        message: "Complete secure payment to unlock cloud sync, household sharing and multi-device access.",
         icon: "→"
       }
     }[planState];
@@ -1107,10 +1269,10 @@ export class AccountPanel {
         : "Plan active. Create or join a household to sync this device."
       : !this.billingReconciled || this.subscriptionActive === null
         ? "Checking your Harbourline plan…"
-        : "Local starter ready. Sign in and subscribe to enable cloud sync.";
+        : "Local starter ready. Subscribe to enable cloud sync.";
     const accountStatusDetail = confirmedSubscriptionActive
       ? linkedHousehold
-        ? `${status.online ? "Online" : "Offline"}${status.queued ? ` · ${status.queued} queued` : ""} · ${escapeHtml(linkedHousehold.name)}`
+        ? `${status.online ? "Online" : "Offline"}${status.queued ? ` · ${status.queued} queued` : ""} · ${linkedHousehold.name}`
         : `${status.online ? "Online" : "Offline"} · Sync ready when a household is connected`
       : `${status.online ? "Online" : "Offline"}${status.queued ? ` · ${status.queued} queued` : ""}`;
     return `
@@ -1120,7 +1282,7 @@ export class AccountPanel {
         <span class="release2-status-dot"></span>
         <div>
           <strong>${escapeHtml(accountStatusMessage)}</strong>
-          <span>${accountStatusDetail}</span>
+          <span>${escapeHtml(accountStatusDetail)}</span>
         </div>
       </section>
       ${this.state.conflict ? this.renderConflict(this.state.conflict) : ""}
@@ -1183,7 +1345,7 @@ export class AccountPanel {
       `
         : `
       ${this.renderLockedFeature(
-        "Cloud backup and household sharing",
+        "Cloud sync and household sharing",
         "Keep this plan available across devices, invite another person and protect your household copy with secure cloud sync."
       )}
       ${this.renderLockedFeature(
@@ -1203,7 +1365,7 @@ export class AccountPanel {
         <div class="release2-section-heading">
           <div><span>Privacy controls</span><h3>Your account data</h3></div>
         </div>
-        <p>Download a complete account copy at any time. Account deletion requires authenticator verification and cannot proceed while you own a household.</p>
+        <p>Download a complete account copy at any time. Account deletion uses authenticator verification when an authenticator app is configured and cannot proceed while you own a household.</p>
         <div class="release2-button-row">
           <button class="btn secondary" type="button" data-action="export-account">Download account copy</button>
           ${linkedId ? `<button class="btn secondary" type="button" data-action="disconnect-sync">Disconnect this device</button>` : ""}
@@ -1647,9 +1809,14 @@ export class AccountPanel {
         }
         await this.cloud.deleteAccount();
         if (operationSessionGeneration !== this.sessionGeneration || operationActionGeneration !== this.actionGeneration) return;
-        if (!await this.disconnectLocalSync()) return;
-        if (operationSessionGeneration !== this.sessionGeneration || operationActionGeneration !== this.actionGeneration) return;
-        this.notice = "Account deleted. Your cached device copy remains available.";
+        let signOutError: unknown = null;
+        try {
+          await this.cloud.signOut();
+        } catch (error) {
+          signOutError = error;
+        }
+        if (this.state.user) await this.handleSessionChange(null, "SIGNED_OUT");
+        if (signOutError) throw signOutError;
       }
     });
   }

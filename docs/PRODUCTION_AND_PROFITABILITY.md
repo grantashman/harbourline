@@ -26,8 +26,8 @@ compliance rather than database or hosting cost.
 Completed:
 
 - public product homepage and hosted application
-- local starter access without an account or payment card
-- account-based access for paid cloud features
+- account-based access for the free local starter and paid cloud features
+- free local starter access without a payment card
 - Google authentication
 - Supabase household data and subscription state
 - Stripe sandbox product, recurring price and webhook flow
@@ -147,7 +147,7 @@ Exit criteria:
 
 - checkout completion above 70%
 - 70% or more of paid users complete the activation event
-- free starter users can reach a first payday plan without creating an account
+- free starter users can create and confirm an account, sign in, and reach a first payday plan
 - upgrade prompts do not include financial amounts or descriptions in analytics
 - at least 60% four-week retained usage for the founding cohort
 - no unresolved cross-household data exposure

@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -p tsconfig.json --noEmit && vite build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node --experimental-strip-types --test src/access-model.test.ts src/auth-event-policy.test.ts src/realtime-lease.test.ts"
+    "test": "node --experimental-strip-types --test src/access-model.test.ts src/auth-event-policy.test.ts src/realtime-lease.test.ts src/auth-gate-focus.test.ts"
   },
   "dependencies": {
     "@harbourline/domain": "workspace:*",
