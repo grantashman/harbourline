@@ -1,6 +1,16 @@
 export type BetaOnboardingStep = "household" | "income" | "bills" | "payday" | "complete";
 
 export type BetaEventName =
+  | "signup_completed"
+  | "onboarding_started"
+  | "household_created"
+  | "income_added"
+  | "five_bills_added"
+  | "payday_viewed"
+  | "onboarding_completed"
+  | "support_requested";
+
+export type ClientBetaEventName =
   | "onboarding_started"
   | "household_created"
   | "income_added"

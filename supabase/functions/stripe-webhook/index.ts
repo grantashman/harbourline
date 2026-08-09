@@ -1,6 +1,10 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { lifecycleEmailFor, sendLifecycleEmail, type LifecycleEmailKind } from "../_shared/beta-email.ts";
 import { captureServerError } from "../_shared/monitoring.ts";
+import {
+  isStaleSubscriptionEvent,
+  type BillingSubscriptionState
+} from "../stripe-subscription-ordering.ts";
 
 type StripeObject = Record<string, unknown>;
 
@@ -83,13 +87,22 @@ async function verifySignature(payload: string, header: string, secret: string):
 
 async function stripeGetSubscription(subscriptionId: string, secret: string): Promise<StripeObject> {
   const response = await fetch(`https://api.stripe.com/v1/subscriptions/${encodeURIComponent(subscriptionId)}`, {
-    headers: { Authorization: `Bearer ${secret}` }
+    headers: { Authorization: `Bearer ${secret}` },
+    signal: AbortSignal.timeout(8_000)
   });
   const payload = await response.json();
   if (!response.ok) throw new Error(payload.error?.message ?? "Stripe subscription lookup failed");
   return asObject(payload);
 }
 
+async function withTimeout<T>(operation: PromiseLike<T>, milliseconds = 8_000): Promise<T> {
+  return Promise.race([
+    Promise.resolve(operation),
+    new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error("Supabase operation timed out")), milliseconds);
+    })
+  ]);
+}
 function snapshotFromSubscription(subscription: StripeObject, fallback: StripeObject): SubscriptionSnapshot {
   const items = asObject(subscription.items);
   const firstItem = Array.isArray(items.data) ? asObject(items.data[0]) : {};
@@ -106,7 +119,7 @@ function snapshotFromSubscription(subscription: StripeObject, fallback: StripeOb
 }
 
 async function findKnownUserId(
-  admin: ReturnType<typeof createClient>,
+  admin: SupabaseClient<any>,
   subscriptionId: string | null,
   customerId: string | null
 ): Promise<string | null> {
@@ -129,14 +142,6 @@ async function findKnownUserId(
   return null;
 }
 
-interface BillingEventLifecycle {
-  lifecycle_event_name: string | null;
-  lifecycle_user_id: string | null;
-  lifecycle_email_kind: LifecycleEmailKind | null;
-  lifecycle_event_recorded_at: string | null;
-  lifecycle_email_sent_at: string | null;
-}
-
 function lifecycleEventName(previousStatus: string | null, nextStatus: string): string | null {
   if (previousStatus === nextStatus) return null;
   if (nextStatus === "active") return "subscription_activated";
@@ -145,23 +150,33 @@ function lifecycleEventName(previousStatus: string | null, nextStatus: string): 
   return null;
 }
 
+interface BillingEventLifecycle {
+  lifecycle_event_name: string | null;
+  lifecycle_user_id: string | null;
+  lifecycle_email_kind: LifecycleEmailKind | null;
+  lifecycle_event_recorded_at: string | null;
+  lifecycle_email_sent_at: string | null;
+}
+
 async function deliverLifecycleEmail(
-  admin: ReturnType<typeof createClient>,
+  admin: SupabaseClient<any>,
   eventId: string,
   claimToken: string,
   lifecycle: BillingEventLifecycle,
   currentPeriodEnd: string | null
-): Promise<void> {
-  if (!lifecycle.lifecycle_email_kind || !lifecycle.lifecycle_user_id || lifecycle.lifecycle_email_sent_at) return;
+): Promise<boolean> {
+  if (!lifecycle.lifecycle_email_kind || !lifecycle.lifecycle_user_id || lifecycle.lifecycle_email_sent_at) return true;
 
   try {
-    const { data: account, error: accountError } = await admin.auth.admin.getUserById(lifecycle.lifecycle_user_id);
+    const { data: account, error: accountError } = await withTimeout(
+      admin.auth.admin.getUserById(lifecycle.lifecycle_user_id)
+    );
     if (accountError || !account.user?.email) {
       console.error("Lifecycle email could not be addressed", {
         kind: lifecycle.lifecycle_email_kind,
         message: accountError?.message ?? "No account email was available"
       });
-      return;
+      return false;
     }
 
     const wasSent = await sendLifecycleEmail({
@@ -172,7 +187,7 @@ async function deliverLifecycleEmail(
       currentPeriodEnd,
       idempotencyKey: `harbourline-lifecycle-${eventId}-${lifecycle.lifecycle_email_kind}`
     });
-    if (!wasSent) return;
+    if (!wasSent) return false;
 
     const { error: sentAtError } = await admin
       .from("billing_events")
@@ -182,12 +197,89 @@ async function deliverLifecycleEmail(
       .is("lifecycle_email_sent_at", null);
     if (sentAtError) {
       console.error("Lifecycle email delivery could not be recorded", { kind: lifecycle.lifecycle_email_kind });
+      return false;
     }
+    return true;
   } catch (error) {
     console.error("Lifecycle email work failed", {
       kind: lifecycle.lifecycle_email_kind,
       message: error instanceof Error ? error.message : "unknown error"
     });
+    return false;
+  }
+}
+
+async function releaseBillingEventClaim(
+  admin: SupabaseClient<any>,
+  eventId: string,
+  claimToken: string,
+  errorMessage: string,
+  eventType: string
+): Promise<boolean> {
+  const releasePayload = {
+    target_event_id: eventId,
+    claim_token: claimToken,
+    error_message: errorMessage
+  };
+  try {
+    const releaseResult = await Promise.race([
+      admin.rpc("release_billing_event_claim", releasePayload),
+      new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error("Billing claim release timed out")), 3_000);
+      })
+    ]) as { data: unknown; error: { message?: string } | null };
+    if (releaseResult.error) throw new Error(releaseResult.error.message ?? "Billing claim release failed");
+    if (releaseResult.data !== true) throw new Error("Billing claim release did not release the claimed event");
+    return true;
+  } catch (releaseError) {
+    try {
+      const fallbackResult = await Promise.race([
+        admin
+          .from("billing_events")
+          .update({
+            processing_started_at: null,
+            processing_token: null,
+            last_error: errorMessage.slice(0, 1000)
+          })
+          .eq("event_id", eventId)
+          .eq("processing_token", claimToken)
+          .select("event_id"),
+        new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error("Billing claim fallback release timed out")), 3_000);
+        })
+      ]) as { data: Array<{ event_id: string }> | null; error: { message?: string } | null };
+      if (fallbackResult.error) throw new Error(fallbackResult.error.message ?? "Billing claim fallback release failed");
+      if (!fallbackResult.data?.some((row) => row.event_id === eventId)) {
+        throw new Error("Billing claim fallback release did not release the claimed event");
+      }
+      return true;
+    } catch (fallbackError) {
+      console.error("Stripe billing claim release failed", {
+        event_type: eventType,
+        message: fallbackError instanceof Error ? fallbackError.message : "unknown error",
+        initial_message: releaseError instanceof Error ? releaseError.message : "unknown error"
+      });
+      return false;
+    }
+  }
+}
+
+async function completeBillingEventClaim(
+  admin: SupabaseClient<any>,
+  eventId: string,
+  claimToken: string
+): Promise<void> {
+  const { data: completed, error } = await Promise.race([
+    admin.rpc("complete_billing_event_claim", {
+      target_event_id: eventId,
+      claim_token: claimToken
+    }),
+    new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error("Billing claim completion timed out")), 3_000);
+    })
+  ]) as { data: unknown; error: { message?: string } | null };
+  if (error || completed !== true) {
+    throw new Error(error?.message ?? "Billing event claim could not be completed");
   }
 }
 
@@ -219,20 +311,57 @@ Deno.serve(async (request) => {
   }
   const eventId = asString(event.id);
   const eventType = asString(event.type);
-  if (!eventId || !eventType) return new Response("Invalid event", { status: 400 });
+  const eventCreatedAt = toIso(event.created);
+  if (!eventId || !eventType || !eventCreatedAt) return new Response("Invalid event", { status: 400 });
 
-  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  const admin = createClient<any>(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   const claimToken = crypto.randomUUID();
-  const { data: claimRows, error: claimError } = await admin.rpc("claim_billing_event", {
-    target_event_id: eventId,
-    target_event_type: eventType,
-    claim_token: claimToken
-  });
-  const claim = Array.isArray(claimRows) ? claimRows[0] : null;
-  if (claimError || !claim) {
+  let claimRows: unknown = null;
+  let claimError: { message?: string } | null = null;
+  try {
+    const claimResult = await Promise.race([
+      admin.rpc("claim_billing_event", {
+        target_event_id: eventId,
+        target_event_type: eventType,
+        claim_token: claimToken
+      }),
+      new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error("Billing claim acquisition timed out")), 3_000);
+      })
+    ]) as { data: unknown; error: { message?: string } | null };
+    claimRows = claimResult.data;
+    claimError = claimResult.error;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Billing event claim could not be acquired";
+    const released = await releaseBillingEventClaim(admin, eventId, claimToken, message, eventType);
+    await captureServerError(error, { function: "stripe-webhook", event_type: eventType });
+    if (!released) {
+      await captureServerError(new Error("Billing claim release requires operational replay"), {
+        function: "stripe-webhook",
+        event_type: eventType
+      });
+    }
     return new Response("Event could not be recorded", { status: 500 });
   }
-  if (!claim.claimed) return new Response("Already processed", { status: 200 });
+  const claim = Array.isArray(claimRows)
+    ? claimRows[0] as { claimed?: boolean; processed?: boolean } | undefined
+    : null;
+  if (claimError || !claim) {
+    const error = new Error(claimError?.message ?? "Billing event claim response was invalid");
+    const released = await releaseBillingEventClaim(admin, eventId, claimToken, error.message, eventType);
+    await captureServerError(error, { function: "stripe-webhook", event_type: eventType });
+    if (!released) {
+      await captureServerError(new Error("Billing claim release requires operational replay"), {
+        function: "stripe-webhook",
+        event_type: eventType
+      });
+    }
+    return new Response("Event could not be recorded", { status: 500 });
+  }
+  if (claim.claimed !== true) {
+    if (claim.processed === true) return new Response("Already processed", { status: 200 });
+    return new Response("Event is already being processed", { status: 500 });
+  }
 
   try {
     if (subscriptionEvents.has(eventType)) {
@@ -257,11 +386,32 @@ Deno.serve(async (request) => {
 
       const { data: previousBilling, error: previousBillingError } = await admin
         .from("billing_subscriptions")
-        .select("status")
+        .select("status, stripe_subscription_id, stripe_event_created_at, stripe_event_id")
         .eq("user_id", userId)
         .maybeSingle();
       if (previousBillingError) throw new Error(previousBillingError.message);
-      const previousStatus = previousBilling?.status ?? null;
+      const previousBillingState = previousBilling as BillingSubscriptionState | null;
+      if (isStaleSubscriptionEvent(
+        previousBillingState,
+        snapshot.subscriptionId,
+        eventCreatedAt,
+        eventId
+      )) {
+        const staleLifecycle = billingEvent as BillingEventLifecycle;
+        if (staleLifecycle.lifecycle_email_kind && !staleLifecycle.lifecycle_email_sent_at) {
+          const delivered = await deliverLifecycleEmail(
+            admin,
+            eventId,
+            claimToken,
+            staleLifecycle,
+            snapshot.currentPeriodEnd
+          );
+          if (!delivered) throw new Error("Lifecycle email delivery failed; billing event will be retried");
+        }
+        await completeBillingEventClaim(admin, eventId, claimToken);
+        return new Response("ok", { status: 200 });
+      }
+      const previousStatus = previousBillingState?.status ?? null;
       let lifecycle = billingEvent as BillingEventLifecycle;
       if (!lifecycle.lifecycle_event_name) {
         const lifecycleEvent = lifecycleEventName(previousStatus, snapshot.status);
@@ -283,17 +433,37 @@ Deno.serve(async (request) => {
         }
       }
 
-      const { error: subscriptionError } = await admin.from("billing_subscriptions").upsert({
-        user_id: userId,
-        stripe_customer_id: snapshot.customerId,
-        stripe_subscription_id: snapshot.subscriptionId,
-        status: snapshot.status,
-        price_id: snapshot.priceId,
-        current_period_end: snapshot.currentPeriodEnd,
-        cancel_at_period_end: snapshot.cancelAtPeriodEnd,
-        updated_at: new Date().toISOString()
-      }, { onConflict: "user_id" });
-      if (subscriptionError) throw new Error(subscriptionError.message);
+      const { data: orderingRows, error: orderingError } = await admin.rpc("apply_billing_subscription_snapshot", {
+        target_user_id: userId,
+        target_customer_id: snapshot.customerId,
+        target_subscription_id: snapshot.subscriptionId,
+        target_status: snapshot.status,
+        target_price_id: snapshot.priceId,
+        target_current_period_end: snapshot.currentPeriodEnd,
+        target_cancel_at_period_end: snapshot.cancelAtPeriodEnd,
+        target_event_created_at: eventCreatedAt,
+        target_event_id: eventId
+      });
+      const ordering = Array.isArray(orderingRows)
+        ? orderingRows[0] as { applied?: boolean; previous_status?: string | null } | undefined
+        : null;
+      if (orderingError || !ordering || typeof ordering.applied !== "boolean") {
+        throw new Error(orderingError?.message ?? "Billing subscription ordering could not be applied");
+      }
+      if (!ordering.applied) {
+        if (lifecycle.lifecycle_email_kind && !lifecycle.lifecycle_email_sent_at) {
+          const delivered = await deliverLifecycleEmail(
+            admin,
+            eventId,
+            claimToken,
+            lifecycle,
+            snapshot.currentPeriodEnd
+          );
+          if (!delivered) throw new Error("Lifecycle email delivery failed; billing event will be retried");
+        }
+        await completeBillingEventClaim(admin, eventId, claimToken);
+        return new Response("ok", { status: 200 });
+      }
 
       if (lifecycle.lifecycle_event_name && lifecycle.lifecycle_user_id) {
         const { error: lifecycleEventError } = await admin.from("beta_operational_events").insert({
@@ -314,27 +484,24 @@ Deno.serve(async (request) => {
         if (recordedError) throw new Error(recordedError.message);
 
         lifecycle = { ...lifecycle, lifecycle_event_recorded_at: new Date().toISOString() };
-        await deliverLifecycleEmail(admin, eventId, claimToken, lifecycle, snapshot.currentPeriodEnd);
+        const lifecycleEmailDelivered = await deliverLifecycleEmail(admin, eventId, claimToken, lifecycle, snapshot.currentPeriodEnd);
+        if (!lifecycleEmailDelivered) throw new Error("Lifecycle email delivery failed; billing event will be retried");
       }
     }
 
-    const { data: completed, error: completeError } = await admin.rpc("complete_billing_event_claim", {
-      target_event_id: eventId,
-      claim_token: claimToken
-    });
-    if (completeError || completed !== true) {
-      throw new Error(completeError?.message ?? "Billing event claim could not be completed");
-    }
+    await completeBillingEventClaim(admin, eventId, claimToken);
     return new Response("ok", { status: 200 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Billing event could not be processed";
     console.error("Stripe webhook processing failed", { event_type: eventType, message });
+    const released = await releaseBillingEventClaim(admin, eventId, claimToken, message, eventType);
     await captureServerError(error, { function: "stripe-webhook", event_type: eventType });
-    await admin.rpc("release_billing_event_claim", {
-      target_event_id: eventId,
-      claim_token: claimToken,
-      error_message: message
-    });
+    if (!released) {
+      await captureServerError(new Error("Billing claim release requires operational replay"), {
+        function: "stripe-webhook",
+        event_type: eventType
+      });
+    }
     return new Response("Billing event could not be processed", { status: 500 });
   }
 });

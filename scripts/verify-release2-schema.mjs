@@ -16,6 +16,11 @@ const entitlementMigrationUrl = new URL(
   import.meta.url
 );
 const entitlementSql = await readFile(entitlementMigrationUrl, "utf8");
+const orderingMigrationUrl = new URL(
+  "../supabase/migrations/20260809001951_stripe_subscription_event_ordering.sql",
+  import.meta.url
+);
+const orderingSql = await readFile(orderingMigrationUrl, "utf8");
 
 const requiredTables = [
   "profiles",
@@ -106,5 +111,18 @@ for (const triggerName of [
     `${triggerName} must protect the corresponding cloud write path`
   );
 }
+
+assert.match(
+  orderingSql,
+  /create or replace function public\.apply_billing_subscription_snapshot/i,
+  "billing subscription ordering must use an atomic database function"
+);
+assert.match(orderingSql, /for update/i, "billing subscription ordering must lock the current row");
+assert.match(orderingSql, /target_event_created_at/i, "billing subscription ordering must persist event time");
+assert.match(
+  orderingSql,
+  /grant execute on function public\.apply_billing_subscription_snapshot[\s\S]*to service_role/i,
+  "billing subscription ordering must be service-role only"
+);
 
 console.log("Release 2 schema guard: passed");

@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(12);
+select plan(13);
 
 select has_table('public', 'beta_onboarding', 'beta onboarding table exists');
 select has_table('public', 'beta_operational_events', 'beta operational events table exists');
@@ -26,6 +26,12 @@ select has_index(
   'beta_operational_events',
   'beta_operational_events_event_name_occurred_at',
   'beta operational events has the event recency index'
+);
+select has_column(
+  'public',
+  'beta_operational_events',
+  'signup_verified_at',
+  'signup events track verification state'
 );
 
 insert into auth.users (
@@ -131,15 +137,31 @@ select throws_ok(
   'customers cannot insert beta onboarding directly'
 );
 
+select is(
+  (select signup_verified_at is not null
+   from public.beta_operational_events
+   where user_id = '40000000-0000-0000-0000-000000000001'
+     and event_name = 'signup_completed'),
+  true,
+  'confirmed signup event is marked verified'
+);
+
 reset role;
 
 delete from auth.users
 where id = '40000000-0000-0000-0000-000000000001';
 
 select is(
-  (select count(*) from public.beta_operational_events),
+  (select count(*) from public.beta_operational_events
+   where user_id = '40000000-0000-0000-0000-000000000001'),
   0::bigint,
-  'beta operational events cascade away when the account is deleted'
+  'deleted owner beta operational events cascade away'
+);
+select is(
+  (select count(*) from public.beta_operational_events
+   where user_id = '40000000-0000-0000-0000-000000000002'),
+  1::bigint,
+  'outsider signup event remains isolated from owner deletion'
 );
 select is(
   (select household_id is null from public.beta_onboarding where user_id = '40000000-0000-0000-0000-000000000001'),

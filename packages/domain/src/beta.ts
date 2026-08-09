@@ -8,6 +8,7 @@ export const BETA_EVENT_NAMES = [
   "payday_viewed",
   "onboarding_completed",
   "support_requested",
+  "signup_completed",
   "subscription_past_due",
   "subscription_cancelled"
 ] as const;

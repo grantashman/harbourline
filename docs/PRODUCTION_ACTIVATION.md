@@ -94,7 +94,6 @@ HARBOURLINE_FROM_EMAIL
 RESEND_API_KEY
 SENTRY_DSN
 STRIPE_SECRET_KEY
-STRIPE_PRICE_ID
 STRIPE_WEBHOOK_SECRET
 GOOGLE_CALENDAR_CLIENT_ID
 GOOGLE_CALENDAR_CLIENT_SECRET
@@ -102,8 +101,12 @@ GOOGLE_OAUTH_REDIRECT_URI
 GOOGLE_CALENDAR_TOKEN_ENCRYPTION_KEY
 ```
 
+The Edge Function runtime also receives the public `STRIPE_PRICE_ID` from the
+protected GitHub production variable; it is configuration, not a credential,
+and must not be added to the secret inventory above.
+
 `STRIPE_PRICE_ID` is a non-secret production environment variable in GitHub
-(`vars.STRIPE_PRICE_ID`) and is copied into the Edge Function runtime secret by
+(`vars.STRIPE_PRICE_ID`) and is copied into the Edge Function runtime environment by
 the protected deployment workflow. It must remain the verified live price ID;
 do not store it as a GitHub secret or replace it with a test-mode price.
 
@@ -149,6 +152,26 @@ next merge.
 - set sensible password, OTP and rate-limit controls
 - enable CAPTCHA before homepage-led account requests and signup launch
 - enforce MFA for Supabase and GitHub administrators
+
+### Transactional email coverage
+
+The production account journey has these email paths:
+
+- Supabase confirmation email after password signup;
+- Supabase magic-link email for passwordless access;
+- Supabase recovery email returning to the password-reset screen;
+- Stripe lifecycle email when a subscription becomes active, enters `past_due`,
+  or is cancelled;
+- an operator notification after a new account completes email verification or
+  its first OAuth/magic-link sign-in; and
+- support and household invite links rendered by the app.
+
+The signup notification is idempotent per user and contains only the account
+email, provider and timestamp. It sends to `HARBOURLINE_OPERATOR_EMAILS` via
+Resend and records delivery only after Resend accepts the request. A temporary
+Resend failure remains retryable on a later authenticated session. Household
+invites remain private, expiring codes by design; the app does not send a
+customer-entered invite address to a marketing or email provider.
 
 ## 5. Rehearse recovery
 
@@ -201,7 +224,7 @@ GitHub Pages URL and hosted app URL to the provider redirect allowlists.
 Create one recurring Stripe price for A$2.50/week. Do not attach a coupon or
 trial to the introductory price. Store the public Stripe price ID as the protected
 GitHub production environment variable `vars.STRIPE_PRICE_ID`; the deployment
-workflow copies it into the Supabase Edge Function secret. Keep secret billing
+workflow copies it into the Edge Function runtime environment. Keep secret billing
 values only as Edge Function secrets:
 
 ```text
