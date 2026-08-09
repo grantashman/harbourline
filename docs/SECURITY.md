@@ -13,22 +13,26 @@ identifiers. Those values must never be collected.
 
 - Financial calculations execute locally.
 - The budget document remains in account-scoped localStorage for direct-file
-  compatibility; signing out switches to a clean anonymous workspace.
+  compatibility; signing out clears account-scoped state and returns to a
+  signed-out workspace. The planner remains inaccessible until another account
+  signs in.
 - Pending cloud mutations and sync metadata use IndexedDB and are cleared before
   an account transition so one account cannot upload another account's queue.
 - Import requires a deliberate file selection.
 - Export produces a user-controlled JSON backup.
 - No analytics, remote logging or third-party scripts receive budget values.
-- The production application requires an authenticated paid subscription. The
-  browser retains a working cache for continuity, but it cannot create a
-  standalone account or bypass subscription access.
+- The production application requires an account and sign-in before planning.
+  Free Starter works locally after sign-in without a payment card; paid
+  subscriptions unlock cloud sync, household sharing, Calendar sync and
+  multi-device access. An anonymous session cannot create a local workspace or
+  bypass subscription access.
 - Dependency versions are locked.
 - Type checking, unit tests and a production build run in CI.
 
 ## Release 2 cloud controls
 
 - Every exposed table has row-level security.
-- Anonymous access is explicitly revoked.
+- Anonymous users and anonymous auth sessions are explicitly rejected.
 - Household members can read only households they belong to.
 - Budget writes are denied directly and must use the revision-checked
   `sync_budget` function.
@@ -36,8 +40,7 @@ identifiers. Those values must never be collected.
 - Browser builds accept only a Supabase publishable key.
 - TOTP authenticator enrolment is available to users.
 - Account export is authorised in the database.
-- Account deletion runs in an authenticated Edge Function and refuses to
-  orphan an owned household.
+- Account deletion runs in an authenticated Edge Function, refuses to orphan an owned household, cancels an active Stripe subscription, revokes stored Google Calendar access, and deletes the auth user only after provider cleanup succeeds. Authenticator assurance is enforced when an authenticator app is configured.
 - Policy tests include owner, member and unrelated-user paths.
 - Financial values are excluded from application telemetry.
 

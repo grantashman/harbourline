@@ -216,15 +216,45 @@ export async function googleCalendarFetch(
 
 export async function requireActiveSubscription(userId: string): Promise<void> {
   const admin = createServiceRoleClient();
+  const activeStatuses = ["active", "trialing"];
   const { data, error } = await admin
     .from("billing_subscriptions")
     .select("status")
     .eq("user_id", userId)
     .maybeSingle();
   if (error) throw new HttpError(503, "Subscription status could not be checked");
-  if (!data || !["active", "trialing"].includes(data.status)) {
-    throw new HttpError(402, "An active Harbourline subscription is required");
+  if (data && activeStatuses.includes(data.status)) return;
+
+  const { data: memberships, error: membershipError } = await admin
+    .from("household_members")
+    .select("household_id")
+    .eq("user_id", userId);
+  if (membershipError) throw new HttpError(503, "Subscription status could not be checked");
+  const householdIds = [...new Set((memberships ?? [])
+    .map((row) => row.household_id)
+    .filter((householdId): householdId is string => typeof householdId === "string" && householdId.length > 0))];
+  if (householdIds.length) {
+    const { data: householdMembers, error: householdMemberError } = await admin
+      .from("household_members")
+      .select("user_id")
+      .in("household_id", householdIds);
+    if (householdMemberError) throw new HttpError(503, "Subscription status could not be checked");
+    const memberIds = [...new Set((householdMembers ?? [])
+      .map((row) => row.user_id)
+      .filter((memberId): memberId is string => typeof memberId === "string" && memberId.length > 0))];
+    if (memberIds.length) {
+      const { data: inheritedSubscriptions, error: inheritedSubscriptionError } = await admin
+        .from("billing_subscriptions")
+        .select("status")
+        .in("user_id", memberIds)
+        .in("status", activeStatuses)
+        .limit(1);
+      if (inheritedSubscriptionError) throw new HttpError(503, "Subscription status could not be checked");
+      if (inheritedSubscriptions?.length) return;
+    }
   }
+
+  throw new HttpError(402, "An active Harbourline subscription is required");
 }
 
 export function calendarEventsEndpoint(calendarId: string): string {

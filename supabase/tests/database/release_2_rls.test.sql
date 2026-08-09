@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(28);
+select plan(32);
 
 select has_table('public', 'households', 'households table exists');
 select has_table('public', 'household_members', 'household membership table exists');
@@ -97,6 +97,33 @@ values
     now(),
     now()
   );
+
+insert into auth.users (
+  id,
+  instance_id,
+  aud,
+  role,
+  email,
+  encrypted_password,
+  is_anonymous,
+  raw_app_meta_data,
+  raw_user_meta_data,
+  created_at,
+  updated_at
+)
+values (
+  '10000000-0000-0000-0000-000000000004',
+  '00000000-0000-0000-0000-000000000000',
+  'authenticated',
+  'authenticated',
+  null,
+  extensions.crypt('not-used', extensions.gen_salt('bf')),
+  true,
+  '{}',
+  '{}',
+  now(),
+  now()
+);
 
 insert into public.billing_subscriptions (user_id, status)
 values (
@@ -262,6 +289,39 @@ select is(
 select ok(
   not (select public.export_my_account() ? 'operationalEvents'),
   'account export excludes private operational events'
+);
+
+set local "request.jwt.claims" =
+  '{"sub":"10000000-0000-0000-0000-000000000004","role":"authenticated"}';
+select throws_ok(
+  $$select public.export_my_account()$$,
+  '42501',
+  'A verified Harbourline account is required to export data',
+  'anonymous auth sessions cannot export account data'
+);
+select is(
+  public.has_active_subscription(),
+  false,
+  'anonymous auth sessions cannot receive cloud entitlement'
+);
+select throws_ok(
+  $$select public.create_household('Anonymous household')$$,
+  '42501',
+  'An active Harbourline subscription is required to create a household',
+  'anonymous auth sessions cannot create households'
+);
+select throws_ok(
+  $$select public.sync_budget(
+    '20000000-0000-0000-0000-000000000001',
+    '30000000-0000-0000-0000-000000000004',
+    0,
+    3,
+    '{"expenses":[]}',
+    'fnv1a-anonymous'
+  )$$,
+  '42501',
+  'Household membership required',
+  'anonymous auth sessions cannot sync household budgets'
 );
 
 set local "request.jwt.claims" =

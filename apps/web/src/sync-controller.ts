@@ -60,7 +60,7 @@ export class SyncController {
     await discardUnownedSyncData();
     this.metadata = await getSyncMetadata();
     this.ownerId = this.metadata?.ownerId ?? null;
-    await this.report(this.metadata ? "Waiting for account access before syncing." : "Local starter ready. Sign in and subscribe to enable cloud sync.", "neutral");
+    await this.report(this.metadata ? "Waiting for account access before syncing." : "Sign in to use the local starter. Subscribe to enable cloud sync.", "neutral");
   }
 
   setCloudAccess(enabled: boolean, _preserveMetadata = false, ownerId?: string): void {

@@ -9,11 +9,14 @@ const CLEANUP_STORE = "cleanup";
 const ACTIVE_METADATA_KEY = "active";
 const ACTIVE_CLEANUP_LATCH_KEY = "active";
 const CLEANUP_LATCH_FALLBACK_KEY = `${DATABASE_NAME}:cleanup-latch`;
+export const CLEANUP_LATCH_CHANNEL_NAME = `${DATABASE_NAME}:cleanup-latch-channel`;
+let cleanupLatchChannel: BroadcastChannel | null = null;
 
 export interface CleanupLatch {
   ownerId: string;
   householdId?: string;
   failedAt: string;
+  latchId?: string;
 }
 
 function requireId(value: unknown, label: string): string {
@@ -70,8 +73,58 @@ function isCleanupLatch(value: unknown): value is CleanupLatch {
   return (
     typeof latch.ownerId === "string" && latch.ownerId.trim().length > 0 &&
     (latch.householdId === undefined || (typeof latch.householdId === "string" && latch.householdId.trim().length > 0)) &&
-    isTimestamp(latch.failedAt)
+    isTimestamp(latch.failedAt) &&
+    (latch.latchId === undefined || (typeof latch.latchId === "string" && latch.latchId.trim().length > 0))
   );
+}
+
+function sameCleanupLatch(left: CleanupLatch, right: CleanupLatch): boolean {
+  return (
+    left.ownerId === right.ownerId &&
+    left.householdId === right.householdId &&
+    left.failedAt === right.failedAt &&
+    left.latchId === right.latchId
+  );
+}
+
+function cleanupLatchIsNewer(candidate: CleanupLatch, current: CleanupLatch): boolean {
+  const candidateTime = Date.parse(candidate.failedAt);
+  const currentTime = Date.parse(current.failedAt);
+  if (candidateTime !== currentTime) return candidateTime > currentTime;
+  return (candidate.latchId ?? "") > (current.latchId ?? "");
+}
+
+function createCleanupLatchId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function broadcastCleanupLatch(latch: CleanupLatch | null): void {
+  if (typeof BroadcastChannel === "undefined") return;
+  try {
+    cleanupLatchChannel ??= new BroadcastChannel(CLEANUP_LATCH_CHANNEL_NAME);
+    cleanupLatchChannel.postMessage({ type: "cleanup-latch", latch });
+  } catch {
+    // Broadcast is advisory; the durable latch remains authoritative.
+  }
+}
+
+type CleanupFallbackLockManager = {
+  request<T>(name: string, options: { mode: "exclusive" }, callback: () => T | Promise<T>): Promise<T>;
+};
+
+export async function withCleanupLatchLock<T>(operation: () => T | Promise<T>): Promise<T | null> {
+  if (typeof navigator === "undefined") return null;
+  const locks = (navigator as Navigator & { locks?: CleanupFallbackLockManager }).locks;
+  if (!locks) return null;
+  return locks.request(CLEANUP_LATCH_FALLBACK_KEY, { mode: "exclusive" }, operation);
+}
+
+async function withCleanupFallbackLock<T>(operation: () => T | Promise<T>): Promise<T | null> {
+  if (typeof localStorage === "undefined") return operation();
+  return withCleanupLatchLock(operation);
 }
 
 function readCleanupLatchFallback(): CleanupLatch | null {
@@ -86,22 +139,70 @@ function readCleanupLatchFallback(): CleanupLatch | null {
   }
 }
 
-function writeCleanupLatchFallback(latch: CleanupLatch): void {
+async function writeCleanupLatchFallback(latch: CleanupLatch): Promise<void> {
   if (typeof localStorage === "undefined") return;
+  const operation = () => {
+    const current = readCleanupLatchFallback();
+    if (!current || cleanupLatchIsNewer(latch, current)) {
+      localStorage.setItem(CLEANUP_LATCH_FALLBACK_KEY, JSON.stringify(latch));
+    }
+  };
   try {
-    localStorage.setItem(CLEANUP_LATCH_FALLBACK_KEY, JSON.stringify(latch));
+    const locked = await withCleanupFallbackLock(operation);
+    if (locked === null) operation();
   } catch {
     // IndexedDB remains the primary store; the caller still fails closed if it fails.
   }
 }
 
-function clearCleanupLatchFallback(): void {
-  if (typeof localStorage === "undefined") return;
+async function clearCleanupLatchFallback(expected: CleanupLatch, lockHeld = false): Promise<boolean> {
+  if (typeof localStorage === "undefined") return true;
+  const operation = () => {
+    const raw = localStorage.getItem(CLEANUP_LATCH_FALLBACK_KEY);
+    if (!raw) return true;
+    const value: unknown = JSON.parse(raw);
+    if (!isCleanupLatch(value)) return false;
+    if (sameCleanupLatch(value, expected) || !cleanupLatchIsNewer(value, expected)) {
+      localStorage.removeItem(CLEANUP_LATCH_FALLBACK_KEY);
+      return true;
+    }
+    return false;
+  };
   try {
-    localStorage.removeItem(CLEANUP_LATCH_FALLBACK_KEY);
+    if (lockHeld) return operation();
+    const locked = await withCleanupFallbackLock(operation);
+    if (locked === null) {
+      return readCleanupLatchFallback() === null;
+    }
+    return locked;
   } catch {
     // A stale fallback keeps the next session fail-closed, which is safer than clearing it.
+    return false;
   }
+}
+
+function putCleanupLatch(latch: CleanupLatch): Promise<IDBValidKey> {
+  return openDatabase().then((database) => new Promise((resolve, reject) => {
+    const transaction = database.transaction(CLEANUP_STORE, "readwrite");
+    const store = transaction.objectStore(CLEANUP_STORE);
+    const request = store.get(ACTIVE_CLEANUP_LATCH_KEY);
+    request.onerror = () => reject(request.error ?? new Error("Local sync storage failed."));
+    request.onsuccess = () => {
+      const current = request.result as CleanupLatch | undefined;
+      if (!current || cleanupLatchIsNewer(latch, current)) {
+        const putRequest = store.put(latch, ACTIVE_CLEANUP_LATCH_KEY);
+        putRequest.onerror = () => reject(putRequest.error ?? new Error("Local sync storage failed."));
+      }
+    };
+    transaction.oncomplete = () => {
+      database.close();
+      resolve(ACTIVE_CLEANUP_LATCH_KEY);
+    };
+    transaction.onerror = () => {
+      database.close();
+      reject(transaction.error ?? new Error("Local sync storage failed."));
+    };
+  }));
 }
 
 function openDatabase(): Promise<IDBDatabase> {
@@ -162,23 +263,24 @@ export function setCleanupLatch(ownerId: string, householdId?: string): Promise<
   const latch: CleanupLatch = {
     ownerId: requireId(ownerId, "ownerId"),
     ...(householdId === undefined ? {} : { householdId: requireId(householdId, "householdId") }),
-    failedAt: new Date().toISOString()
+    failedAt: new Date().toISOString(),
+    latchId: createCleanupLatchId()
   };
-  writeCleanupLatchFallback(latch);
-  return withStore(
-    CLEANUP_STORE,
-    "readwrite",
-    (store) => store.put(latch, ACTIVE_CLEANUP_LATCH_KEY)
-  ).then((key) => {
-    clearCleanupLatchFallback();
+  const persist = () => putCleanupLatch(latch);
+  return withCleanupLatchLock(persist).then((lockedKey) => (lockedKey ?? persist())).then((key) => {
+    broadcastCleanupLatch(latch);
     return key;
+  }).catch(async (error) => {
+    await writeCleanupLatchFallback(latch);
+    broadcastCleanupLatch(latch);
+    throw error;
   });
 }
 
-export function clearCleanupLatch(ownerId: string): Promise<boolean> {
-  ownerId = requireId(ownerId, "ownerId");
+async function clearCleanupLatchInternal(expected: CleanupLatch, lockHeld: boolean): Promise<boolean> {
+  requireId(expected.ownerId, "ownerId");
   const fallback = readCleanupLatchFallback();
-  if (fallback && fallback.ownerId !== ownerId) return Promise.resolve(false);
+  if (fallback && cleanupLatchIsNewer(fallback, expected)) return false;
   const databasePromise = openDatabase();
   return databasePromise.then((database) => new Promise((resolve, reject) => {
     const transaction = database.transaction(CLEANUP_STORE, "readwrite");
@@ -190,21 +292,40 @@ export function clearCleanupLatch(ownerId: string): Promise<boolean> {
       const latch = request.result as CleanupLatch | undefined;
       if (latch === undefined) {
         cleared = true;
-      } else if (latch.ownerId === ownerId) {
+      } else if (sameCleanupLatch(latch, expected)) {
         store.delete(ACTIVE_CLEANUP_LATCH_KEY);
         cleared = true;
       }
     };
-    transaction.oncomplete = () => {
+    transaction.oncomplete = async () => {
       database.close();
-      if (cleared) clearCleanupLatchFallback();
-      resolve(cleared);
+      if (!cleared) {
+        resolve(false);
+        return;
+      }
+      if (!await clearCleanupLatchFallback(expected, lockHeld)) {
+        resolve(false);
+        return;
+      }
+      try {
+        const remainingLatch = await getCleanupLatch();
+        const didClear = remainingLatch === null;
+        if (didClear) broadcastCleanupLatch(null);
+        resolve(didClear);
+      } catch {
+        resolve(false);
+      }
     };
     transaction.onerror = () => {
       database.close();
       reject(transaction.error ?? new Error("Local sync storage failed."));
     };
   }));
+}
+
+export function clearCleanupLatch(expected: CleanupLatch): Promise<boolean> {
+  return withCleanupLatchLock(() => clearCleanupLatchInternal(expected, true))
+    .then((lockedResult) => lockedResult ?? clearCleanupLatchInternal(expected, false));
 }
 
 export function getSyncMetadata(): Promise<LocalSyncMetadata | null> {

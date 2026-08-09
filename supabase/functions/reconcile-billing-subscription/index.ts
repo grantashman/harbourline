@@ -98,6 +98,36 @@ function chooseSubscription(
       || Number(right.subscription.created ?? 0) - Number(left.subscription.created ?? 0))[0] ?? null;
 }
 
+async function hasHouseholdCloudAccess(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  userId: string
+): Promise<boolean> {
+  const { data: memberships, error: membershipError } = await admin
+    .from("household_members")
+    .select("household_id")
+    .eq("user_id", userId);
+  if (membershipError) throw new HttpError(500, "Household access could not be reconciled.");
+  const householdIds = [...new Set((memberships ?? []).map((row) => row.household_id).filter(Boolean))];
+  if (!householdIds.length) return false;
+
+  const { data: householdMembers, error: householdMemberError } = await admin
+    .from("household_members")
+    .select("user_id")
+    .in("household_id", householdIds);
+  if (householdMemberError) throw new HttpError(500, "Household access could not be reconciled.");
+  const memberIds = [...new Set((householdMembers ?? []).map((row) => row.user_id).filter(Boolean))];
+  if (!memberIds.length) return false;
+
+  const { data: activeSubscriptions, error: subscriptionError } = await admin
+    .from("billing_subscriptions")
+    .select("user_id")
+    .in("user_id", memberIds)
+    .in("status", ["active", "trialing"])
+    .limit(1);
+  if (subscriptionError) throw new HttpError(500, "Household access could not be reconciled.");
+  return Boolean(activeSubscriptions?.length);
+}
+
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (request.method !== "POST") return new Response("Method not allowed", { status: 405, headers: corsHeaders });
@@ -117,6 +147,17 @@ Deno.serve(async (request) => {
       .eq("user_id", user.id)
       .maybeSingle();
     if (billingError) throw new HttpError(500, "Billing status could not be loaded.");
+
+    const inheritedHouseholdAccess = await hasHouseholdCloudAccess(admin, user.id);
+    if (inheritedHouseholdAccess) {
+      return jsonResponse({
+        active: true,
+        reconciled: true,
+        subscription: existingBilling && ACCESS_STATUSES.has(existingBilling.status)
+          ? existingBilling
+          : null
+      });
+    }
 
     const customers = existingBilling?.stripe_customer_id
       ? [await stripeGet(`/v1/customers/${encodeURIComponent(existingBilling.stripe_customer_id)}`, {}, stripeSecret)]
