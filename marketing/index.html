@@ -8,6 +8,8 @@
   <meta property="og:title" content="Harbourline | Make payday feel predictable" />
   <meta property="og:description" content="A calm household money plan for paydays, bills, savings, debt and what is safe to spend next." />
   <meta property="og:type" content="website" />
+  <meta name="theme-color" content="#06110f" />
+  <link rel="preconnect" href="https://esm.sh" crossorigin />
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
   <style>
     :root {
@@ -236,6 +238,26 @@
     .button:disabled {
       cursor: not-allowed;
       opacity: 0.68;
+    }
+
+    .skip-link {
+      position: fixed;
+      top: 8px;
+      left: 8px;
+      z-index: 50;
+      padding: 10px 13px;
+      color: #04130f;
+      border-radius: 8px;
+      background: var(--mint);
+      font-weight: 850;
+      transform: translateY(-160%);
+      transition: transform 160ms ease;
+    }
+
+    .skip-link:focus-visible {
+      transform: translateY(0);
+      outline: 3px solid rgba(126, 165, 255, 0.62);
+      outline-offset: 3px;
     }
 
     .button.is-pending {
@@ -654,6 +676,29 @@
       width: 100%;
     }
 
+    .plan-group + .plan-group {
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid rgba(177, 240, 218, 0.16);
+    }
+
+    .plan-group h4 {
+      margin: 0;
+      color: var(--mint);
+      font-size: 0.76rem;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .plan-group.free h4 {
+      color: var(--ink);
+    }
+
+    .plan-group ul {
+      margin-top: 10px;
+    }
+
     ul {
       display: grid;
       gap: 10px;
@@ -1040,12 +1085,27 @@
         flex-direction: column;
       }
     }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+
+      *,
+      *::before,
+      *::after {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+      }
+    }
   </style>
 </head>
 <body>
+  <a class="skip-link" href="#top">Skip to main content</a>
   <header class="page nav">
     <a class="brand" href="#top" aria-label="Harbourline homepage">
-      <img src="assets/harbourline-mark.svg" alt="" />
+      <img src="assets/harbourline-mark.svg" alt="" width="44" height="44" fetchpriority="high" />
       <span>
         <span class="eyebrow">Household money planning</span>
         <strong>Harbourline</strong>
@@ -1148,16 +1208,16 @@
       </div>
       <p class="feature-supporting-label">Also included</p>
       <div class="feature-grid feature-grid-secondary">
-        <article class="section-card"><span class="icon">CAL</span><h3>Optional calendar sync</h3><p>View planned income and bills in Harbourline, then optionally sync generic paydays and due dates to Google Calendar.</p></article>
-        <article class="section-card"><span class="icon">PDF</span><h3>Reports and exports</h3><p>Download Excel, CSV, PDF and backup files for review, advice or record keeping.</p></article>
-        <article class="section-card"><span class="icon">SYNC</span><h3>Household sync</h3><p>Keep your shared household plan available across supported devices.</p></article>
+        <article class="section-card"><span class="icon">CAL</span><h3>Optional Calendar sync</h3><p>Paid Household customers can optionally sync planned paydays and bill due dates one way to Google Calendar. Generic titles are the default; expense names are opt-in.</p></article>
+        <article class="section-card"><span class="icon">PDF</span><h3>Reports and exports</h3><p>Every plan can export Excel, CSV, PDF and JSON backup copies for review, advice or record keeping.</p></article>
+        <article class="section-card"><span class="icon">SYNC</span><h3>Household sync</h3><p>The paid Household plan keeps one shared household plan available across supported devices.</p></article>
       </div>
     </section>
 
     <section id="pricing">
       <div class="section-head">
         <h2>Pricing designed for real households.</h2>
-        <p>Start with the local planner at no cost. Upgrade only when cloud backup, household sharing and multi-device continuity become useful.</p>
+        <p>Start with the local planner at no cost. Upgrade only when secure cloud continuity, household sharing and multi-device access become useful.</p>
       </div>
       <div class="pricing-grid">
         <article class="price-card featured">
@@ -1166,12 +1226,22 @@
             <h3>Cloud continuity</h3>
             <div class="price">A$2.50<span> per week</span></div>
             <p>Build your first payday plan free on one device. Upgrade to the introductory A$2.50/week plan when you want your household copy protected and available across devices.</p>
-            <ul>
-              <li>Free local payday, bills, savings and debt planning</li>
-              <li>Secure cloud backup and household sync</li>
-              <li>Partner invitations, history and reminders</li>
-              <li>Optional Calendar sync plus exports</li>
-            </ul>
+            <div class="plan-group free">
+              <h4>Free Starter includes</h4>
+              <ul>
+                <li>Local payday, bills, savings and debt planning</li>
+                <li>Excel, CSV, PDF and JSON exports</li>
+                <li>One browser and device, with no account or card required</li>
+              </ul>
+            </div>
+            <div class="plan-group paid">
+              <h4>Household adds</h4>
+              <ul>
+                <li>Secure cloud backup and multi-device synchronisation</li>
+                <li>One shared household with member invitations</li>
+                <li>Optional one-way Google Calendar sync</li>
+              </ul>
+            </div>
           </div>
           <div class="price-summary">
             <span class="price-summary-label">Start free. Upgrade when continuity matters.</span>
@@ -1179,13 +1249,13 @@
             <div class="price-breakdown" aria-label="Harbourline pricing summary">
               <div><span>Free Starter</span><strong>One device</strong></div>
               <div><span>Household plan</span><strong>A$2.50 / week</strong></div>
-              <div><span>Cancel</span><strong>Anytime</strong></div>
+              <div><span>Price</span><strong>Shown before payment</strong></div>
             </div>
             <a class="button secondary price-cta" href="https://harbourline.app/">Try the free starter</a>
           </div>
         </article>
       </div>
-      <p class="pricing-note">The Free Starter is stored only in your browser. Payment is required only for cloud backup, household sharing and multi-device sync.</p>
+      <p class="pricing-note">The Free Starter is stored only in your browser and includes portable exports. Payment is required for cloud backup, household sharing, multi-device synchronisation and optional Google Calendar sync.</p>
     </section>
 
     <section id="early-access">
