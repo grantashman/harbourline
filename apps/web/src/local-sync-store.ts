@@ -1,3 +1,4 @@
+import { stableStateHash } from "@harbourline/sync";
 import type { LocalSyncMetadata, PendingMutation } from "@harbourline/sync";
 
 const DATABASE_NAME = "harbourline-release-2";
@@ -7,6 +8,7 @@ const MUTATION_STORE = "mutations";
 const CLEANUP_STORE = "cleanup";
 const ACTIVE_METADATA_KEY = "active";
 const ACTIVE_CLEANUP_LATCH_KEY = "active";
+const CLEANUP_LATCH_FALLBACK_KEY = `${DATABASE_NAME}:cleanup-latch`;
 
 export interface CleanupLatch {
   ownerId: string;
@@ -21,39 +23,85 @@ function requireId(value: unknown, label: string): string {
   return value;
 }
 
+function isTimestamp(value: unknown): value is string {
+  return typeof value === "string" && Number.isFinite(Date.parse(value));
+}
+
+function isRevision(value: unknown, minimum = 0): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value >= minimum;
+}
+
+function isStateHash(value: unknown): value is string {
+  return typeof value === "string" && /^fnv1a-[0-9a-f]{8}$/.test(value);
+}
+
 function isOwnedMetadata(value: unknown): value is LocalSyncMetadata {
-  return Boolean(
-    value &&
-    typeof value === "object" &&
-    typeof (value as LocalSyncMetadata).ownerId === "string" &&
-    (value as LocalSyncMetadata).ownerId.trim().length > 0 &&
-    typeof (value as LocalSyncMetadata).householdId === "string" &&
-    (value as LocalSyncMetadata).householdId.trim().length > 0
+  if (!value || typeof value !== "object") return false;
+  const metadata = value as LocalSyncMetadata;
+  return (
+    typeof metadata.ownerId === "string" && metadata.ownerId.trim().length > 0 &&
+    typeof metadata.householdId === "string" && metadata.householdId.trim().length > 0 &&
+    isRevision(metadata.revision) &&
+    isStateHash(metadata.lastSyncedHash) &&
+    isTimestamp(metadata.lastSyncedAt)
   );
 }
 
 function isOwnedMutation(value: unknown): value is PendingMutation {
-  return Boolean(
-    value &&
-    typeof value === "object" &&
-    typeof (value as PendingMutation).id === "string" &&
-    (value as PendingMutation).id.trim().length > 0 &&
-    typeof (value as PendingMutation).ownerId === "string" &&
-    (value as PendingMutation).ownerId.trim().length > 0 &&
-    typeof (value as PendingMutation).householdId === "string" &&
-    (value as PendingMutation).householdId.trim().length > 0
+  if (!value || typeof value !== "object") return false;
+  const mutation = value as PendingMutation;
+  return (
+    typeof mutation.id === "string" && mutation.id.trim().length > 0 &&
+    typeof mutation.ownerId === "string" && mutation.ownerId.trim().length > 0 &&
+    typeof mutation.householdId === "string" && mutation.householdId.trim().length > 0 &&
+    isRevision(mutation.baseRevision) &&
+    isRevision(mutation.schemaVersion, 1) &&
+    isStateHash(mutation.stateHash) &&
+    isTimestamp(mutation.createdAt) &&
+    isRevision(mutation.attempts) &&
+    mutation.state !== undefined &&
+    stableStateHash(mutation.state) === mutation.stateHash
   );
 }
 
 function isCleanupLatch(value: unknown): value is CleanupLatch {
-  return Boolean(
-    value &&
-    typeof value === "object" &&
-    typeof (value as CleanupLatch).ownerId === "string" &&
-    (value as CleanupLatch).ownerId.trim().length > 0 &&
-    typeof (value as CleanupLatch).failedAt === "string" &&
-    (value as CleanupLatch).failedAt.length > 0
+  if (!value || typeof value !== "object") return false;
+  const latch = value as CleanupLatch;
+  return (
+    typeof latch.ownerId === "string" && latch.ownerId.trim().length > 0 &&
+    (latch.householdId === undefined || (typeof latch.householdId === "string" && latch.householdId.trim().length > 0)) &&
+    isTimestamp(latch.failedAt)
   );
+}
+
+function readCleanupLatchFallback(): CleanupLatch | null {
+  if (typeof localStorage === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(CLEANUP_LATCH_FALLBACK_KEY);
+    if (!raw) return null;
+    const value: unknown = JSON.parse(raw);
+    return isCleanupLatch(value) ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCleanupLatchFallback(latch: CleanupLatch): void {
+  if (typeof localStorage === "undefined") return;
+  try {
+    localStorage.setItem(CLEANUP_LATCH_FALLBACK_KEY, JSON.stringify(latch));
+  } catch {
+    // IndexedDB remains the primary store; the caller still fails closed if it fails.
+  }
+}
+
+function clearCleanupLatchFallback(): void {
+  if (typeof localStorage === "undefined") return;
+  try {
+    localStorage.removeItem(CLEANUP_LATCH_FALLBACK_KEY);
+  } catch {
+    // A stale fallback keeps the next session fail-closed, which is safer than clearing it.
+  }
 }
 
 function openDatabase(): Promise<IDBDatabase> {
@@ -102,7 +150,12 @@ export function getCleanupLatch(): Promise<CleanupLatch | null> {
     CLEANUP_STORE,
     "readonly",
     (store) => store.get(ACTIVE_CLEANUP_LATCH_KEY)
-  ).then((value) => isCleanupLatch(value) ? value : null);
+  ).then((value) => isCleanupLatch(value) ? value : readCleanupLatchFallback())
+    .catch((error) => {
+      const fallback = readCleanupLatchFallback();
+      if (fallback) return fallback;
+      throw error;
+    });
 }
 
 export function setCleanupLatch(ownerId: string, householdId?: string): Promise<IDBValidKey> {
@@ -111,28 +164,41 @@ export function setCleanupLatch(ownerId: string, householdId?: string): Promise<
     ...(householdId === undefined ? {} : { householdId: requireId(householdId, "householdId") }),
     failedAt: new Date().toISOString()
   };
+  writeCleanupLatchFallback(latch);
   return withStore(
     CLEANUP_STORE,
     "readwrite",
     (store) => store.put(latch, ACTIVE_CLEANUP_LATCH_KEY)
-  );
+  ).then((key) => {
+    clearCleanupLatchFallback();
+    return key;
+  });
 }
 
-export function clearCleanupLatch(ownerId: string): Promise<undefined> {
+export function clearCleanupLatch(ownerId: string): Promise<boolean> {
   ownerId = requireId(ownerId, "ownerId");
+  const fallback = readCleanupLatchFallback();
+  if (fallback && fallback.ownerId !== ownerId) return Promise.resolve(false);
   const databasePromise = openDatabase();
   return databasePromise.then((database) => new Promise((resolve, reject) => {
     const transaction = database.transaction(CLEANUP_STORE, "readwrite");
     const store = transaction.objectStore(CLEANUP_STORE);
     const request = store.get(ACTIVE_CLEANUP_LATCH_KEY);
+    let cleared = false;
     request.onerror = () => reject(request.error ?? new Error("Local sync storage failed."));
     request.onsuccess = () => {
       const latch = request.result as CleanupLatch | undefined;
-      if (latch?.ownerId === ownerId) store.delete(ACTIVE_CLEANUP_LATCH_KEY);
+      if (latch === undefined) {
+        cleared = true;
+      } else if (latch.ownerId === ownerId) {
+        store.delete(ACTIVE_CLEANUP_LATCH_KEY);
+        cleared = true;
+      }
     };
     transaction.oncomplete = () => {
       database.close();
-      resolve(undefined);
+      if (cleared) clearCleanupLatchFallback();
+      resolve(cleared);
     };
     transaction.onerror = () => {
       database.close();
@@ -224,48 +290,36 @@ export function clearAllPendingMutations(ownerId: string): Promise<undefined> {
 }
 
 export async function discardUnownedSyncData(): Promise<void> {
-  await deleteUnownedMetadata();
-  await deleteUnownedMutations();
-}
-
-async function deleteUnownedMetadata(): Promise<void> {
   const database = await openDatabase();
-  await new Promise<void>((resolve, reject) => {
-    const transaction = database.transaction(METADATA_STORE, "readwrite");
-    const store = transaction.objectStore(METADATA_STORE);
-    const request = store.get(ACTIVE_METADATA_KEY);
-    request.onerror = () => reject(request.error ?? new Error("Local sync storage failed."));
-    request.onsuccess = () => {
-      if (!isOwnedMetadata(request.result)) store.delete(ACTIVE_METADATA_KEY);
-    };
-    transaction.oncomplete = () => resolve();
-    transaction.onerror = () => reject(transaction.error ?? new Error("Local sync storage failed."));
-  }).finally(() => database.close());
-}
-
-async function deleteUnownedMutations(): Promise<void> {
-  const database = await openDatabase();
-  await new Promise<void>((resolve, reject) => {
-    const transaction = database.transaction(MUTATION_STORE, "readwrite");
-    const store = transaction.objectStore(MUTATION_STORE);
-    const request = store.getAll();
-    request.onerror = () => reject(request.error ?? new Error("Local sync storage failed."));
-    request.onsuccess = () => {
-      for (const value of request.result as unknown[]) {
-        if (isOwnedMutation(value)) continue;
-        if (
-          value &&
-          typeof value === "object" &&
-          typeof (value as { id?: unknown }).id === "string" &&
-          (value as { id: string }).id.trim().length > 0
-        ) {
-          store.delete((value as { id: string }).id);
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const transaction = database.transaction([METADATA_STORE, MUTATION_STORE], "readwrite");
+      const metadataStore = transaction.objectStore(METADATA_STORE);
+      const mutationStore = transaction.objectStore(MUTATION_STORE);
+      const metadataRequest = metadataStore.get(ACTIVE_METADATA_KEY);
+      const mutationsRequest = mutationStore.getAll();
+      const fail = (error: unknown) => reject(error instanceof Error ? error : new Error("Local sync storage failed."));
+      metadataRequest.onerror = () => fail(metadataRequest.error);
+      mutationsRequest.onerror = () => fail(mutationsRequest.error);
+      metadataRequest.onsuccess = () => {
+        if (!isOwnedMetadata(metadataRequest.result)) metadataStore.delete(ACTIVE_METADATA_KEY);
+      };
+      mutationsRequest.onsuccess = () => {
+        for (const value of mutationsRequest.result as unknown[]) {
+          if (isOwnedMutation(value)) continue;
+          if (value && typeof value === "object" && typeof (value as { id?: unknown }).id === "string") {
+            const id = (value as { id: string }).id.trim();
+            if (id) mutationStore.delete(id);
+          }
         }
-      }
-    };
-    transaction.oncomplete = () => resolve();
-    transaction.onerror = () => reject(transaction.error ?? new Error("Local sync storage failed."));
-  }).finally(() => database.close());
+      };
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => fail(transaction.error);
+      transaction.onabort = () => fail(transaction.error ?? new Error("Local sync quarantine was aborted."));
+    });
+  } finally {
+    database.close();
+  }
 }
 
 async function deleteMetadataIfOwner(ownerId: string): Promise<undefined> {

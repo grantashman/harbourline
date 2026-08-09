@@ -43,7 +43,7 @@ create trigger beta_user_confirmed_signup
 after update of email_confirmed_at, confirmed_at on auth.users
 for each row
 when (
-  new.is_anonymous is not true
+  new.is_anonymous = false
   and coalesce(new.email_confirmed_at, new.confirmed_at) is not null
   and coalesce(old.email_confirmed_at, old.confirmed_at) is distinct from coalesce(new.email_confirmed_at, new.confirmed_at)
 )
@@ -116,7 +116,7 @@ begin
       target_event_created_at = current_row.stripe_event_created_at
       and (
         target_subscription_id is distinct from current_row.stripe_subscription_id
-        or target_event_id <= coalesce(current_row.stripe_event_id, '')
+        or target_event_id < coalesce(current_row.stripe_event_id, '')
       )
     )
   ) then

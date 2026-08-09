@@ -1,10 +1,6 @@
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { lifecycleEmailFor, sendLifecycleEmail, type LifecycleEmailKind } from "../_shared/beta-email.ts";
 import { captureServerError } from "../_shared/monitoring.ts";
-import {
-  isStaleSubscriptionEvent,
-  type BillingSubscriptionState
-} from "../stripe-subscription-ordering.ts";
 
 type StripeObject = Record<string, unknown>;
 
@@ -376,6 +372,24 @@ Deno.serve(async (request) => {
         throw new Error("Subscription could not be matched to a Harbourline account");
       }
 
+      const { data: orderingRows, error: orderingError } = await admin.rpc("apply_billing_subscription_snapshot", {
+        target_user_id: userId,
+        target_customer_id: snapshot.customerId,
+        target_subscription_id: snapshot.subscriptionId,
+        target_status: snapshot.status,
+        target_price_id: snapshot.priceId,
+        target_current_period_end: snapshot.currentPeriodEnd,
+        target_cancel_at_period_end: snapshot.cancelAtPeriodEnd,
+        target_event_created_at: eventCreatedAt,
+        target_event_id: eventId
+      });
+      const ordering = Array.isArray(orderingRows)
+        ? orderingRows[0] as { applied?: boolean; previous_status?: string | null } | undefined
+        : null;
+      if (orderingError || !ordering || typeof ordering.applied !== "boolean") {
+        throw new Error(orderingError?.message ?? "Billing subscription ordering could not be applied");
+      }
+
       const { data: billingEvent, error: billingEventError } = await admin
         .from("billing_events")
         .select("lifecycle_event_name, lifecycle_user_id, lifecycle_email_kind, lifecycle_event_recorded_at, lifecycle_email_sent_at")
@@ -384,35 +398,13 @@ Deno.serve(async (request) => {
         .single();
       if (billingEventError || !billingEvent) throw new Error(billingEventError?.message ?? "Billing event claim could not be loaded");
 
-      const { data: previousBilling, error: previousBillingError } = await admin
-        .from("billing_subscriptions")
-        .select("status, stripe_subscription_id, stripe_event_created_at, stripe_event_id")
-        .eq("user_id", userId)
-        .maybeSingle();
-      if (previousBillingError) throw new Error(previousBillingError.message);
-      const previousBillingState = previousBilling as BillingSubscriptionState | null;
-      if (isStaleSubscriptionEvent(
-        previousBillingState,
-        snapshot.subscriptionId,
-        eventCreatedAt,
-        eventId
-      )) {
-        const staleLifecycle = billingEvent as BillingEventLifecycle;
-        if (staleLifecycle.lifecycle_email_kind && !staleLifecycle.lifecycle_email_sent_at) {
-          const delivered = await deliverLifecycleEmail(
-            admin,
-            eventId,
-            claimToken,
-            staleLifecycle,
-            snapshot.currentPeriodEnd
-          );
-          if (!delivered) throw new Error("Lifecycle email delivery failed; billing event will be retried");
-        }
+      let lifecycle = billingEvent as BillingEventLifecycle;
+      if (!ordering.applied) {
         await completeBillingEventClaim(admin, eventId, claimToken);
         return new Response("ok", { status: 200 });
       }
-      const previousStatus = previousBillingState?.status ?? null;
-      let lifecycle = billingEvent as BillingEventLifecycle;
+
+      const previousStatus = ordering.previous_status ?? null;
       if (!lifecycle.lifecycle_event_name) {
         const lifecycleEvent = lifecycleEventName(previousStatus, snapshot.status);
         if (lifecycleEvent) {
@@ -431,38 +423,6 @@ Deno.serve(async (request) => {
           if (planError || !plannedLifecycle) throw new Error(planError?.message ?? "Lifecycle event could not be planned");
           lifecycle = plannedLifecycle as BillingEventLifecycle;
         }
-      }
-
-      const { data: orderingRows, error: orderingError } = await admin.rpc("apply_billing_subscription_snapshot", {
-        target_user_id: userId,
-        target_customer_id: snapshot.customerId,
-        target_subscription_id: snapshot.subscriptionId,
-        target_status: snapshot.status,
-        target_price_id: snapshot.priceId,
-        target_current_period_end: snapshot.currentPeriodEnd,
-        target_cancel_at_period_end: snapshot.cancelAtPeriodEnd,
-        target_event_created_at: eventCreatedAt,
-        target_event_id: eventId
-      });
-      const ordering = Array.isArray(orderingRows)
-        ? orderingRows[0] as { applied?: boolean; previous_status?: string | null } | undefined
-        : null;
-      if (orderingError || !ordering || typeof ordering.applied !== "boolean") {
-        throw new Error(orderingError?.message ?? "Billing subscription ordering could not be applied");
-      }
-      if (!ordering.applied) {
-        if (lifecycle.lifecycle_email_kind && !lifecycle.lifecycle_email_sent_at) {
-          const delivered = await deliverLifecycleEmail(
-            admin,
-            eventId,
-            claimToken,
-            lifecycle,
-            snapshot.currentPeriodEnd
-          );
-          if (!delivered) throw new Error("Lifecycle email delivery failed; billing event will be retried");
-        }
-        await completeBillingEventClaim(admin, eventId, claimToken);
-        return new Response("ok", { status: 200 });
       }
 
       if (lifecycle.lifecycle_event_name && lifecycle.lifecycle_user_id) {

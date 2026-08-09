@@ -125,6 +125,10 @@ export function parseOperatorEmails(value: string | null | undefined): Set<strin
   );
 }
 
+export function isVerifiedAuthUser(user: { is_anonymous?: boolean | null }): boolean {
+  return user.is_anonymous === false;
+}
+
 export async function requireAuthenticatedUser(request: Request) {
   const authorization = request.headers.get("Authorization");
   if (!authorization?.startsWith("Bearer ")) {
@@ -144,7 +148,7 @@ export async function requireAuthenticatedUser(request: Request) {
   if (error || !user) {
     throw new HttpError(401, "Authentication required");
   }
-  if (user.is_anonymous === true) {
+  if (!isVerifiedAuthUser(user)) {
     throw new HttpError(401, "A verified account is required");
   }
 

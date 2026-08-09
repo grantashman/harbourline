@@ -795,6 +795,7 @@ export class AccountPanel {
     this.actionGeneration += 1;
     this.calendarOperationGeneration += 1;
     this.sync.setCloudAccess(false, true);
+    let latchPersistenceError: unknown = null;
     try {
       const metadata = this.sync.metadata;
       await setCleanupLatch(
@@ -802,13 +803,19 @@ export class AccountPanel {
         metadata?.ownerId === ownerId ? metadata.householdId : undefined
       );
     } catch (latchError) {
+      latchPersistenceError = latchError;
       reportError(latchError);
     }
     reportError(error);
     if (this.state.user?.id !== ownerId && this.state.user?.id) return;
     this.resetCloudState(null);
-    this.notice = "Cloud sync is unavailable until local cleanup succeeds.";
+    this.notice = latchPersistenceError
+      ? "Cloud sync is unavailable and the cleanup failure could not be persisted. Keep this tab open and retry cleanup."
+      : "Cloud sync is unavailable until local cleanup succeeds.";
     this.render();
+    if (latchPersistenceError) {
+      throw new Error("Cleanup failure could not be persisted.", { cause: latchPersistenceError });
+    }
   }
 
   private async disconnectLocalSync(
@@ -822,7 +829,9 @@ export class AccountPanel {
         expectedRefreshGeneration !== this.accountRefreshGeneration
       ) return false;
       const latchOwnerId = this.cleanupLatchOwnerId;
-      if (latchOwnerId) await clearCleanupLatch(latchOwnerId);
+      if (latchOwnerId && !await clearCleanupLatch(latchOwnerId)) {
+        throw new Error("The cleanup latch belongs to a different account.");
+      }
       this.cleanupLatchOwnerId = null;
       this.cleanupBlocked = false;
       return true;

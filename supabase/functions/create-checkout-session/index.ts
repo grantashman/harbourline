@@ -22,6 +22,7 @@ Deno.serve(async (request) => {
   );
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error || !user) return new Response("Unauthorised", { status: 401, headers: corsHeaders });
+  if (user.is_anonymous !== false) return new Response("A verified account is required", { status: 403, headers: corsHeaders });
 
   const stripeSecret = Deno.env.get("STRIPE_SECRET_KEY");
   const priceId = Deno.env.get("STRIPE_PRICE_ID");

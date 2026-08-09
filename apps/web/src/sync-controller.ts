@@ -130,7 +130,12 @@ export class SyncController {
     if (inFlightRemoteChange) await inFlightRemoteChange.catch(() => undefined);
     await Promise.allSettled(inFlightOperations);
     if (!this.isCurrent(generation, ownerId)) return false;
-    await clearSyncMetadata(ownerId);
+    try {
+      await clearSyncMetadata(ownerId);
+    } catch (error) {
+      await this.onCleanupFailure(error, ownerId);
+      return false;
+    }
     if (!this.isCurrent(generation, ownerId)) return false;
     const remote = await this.cloud.fetchBudget(householdId);
     if (!this.isCurrent(generation, ownerId)) return false;
@@ -138,7 +143,12 @@ export class SyncController {
       this.applyRemote(remote);
       await this.recordRemote(remote, generation);
       if (!this.isCurrent(generation, ownerId)) return false;
-      await clearPendingMutations(ownerId, householdId);
+      try {
+        await clearPendingMutations(ownerId, householdId);
+      } catch (error) {
+        await this.onCleanupFailure(error, ownerId);
+        return false;
+      }
       if (!this.isCurrent(generation, ownerId)) return false;
       const subscriptionKey = await this.cloud.subscribeToBudget(householdId, () => void this.receiveRemoteChange(householdId));
       if (!this.isCurrent(generation, ownerId)) {
@@ -167,7 +177,12 @@ export class SyncController {
       return false;
     }
     this.metadata = metadata;
-    await clearPendingMutations(ownerId, householdId);
+    try {
+      await clearPendingMutations(ownerId, householdId);
+    } catch (error) {
+      await this.onCleanupFailure(error, ownerId);
+      return false;
+    }
     if (!this.isCurrent(generation, ownerId)) return false;
     await this.queueState(this.bridge.read(), true);
     if (!this.isCurrent(generation, ownerId)) return false;
@@ -308,7 +323,12 @@ export class SyncController {
       return;
     }
     this.metadata = metadata;
-    await clearPendingMutations(this.ownerId, metadata.householdId);
+    try {
+      await clearPendingMutations(this.ownerId, metadata.householdId);
+    } catch (error) {
+      await this.onCleanupFailure(error, metadata.ownerId);
+      return;
+    }
     if (!this.isCurrent(generation)) return;
     this.setConflict(null);
     await this.queueState(this.bridge.read(), true);
@@ -328,7 +348,12 @@ export class SyncController {
     if (!this.isCurrent(generation) || !this.ownerId || !this.metadata?.householdId) return;
     const ownerId = this.ownerId;
     const householdId = this.metadata.householdId;
-    await clearPendingMutations(ownerId, householdId);
+    try {
+      await clearPendingMutations(ownerId, householdId);
+    } catch (error) {
+      await this.onCleanupFailure(error, ownerId);
+      return;
+    }
     if (!this.isCurrent(generation)) return;
     this.setConflict(null);
     await this.report("Household version restored on this device.", "good", generation);

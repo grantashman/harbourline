@@ -55,7 +55,7 @@ drop trigger if exists beta_user_created_signup on auth.users;
 create trigger beta_user_created_signup
 after insert on auth.users
 for each row
-when (new.is_anonymous is not true)
+when (new.is_anonymous = false)
 execute function private.record_new_user_signup();
 
 alter table public.billing_events

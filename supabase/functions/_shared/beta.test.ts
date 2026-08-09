@@ -1,6 +1,6 @@
 import { assertEquals, assertThrows } from "jsr:@std/assert";
 import { lifecycleEmailFor, signupNotificationContent } from "./beta-email.ts";
-import { parseOperatorEmails, validateBetaEvent, validateClientBetaEvent } from "./beta.ts";
+import { parseOperatorEmails, isVerifiedAuthUser, validateBetaEvent, validateClientBetaEvent } from "./beta.ts";
 import { isStaleSubscriptionEvent } from "../stripe-subscription-ordering.ts";
 
 Deno.test("validates the fixed customer event allowlist", () => {
@@ -10,6 +10,13 @@ Deno.test("validates the fixed customer event allowlist", () => {
   assertThrows(() => validateClientBetaEvent("subscription_activated"));
   assertThrows(() => validateClientBetaEvent("signup_completed"));
   assertEquals(validateClientBetaEvent("income_added"), "income_added");
+});
+
+Deno.test("anonymous and unknown auth identities fail closed", () => {
+  assertEquals(isVerifiedAuthUser({ is_anonymous: false }), true);
+  assertEquals(isVerifiedAuthUser({ is_anonymous: true }), false);
+  assertEquals(isVerifiedAuthUser({ is_anonymous: undefined }), false);
+  assertEquals(isVerifiedAuthUser({ is_anonymous: null }), false);
 });
 
 Deno.test("matches normalised operator emails", () => {
@@ -39,6 +46,7 @@ Deno.test("ignores delayed Stripe subscription snapshots", () => {
     stripe_event_created_at: "2026-08-09T00:00:10.000Z",
     stripe_event_id: "evt_new"
   };
+  assertEquals(isStaleSubscriptionEvent(current, "sub_new", "2026-08-09T00:00:10.000Z", "evt_new"), false);
   assertEquals(isStaleSubscriptionEvent(current, "sub_old", "2026-08-09T00:00:10.000Z", "evt_zzz"), true);
   assertEquals(isStaleSubscriptionEvent(current, "sub_new", "2026-08-09T00:00:11.000Z", "evt_latest"), false);
   assertEquals(isStaleSubscriptionEvent(current, "sub_new", "not-a-time", "evt_bad"), true);

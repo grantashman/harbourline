@@ -18,6 +18,6 @@ export function isStaleSubscriptionEvent(
   if (incomingTime < currentTime) return true;
   if (incomingTime > currentTime) return false;
   if (current.stripe_subscription_id !== incomingSubscriptionId) return true;
-  if (current.stripe_event_id) return current.stripe_event_id >= incomingEventId;
+  if (current.stripe_event_id) return current.stripe_event_id > incomingEventId;
   return false;
 }

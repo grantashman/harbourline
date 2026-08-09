@@ -18,7 +18,7 @@ import type {
   BetaOnboardingStep,
   BetaOperationsSnapshot
 } from "./beta-types";
-import { addRealtimeLease, releaseRealtimeLease } from "./realtime-lease";
+import { addRealtimeLease, isRealtimeFailureStatus, releaseRealtimeLease } from "./realtime-lease";
 
 interface HouseholdMemberRow {
   household_id: string;
@@ -106,6 +106,7 @@ export class HarbourlineCloud {
   private realtimeChannel: RealtimeChannel | null = null;
   private realtimeHouseholdId: string | null = null;
   private realtimeSubscriptionKeys = new Set<string>();
+  private realtimeCallback: (() => void) | null = null;
   private realtimeSetup: Promise<void> = Promise.resolve();
 
   constructor() {
@@ -437,14 +438,14 @@ export class HarbourlineCloud {
 
   subscribeToBudget(householdId: string, callback: () => void): Promise<string> {
     const subscriptionKey = crypto.randomUUID();
-    const setup = this.realtimeSetup.catch(() => undefined).then(async () => {
+    return this.queueRealtimeOperation(async () => {
       if (this.realtimeChannel && this.realtimeHouseholdId === householdId) {
         addRealtimeLease(this.realtimeSubscriptionKeys, subscriptionKey);
         return subscriptionKey;
       }
       await this.removeRealtimeChannel();
       const client = this.requireClient();
-      this.realtimeChannel = client
+      const channel = client
         .channel(`budget:${householdId}`)
         .on(
           "postgres_changes",
@@ -455,33 +456,75 @@ export class HarbourlineCloud {
             filter: `household_id=eq.${householdId}`
           },
           callback
-        )
-        .subscribe();
+        );
+      this.realtimeChannel = channel;
       this.realtimeHouseholdId = householdId;
+      this.realtimeCallback = callback;
       this.realtimeSubscriptionKeys = new Set([subscriptionKey]);
+      channel.subscribe((status) => {
+        if (isRealtimeFailureStatus(status)) {
+          void this.recoverRealtimeChannel(channel, householdId);
+        }
+      });
       return subscriptionKey;
     });
-    this.realtimeSetup = setup.then(() => undefined, () => undefined);
-    return setup;
   }
 
   unsubscribeFromBudget(expectedSubscriptionKey: string): Promise<void> {
-    const cleanup = this.realtimeSetup.catch(() => undefined).then(async () => {
+    return this.queueRealtimeOperation(async () => {
       if (!releaseRealtimeLease(this.realtimeSubscriptionKeys, expectedSubscriptionKey)) return;
       if (this.realtimeSubscriptionKeys.size > 0) return;
       await this.removeRealtimeChannel();
     });
-    this.realtimeSetup = cleanup.then(() => undefined, () => undefined);
-    return cleanup;
   }
 
-  private async removeRealtimeChannel(): Promise<void> {
-    if (this.client && this.realtimeChannel) {
-      await this.client.removeChannel(this.realtimeChannel);
-      this.realtimeChannel = null;
-    }
+  private queueRealtimeOperation<T>(operation: () => Promise<T>): Promise<T> {
+    const queued = this.realtimeSetup.catch(() => undefined).then(operation);
+    this.realtimeSetup = queued.then(() => undefined, () => undefined);
+    return queued;
+  }
+
+  private async recoverRealtimeChannel(expectedChannel: RealtimeChannel, householdId: string): Promise<void> {
+    await this.queueRealtimeOperation(async () => {
+      if (this.realtimeChannel !== expectedChannel || this.realtimeHouseholdId !== householdId) return;
+      const callback = this.realtimeCallback;
+      if (!callback || this.realtimeSubscriptionKeys.size === 0) {
+        await this.removeRealtimeChannel();
+        return;
+      }
+      await this.removeRealtimeChannel(false);
+      const channel = this.requireClient()
+        .channel(`budget:${householdId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "budget_documents",
+            filter: `household_id=eq.${householdId}`
+          },
+          callback
+        );
+      this.realtimeChannel = channel;
+      this.realtimeHouseholdId = householdId;
+      this.realtimeCallback = callback;
+      channel.subscribe((status) => {
+        if (isRealtimeFailureStatus(status)) {
+          void this.recoverRealtimeChannel(channel, householdId);
+        }
+      });
+    });
+  }
+
+  private async removeRealtimeChannel(clearLeases = true): Promise<void> {
+    const channel = this.realtimeChannel;
+    this.realtimeChannel = null;
     this.realtimeHouseholdId = null;
-    this.realtimeSubscriptionKeys.clear();
+    this.realtimeCallback = null;
+    if (this.client && channel) {
+      await this.client.removeChannel(channel);
+    }
+    if (clearLeases) this.realtimeSubscriptionKeys.clear();
   }
 
   async exportAccount(): Promise<unknown> {
