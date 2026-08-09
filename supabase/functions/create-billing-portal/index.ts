@@ -13,6 +13,7 @@ Deno.serve(async (request) => {
   );
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) return new Response("Unauthorised", { status: 401, headers: corsHeaders });
+  if (user.is_anonymous !== false) return new Response("A verified account is required", { status: 403, headers: corsHeaders });
 
   const { data: billing, error: billingError } = await supabase
     .from("billing_subscriptions")

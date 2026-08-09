@@ -57,7 +57,8 @@ export async function captureServerError(
     await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/x-sentry-envelope" },
-      body: `${header}\n${item}\n${JSON.stringify(event)}`
+      body: `${header}\n${item}\n${JSON.stringify(event)}`,
+      signal: AbortSignal.timeout(3_000)
     });
   } catch {
     // Monitoring must never change the customer-facing response path.

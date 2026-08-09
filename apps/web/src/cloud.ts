@@ -13,11 +13,12 @@ import type {
   SyncResult
 } from "@harbourline/sync";
 import type {
-  BetaEventName,
+  ClientBetaEventName,
   BetaOnboardingProgress,
   BetaOnboardingStep,
   BetaOperationsSnapshot
 } from "./beta-types";
+import { addRealtimeLease, isRealtimeFailureStatus, releaseRealtimeLease } from "./realtime-lease";
 
 interface HouseholdMemberRow {
   household_id: string;
@@ -68,11 +69,44 @@ export interface GoogleCalendarEvent {
   endDate: string;
 }
 
+function requireStripeRedirectUrl(value: unknown): string {
+  if (typeof value !== "string") throw new Error("Billing provider returned an invalid redirect.");
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error("Billing provider returned an invalid redirect.");
+  }
+  if (
+    url.protocol !== "https:" ||
+    !new Set(["checkout.stripe.com", "billing.stripe.com"]).has(url.hostname)
+  ) {
+    throw new Error("Billing provider returned an unsafe redirect.");
+  }
+  return url.toString();
+}
+
+function requireGoogleAuthorizationUrl(value: unknown): string {
+  if (typeof value !== "string") throw new Error("Google Calendar returned an invalid redirect.");
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error("Google Calendar returned an invalid redirect.");
+  }
+  if (url.protocol !== "https:" || url.hostname !== "accounts.google.com") {
+    throw new Error("Google Calendar returned an unsafe redirect.");
+  }
+  return url.toString();
+}
+
 export class HarbourlineCloud {
   readonly configured: boolean;
   readonly client: SupabaseClient | null;
   private realtimeChannel: RealtimeChannel | null = null;
   private realtimeHouseholdId: string | null = null;
+  private realtimeSubscriptionKeys = new Set<string>();
+  private realtimeCallback: (() => void) | null = null;
   private realtimeSetup: Promise<void> = Promise.resolve();
 
   constructor() {
@@ -129,7 +163,7 @@ export class HarbourlineCloud {
   }
 
   async sendMagicLink(email: string): Promise<void> {
-    const redirectTo = `${location.origin}${location.pathname}`;
+    const redirectTo = `${location.origin}${location.pathname}?account=signin`;
     const { error } = await this.requireClient().auth.signInWithOtp({
       email,
       options: {
@@ -168,9 +202,7 @@ export class HarbourlineCloud {
       const detail = response ? await response.text() : "";
       throw new Error(detail || error.message);
     }
-    const url = (data as { url?: string } | null)?.url;
-    if (!url) throw new Error("Checkout could not be started.");
-    return url;
+    return requireStripeRedirectUrl((data as { url?: string } | null)?.url);
   }
 
   async createBillingPortalSession(): Promise<string> {
@@ -183,9 +215,7 @@ export class HarbourlineCloud {
       const detail = response ? await response.text() : "";
       throw new Error(detail || error.message);
     }
-    const url = (data as { url?: string } | null)?.url;
-    if (!url) throw new Error("Billing could not be opened.");
-    return url;
+    return requireStripeRedirectUrl((data as { url?: string } | null)?.url);
   }
 
   async startGoogleCalendarConnect(returnPath = location.pathname): Promise<string> {
@@ -194,9 +224,7 @@ export class HarbourlineCloud {
       body: { returnPath }
     });
     if (error) throw await this.functionError(error);
-    const url = (data as { authorizationUrl?: string } | null)?.authorizationUrl;
-    if (!url) throw new Error("Google Calendar connection could not be started.");
-    return url;
+    return requireGoogleAuthorizationUrl((data as { authorizationUrl?: string } | null)?.authorizationUrl);
   }
 
   async getGoogleCalendarStatus(): Promise<GoogleCalendarStatus> {
@@ -273,7 +301,10 @@ export class HarbourlineCloud {
     return data as BetaOnboardingProgress;
   }
 
-  async recordBetaEvent(eventName: BetaEventName, householdId?: string | null): Promise<void> {
+  async recordBetaEvent(
+    eventName: ClientBetaEventName,
+    householdId?: string | null
+  ): Promise<void> {
     const { error } = await this.requireClient().functions.invoke("record-beta-progress", {
       method: "POST",
       body: {
@@ -281,6 +312,16 @@ export class HarbourlineCloud {
         eventName,
         ...(householdId === undefined ? {} : { householdId })
       }
+    });
+    if (error) throw await this.functionError(error);
+  }
+
+  async notifySignupNotification(accessToken: string): Promise<void> {
+    if (!accessToken.trim()) throw new Error("A session token is required for signup notification delivery.");
+    const { error } = await this.requireClient().functions.invoke("record-beta-progress", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      body: { action: "signup-notification" }
     });
     if (error) throw await this.functionError(error);
   }
@@ -395,12 +436,16 @@ export class HarbourlineCloud {
     return data as SyncResult;
   }
 
-  subscribeToBudget(householdId: string, callback: () => void): Promise<void> {
-    this.realtimeSetup = this.realtimeSetup.then(async () => {
-      if (this.realtimeChannel && this.realtimeHouseholdId === householdId) return;
+  subscribeToBudget(householdId: string, callback: () => void): Promise<string> {
+    const subscriptionKey = crypto.randomUUID();
+    return this.queueRealtimeOperation(async () => {
+      if (this.realtimeChannel && this.realtimeHouseholdId === householdId) {
+        addRealtimeLease(this.realtimeSubscriptionKeys, subscriptionKey);
+        return subscriptionKey;
+      }
       await this.removeRealtimeChannel();
       const client = this.requireClient();
-      this.realtimeChannel = client
+      const channel = client
         .channel(`budget:${householdId}`)
         .on(
           "postgres_changes",
@@ -411,24 +456,75 @@ export class HarbourlineCloud {
             filter: `household_id=eq.${householdId}`
           },
           callback
-        )
-        .subscribe();
+        );
+      this.realtimeChannel = channel;
       this.realtimeHouseholdId = householdId;
+      this.realtimeCallback = callback;
+      this.realtimeSubscriptionKeys = new Set([subscriptionKey]);
+      channel.subscribe((status) => {
+        if (isRealtimeFailureStatus(status)) {
+          void this.recoverRealtimeChannel(channel, householdId);
+        }
+      });
+      return subscriptionKey;
     });
-    return this.realtimeSetup;
   }
 
-  unsubscribeFromBudget(): Promise<void> {
-    this.realtimeSetup = this.realtimeSetup.then(() => this.removeRealtimeChannel());
-    return this.realtimeSetup;
+  unsubscribeFromBudget(expectedSubscriptionKey: string): Promise<void> {
+    return this.queueRealtimeOperation(async () => {
+      if (!releaseRealtimeLease(this.realtimeSubscriptionKeys, expectedSubscriptionKey)) return;
+      if (this.realtimeSubscriptionKeys.size > 0) return;
+      await this.removeRealtimeChannel();
+    });
   }
 
-  private async removeRealtimeChannel(): Promise<void> {
-    if (this.client && this.realtimeChannel) {
-      await this.client.removeChannel(this.realtimeChannel);
-      this.realtimeChannel = null;
-    }
+  private queueRealtimeOperation<T>(operation: () => Promise<T>): Promise<T> {
+    const queued = this.realtimeSetup.catch(() => undefined).then(operation);
+    this.realtimeSetup = queued.then(() => undefined, () => undefined);
+    return queued;
+  }
+
+  private async recoverRealtimeChannel(expectedChannel: RealtimeChannel, householdId: string): Promise<void> {
+    await this.queueRealtimeOperation(async () => {
+      if (this.realtimeChannel !== expectedChannel || this.realtimeHouseholdId !== householdId) return;
+      const callback = this.realtimeCallback;
+      if (!callback || this.realtimeSubscriptionKeys.size === 0) {
+        await this.removeRealtimeChannel();
+        return;
+      }
+      await this.removeRealtimeChannel(false);
+      const channel = this.requireClient()
+        .channel(`budget:${householdId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "budget_documents",
+            filter: `household_id=eq.${householdId}`
+          },
+          callback
+        );
+      this.realtimeChannel = channel;
+      this.realtimeHouseholdId = householdId;
+      this.realtimeCallback = callback;
+      channel.subscribe((status) => {
+        if (isRealtimeFailureStatus(status)) {
+          void this.recoverRealtimeChannel(channel, householdId);
+        }
+      });
+    });
+  }
+
+  private async removeRealtimeChannel(clearLeases = true): Promise<void> {
+    const channel = this.realtimeChannel;
+    this.realtimeChannel = null;
     this.realtimeHouseholdId = null;
+    this.realtimeCallback = null;
+    if (this.client && channel) {
+      await this.client.removeChannel(channel);
+    }
+    if (clearLeases) this.realtimeSubscriptionKeys.clear();
   }
 
   async exportAccount(): Promise<unknown> {

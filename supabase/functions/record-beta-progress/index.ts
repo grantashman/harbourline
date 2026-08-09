@@ -7,11 +7,12 @@ import {
   HttpError,
   jsonResponse,
   requireAuthenticatedUser,
-  validateBetaEvent,
+  validateClientBetaEvent,
   validateBetaOnboardingStep
 } from "../_shared/beta.ts";
+import { sendSignupNotification } from "../_shared/beta-email.ts";
 
-type RequestAction = "get" | "progress" | "event";
+type RequestAction = "get" | "progress" | "event" | "signup-notification";
 
 interface ProgressRequest {
   action: RequestAction;
@@ -19,6 +20,12 @@ interface ProgressRequest {
   householdIdSupplied?: boolean;
   step?: BetaOnboardingStep;
   eventName?: string;
+}
+
+interface SignupEventRow {
+  id: string;
+  operator_notification_sent_at: string | null;
+  signup_verified_at: string | null;
 }
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -46,16 +53,21 @@ function parseRequestBody(value: unknown): ProgressRequest {
   if (Object.keys(body).some((key) => !allowedKeys.has(key))) {
     throw new HttpError(400, "Request body contains unsupported fields");
   }
-  if (body.action !== "get" && body.action !== "progress" && body.action !== "event") {
+  if (
+    body.action !== "get" &&
+    body.action !== "progress" &&
+    body.action !== "event" &&
+    body.action !== "signup-notification"
+  ) {
     throw new HttpError(400, "Unsupported beta action");
   }
   const householdId = validateHouseholdId(body.householdId, hasOwn(body, "householdId"));
 
-  if (body.action === "get") {
+  if (body.action === "get" || body.action === "signup-notification") {
     if (hasOwn(body, "householdId") || hasOwn(body, "step") || hasOwn(body, "eventName")) {
-      throw new HttpError(400, "get does not accept progress or event fields");
+      throw new HttpError(400, `${body.action} does not accept progress or event fields`);
     }
-    return { action: "get" };
+    return { action: body.action };
   }
 
   if (body.action === "progress") {
@@ -76,7 +88,7 @@ function parseRequestBody(value: unknown): ProgressRequest {
   return {
     action: "event",
     householdId,
-    eventName: validateBetaEvent(body.eventName)
+    eventName: validateClientBetaEvent(body.eventName)
   };
 }
 
@@ -127,6 +139,36 @@ Deno.serve(async (request) => {
       return jsonResponse(toProgress(data as Parameters<typeof toProgress>[0]));
     }
 
+    if (body.action === "signup-notification") {
+      const { data, error } = await serviceClient
+        .from("beta_operational_events")
+        .select("id, operator_notification_sent_at, signup_verified_at")
+        .eq("user_id", user.id)
+        .eq("event_name", "signup_completed")
+        .maybeSingle();
+      if (error) throw error;
+      const eventRow = data as SignupEventRow | null;
+      if (!eventRow?.signup_verified_at || eventRow.operator_notification_sent_at || !user.email) {
+        return jsonResponse({ recorded: false }, 200);
+      }
+      const delivered = await sendSignupNotification({
+        signupEmail: user.email,
+        provider: typeof user.app_metadata?.provider === "string" ? user.app_metadata.provider : null,
+        createdAt: user.created_at,
+        idempotencyKey: `harbourline-signup-${user.id}`
+      });
+      if (!delivered) {
+        throw new HttpError(503, "Signup notification delivery failed; retryable");
+      }
+      const { error: notificationError } = await serviceClient
+        .from("beta_operational_events")
+        .update({ operator_notification_sent_at: new Date().toISOString() })
+        .eq("id", eventRow.id)
+        .is("operator_notification_sent_at", null);
+      if (notificationError) throw notificationError;
+      return jsonResponse({ recorded: true }, 200);
+    }
+
     if (body.action === "progress") {
       const step = validateBetaOnboardingStep(body.step);
       if (body.householdId !== null && body.householdId !== undefined) {
@@ -148,11 +190,10 @@ Deno.serve(async (request) => {
       return jsonResponse(toProgress(data as Parameters<typeof toProgress>[0]));
     }
 
-    const eventName = validateBetaEvent(body.eventName);
+    const eventName = validateClientBetaEvent(body.eventName);
     if (body.householdId !== null && body.householdId !== undefined) {
       await requireHouseholdMembership(serviceClient, body.householdId, user.id);
     }
-
     const { error } = await serviceClient.from("beta_operational_events").insert({
       user_id: user.id,
       household_id: body.householdId ?? null,

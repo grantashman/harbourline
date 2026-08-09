@@ -1,9 +1,14 @@
-import type { Session } from "@supabase/supabase-js";
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import type { HouseholdSummary, RemoteBudgetDocument } from "@harbourline/sync";
 import { track } from "@vercel/analytics";
 import { resolveWorkspaceAccess, type WorkspaceAccess } from "./access-model";
+import {
+  shouldNotifySignupForAuthEvent,
+  shouldPreserveRecoveryForSession
+} from "./auth-event-policy";
 import { HarbourlineCloud, type BillingSubscription, type GoogleCalendarStatus } from "./cloud";
 import { GoogleCalendarSync } from "./calendar-sync";
+import { clearCleanupLatch, getCleanupLatch, setCleanupLatch } from "./local-sync-store";
 import { reportError } from "./monitoring";
 import { OnboardingFlow } from "./onboarding-flow";
 import { SyncController } from "./sync-controller";
@@ -97,11 +102,16 @@ export class AccountPanel {
   private billingConfirmationPending = false;
   private billingSubscription: BillingSubscription | null = null;
   private accountRefreshGeneration = 0;
+  private cleanupBlocked = false;
+  private cleanupLatchOwnerId: string | null = null;
   private readonly calendarSync: GoogleCalendarSync;
   private googleCalendarStatus: GoogleCalendarStatus = emptyGoogleCalendarStatus();
   private calendarBusy = false;
+  private calendarOperationGeneration = 0;
   private recoveryMode = false;
+  private recoveryFlowUserId: string | null = null;
   private pendingRecoveryRedirect = false;
+  private pendingRecoveryUserId: string | null = null;
   private inviteToken = "";
   private mfa: {
     verifiedCount: number;
@@ -133,7 +143,8 @@ export class AccountPanel {
       conflict: (conflict) => {
         this.state.conflict = conflict;
         this.render();
-      }
+      },
+      cleanupFailure: (error, ownerId) => this.recordCleanupFailure(error, ownerId)
     });
     this.onboarding = new OnboardingFlow({
       bridge,
@@ -155,6 +166,9 @@ export class AccountPanel {
 
   async initialise(): Promise<void> {
     await this.sync.initialise();
+    const cleanupLatch = await getCleanupLatch();
+    this.cleanupLatchOwnerId = cleanupLatch?.ownerId ?? null;
+    this.cleanupBlocked = cleanupLatch !== null;
     this.state.metadata = this.sync.metadata;
     const shouldOpenAccount = this.consumeAccountRedirect();
     const billingRedirect = this.consumeBillingRedirect();
@@ -178,28 +192,39 @@ export class AccountPanel {
       return;
     }
 
-    this.pendingRecoveryRedirect = this.consumeRecoveryRedirect();
-    const initialSessionAccepted = await this.handleSessionChange(await this.cloud.getSession());
-    if (initialSessionAccepted) this.openPendingRecoveryIfReady();
+    const recoveryRedirect = this.consumeRecoveryRedirect();
+    this.pendingRecoveryRedirect = recoveryRedirect;
     this.cloud.onAuthChange((event, session) => {
       const authEventGeneration = ++this.authEventGeneration;
-      void this.handleSessionChange(session).then((accepted) => {
+      const recoveryRedirectAtEvent = this.pendingRecoveryRedirect;
+      void this.handleSessionChange(session, event).then((accepted) => {
         if (!accepted || authEventGeneration !== this.authEventGeneration) return;
         if (event === "PASSWORD_RECOVERY") this.openRecoveryMode();
-        this.openPendingRecoveryIfReady();
+        if (shouldNotifySignupForAuthEvent(
+          event,
+          this.recoveryMode,
+          recoveryRedirectAtEvent,
+          this.recoveryFlowUserId,
+          session?.user.id ?? null
+        )) {
+          void this.notifySignupIfCurrent();
+        }
         void this.refreshAccount();
         if (event === "PASSWORD_RECOVERY" && !this.dialog.open) {
           this.dialog.showModal();
         }
       });
     });
-    if (initialSessionAccepted) await this.refreshAccount();
+    const initialSessionAccepted = await this.handleSessionChange(await this.cloud.getSession());
+    if (initialSessionAccepted) {
+      await this.refreshAccount();
+    }
     this.handleBillingRedirect(billingRedirect);
     this.handleCalendarRedirect(calendarRedirect);
     if (billingRedirect || calendarRedirect) {
       if (!this.dialog.open) this.dialog.showModal();
     } else if (shouldOpenAccount && this.state.session) {
-      this.newsDialog.showModal();
+      this.dialog.showModal();
     } else if (shouldOpenAccount && !this.dialog.open) {
       this.dialog.showModal();
     }
@@ -303,15 +328,13 @@ export class AccountPanel {
   }
 
   private openRecoveryMode(): void {
+    const userId = this.state.session?.user.id ?? null;
+    if (!userId) return;
+    this.recoveryFlowUserId = userId;
+    this.pendingRecoveryRedirect = false;
+    this.pendingRecoveryUserId = userId;
     this.recoveryMode = true;
     this.notice = "Your recovery link is verified. Choose a new password.";
-  }
-
-  private openPendingRecoveryIfReady(): void {
-    if (!this.pendingRecoveryRedirect || !this.state.session) return;
-    this.pendingRecoveryRedirect = false;
-    this.openRecoveryMode();
-    if (!this.dialog.open) this.dialog.showModal();
   }
 
   private createAccountButton(): HTMLButtonElement {
@@ -402,10 +425,23 @@ export class AccountPanel {
     this.updateAccessGate();
   }
 
-  private async handleSessionChange(session: Session | null): Promise<boolean> {
+  private async handleSessionChange(
+    session: Session | null,
+    authEvent: AuthChangeEvent | null = null
+  ): Promise<boolean> {
     const previousUserId = this.state.user?.id ?? null;
     const nextUserId = session?.user.id ?? null;
     if (previousUserId !== nextUserId) {
+      const preserveRecovery = shouldPreserveRecoveryForSession(
+        this.pendingRecoveryRedirect,
+        previousUserId,
+        nextUserId,
+        authEvent
+      );
+      this.pendingRecoveryRedirect = preserveRecovery;
+      this.pendingRecoveryUserId = preserveRecovery && authEvent === "PASSWORD_RECOVERY"
+        ? nextUserId
+        : null;
       this.accountRefreshGeneration += 1;
       this.sessionGeneration += 1;
       this.actionGeneration += 1;
@@ -413,15 +449,23 @@ export class AccountPanel {
       const sessionGeneration = this.sessionGeneration;
       this.busy = false;
       this.calendarBusy = false;
+      this.calendarOperationGeneration += 1;
       this.sync.setCloudAccess(false, true);
       this.bridge.setUserScope(nextUserId);
       this.state.session = session;
       this.state.user = session?.user ?? null;
       this.resetCloudState(null);
       this.billingConfirmationPending = false;
+      this.state.status = INITIAL_STATUS;
       this.notice = "";
       this.recoveryMode = false;
-      this.pendingRecoveryRedirect = false;
+      if (!nextUserId || (this.recoveryFlowUserId && this.recoveryFlowUserId !== nextUserId)) {
+        this.recoveryFlowUserId = null;
+      }
+      if (!nextUserId) {
+        this.pendingRecoveryRedirect = false;
+        this.pendingRecoveryUserId = null;
+      }
       this.inviteToken = "";
       this.mfa = { verifiedCount: 0, currentLevel: null, nextLevel: null, enrollment: null };
       this.updateAccountButton();
@@ -436,6 +480,25 @@ export class AccountPanel {
     }
     this.applySession(session);
     return true;
+  }
+
+  private async notifySignupIfCurrent(): Promise<void> {
+    const session = this.state.session;
+    if (!session) return;
+    const userId = session.user.id;
+    const sessionGeneration = this.sessionGeneration;
+    const refreshGeneration = this.accountRefreshGeneration;
+    try {
+      await this.cloud.notifySignupNotification(session.access_token);
+    } catch (error) {
+      console.warn("Signup notification event could not be recorded", error);
+      return;
+    }
+    if (
+      this.sessionGeneration !== sessionGeneration ||
+      this.accountRefreshGeneration !== refreshGeneration ||
+      this.state.user?.id !== userId
+    ) return;
   }
 
   private bindCalendarControls(): void {
@@ -503,6 +566,7 @@ export class AccountPanel {
     }
 
     this.calendarBusy = true;
+    const calendarOperationGeneration = ++this.calendarOperationGeneration;
     this.updateCalendarControls();
     try {
       const nextStatus = await this.calendarSync.sync();
@@ -510,6 +574,7 @@ export class AccountPanel {
         sessionGeneration !== this.sessionGeneration ||
         actionGeneration !== this.actionGeneration ||
         refreshGeneration !== this.accountRefreshGeneration ||
+        calendarOperationGeneration !== this.calendarOperationGeneration ||
         !this.hasConfirmedPaidAccess()
       ) return;
       this.googleCalendarStatus = nextStatus;
@@ -520,18 +585,15 @@ export class AccountPanel {
       if (
         sessionGeneration !== this.sessionGeneration ||
         actionGeneration !== this.actionGeneration ||
-        refreshGeneration !== this.accountRefreshGeneration
+        refreshGeneration !== this.accountRefreshGeneration ||
+        calendarOperationGeneration !== this.calendarOperationGeneration
       ) return;
       reportError(error);
       this.notice = error instanceof Error
         ? `${error.message} The preference was saved and will apply on the next successful sync.`
         : "Google Calendar could not be updated. The preference was saved for the next sync.";
     } finally {
-      if (
-        sessionGeneration !== this.sessionGeneration ||
-        actionGeneration !== this.actionGeneration ||
-        refreshGeneration !== this.accountRefreshGeneration
-      ) return;
+      if (calendarOperationGeneration !== this.calendarOperationGeneration) return;
       this.calendarBusy = false;
       this.updateCalendarControls();
       this.render();
@@ -552,6 +614,7 @@ export class AccountPanel {
     const actionGeneration = this.actionGeneration;
     const refreshGeneration = this.accountRefreshGeneration;
     this.calendarBusy = true;
+    const calendarOperationGeneration = ++this.calendarOperationGeneration;
     this.updateCalendarControls();
     try {
       if (!this.googleCalendarStatus.connected) {
@@ -560,6 +623,7 @@ export class AccountPanel {
           sessionGeneration !== this.sessionGeneration ||
           actionGeneration !== this.actionGeneration ||
           refreshGeneration !== this.accountRefreshGeneration ||
+          calendarOperationGeneration !== this.calendarOperationGeneration ||
           !this.hasConfirmedPaidAccess()
         ) return;
         if (url) window.location.assign(url);
@@ -570,6 +634,7 @@ export class AccountPanel {
         sessionGeneration !== this.sessionGeneration ||
         actionGeneration !== this.actionGeneration ||
         refreshGeneration !== this.accountRefreshGeneration ||
+        calendarOperationGeneration !== this.calendarOperationGeneration ||
         !this.hasConfirmedPaidAccess()
       ) return;
       this.googleCalendarStatus = nextStatus;
@@ -578,16 +643,13 @@ export class AccountPanel {
       if (
         sessionGeneration !== this.sessionGeneration ||
         actionGeneration !== this.actionGeneration ||
-        refreshGeneration !== this.accountRefreshGeneration
+        refreshGeneration !== this.accountRefreshGeneration ||
+        calendarOperationGeneration !== this.calendarOperationGeneration
       ) return;
       reportError(error);
       this.notice = error instanceof Error ? error.message : "Google Calendar could not be updated.";
     } finally {
-      if (
-        sessionGeneration !== this.sessionGeneration ||
-        actionGeneration !== this.actionGeneration ||
-        refreshGeneration !== this.accountRefreshGeneration
-      ) return;
+      if (calendarOperationGeneration !== this.calendarOperationGeneration) return;
       this.calendarBusy = false;
       this.updateCalendarControls();
       this.render();
@@ -596,6 +658,13 @@ export class AccountPanel {
 
   private async refreshAccount(): Promise<void> {
     const refreshGeneration = ++this.accountRefreshGeneration;
+    if (this.cleanupBlocked) {
+      if (!await this.disconnectLocalSync(this.sessionGeneration, refreshGeneration)) return;
+      if (
+        this.cleanupBlocked ||
+        refreshGeneration !== this.accountRefreshGeneration
+      ) return;
+    }
     if (!this.state.session) {
       if (!await this.disconnectLocalSync(this.sessionGeneration, refreshGeneration)) return;
       if (refreshGeneration !== this.accountRefreshGeneration) return;
@@ -611,6 +680,7 @@ export class AccountPanel {
     this.resetCloudState(null);
     await this.sync.suspendCloudAccess(true);
     if (refreshGeneration !== this.accountRefreshGeneration || !this.state.session) return;
+    let calendarRefreshGeneration = this.calendarOperationGeneration;
     try {
       const billingReconciliation = await this.cloud.reconcileBillingSubscription();
       if (refreshGeneration !== this.accountRefreshGeneration || !this.state.session) return;
@@ -637,6 +707,7 @@ export class AccountPanel {
       if (!subscriptionActive) {
         if (!await this.disconnectLocalSync(this.sessionGeneration, refreshGeneration)) return;
         if (refreshGeneration !== this.accountRefreshGeneration || !this.state.session) return;
+        this.state.metadata = null;
       }
       if (subscriptionActive) this.billingConfirmationPending = false;
       this.billingSubscription = billingSubscription;
@@ -653,12 +724,17 @@ export class AccountPanel {
       }
       this.state.metadata = metadataAuthorized ? metadata : null;
       if (subscriptionActive && this.state.user?.id) {
+        calendarRefreshGeneration = this.calendarOperationGeneration;
         googleCalendarStatus = await this.calendarSync.refresh();
-        if (refreshGeneration !== this.accountRefreshGeneration || !this.state.session) return;
+        if (
+          refreshGeneration !== this.accountRefreshGeneration ||
+          calendarRefreshGeneration !== this.calendarOperationGeneration ||
+          !this.state.session
+        ) return;
       }
       this.googleCalendarStatus = googleCalendarStatus;
       this.updateCalendarControls();
-      if (subscriptionActive && this.state.user?.id) {
+      if (subscriptionActive && this.state.user?.id && !this.cleanupBlocked) {
         this.sync.setCloudAccess(true, false, this.state.user.id);
       }
       this.mfa.verifiedCount = mfa.verified.length;
@@ -674,7 +750,10 @@ export class AccountPanel {
         households
       });
     } catch (error) {
-      if (refreshGeneration !== this.accountRefreshGeneration) return;
+      if (
+        refreshGeneration !== this.accountRefreshGeneration ||
+        calendarRefreshGeneration !== this.calendarOperationGeneration
+      ) return;
       reportError(error);
       if (!await this.disconnectLocalSync(this.sessionGeneration, refreshGeneration)) return;
       if (refreshGeneration !== this.accountRefreshGeneration) return;
@@ -693,6 +772,8 @@ export class AccountPanel {
   }
 
   private resetCloudState(subscriptionActive: boolean | null): void {
+    this.calendarOperationGeneration += 1;
+    this.calendarBusy = false;
     this.state.households = [];
     this.state.metadata = null;
     this.state.conflict = null;
@@ -707,26 +788,64 @@ export class AccountPanel {
     this.updateCalendarControls();
   }
 
+  private async recordCleanupFailure(error: unknown, ownerId: string): Promise<void> {
+    this.cleanupBlocked = true;
+    this.cleanupLatchOwnerId = ownerId;
+    this.accountRefreshGeneration += 1;
+    this.actionGeneration += 1;
+    this.calendarOperationGeneration += 1;
+    this.sync.setCloudAccess(false, true);
+    let latchPersistenceError: unknown = null;
+    try {
+      const metadata = this.sync.metadata;
+      await setCleanupLatch(
+        ownerId,
+        metadata?.ownerId === ownerId ? metadata.householdId : undefined
+      );
+    } catch (latchError) {
+      latchPersistenceError = latchError;
+      reportError(latchError);
+    }
+    reportError(error);
+    if (this.state.user?.id !== ownerId && this.state.user?.id) return;
+    this.resetCloudState(null);
+    this.notice = latchPersistenceError
+      ? "Cloud sync is unavailable and the cleanup failure could not be persisted. Keep this tab open and retry cleanup."
+      : "Cloud sync is unavailable until local cleanup succeeds.";
+    this.render();
+    if (latchPersistenceError) {
+      throw new Error("Cleanup failure could not be persisted.", { cause: latchPersistenceError });
+    }
+  }
+
   private async disconnectLocalSync(
     expectedSessionGeneration = this.sessionGeneration,
     expectedRefreshGeneration = this.accountRefreshGeneration
   ): Promise<boolean> {
     try {
-      await this.sync.disconnectDevice();
+      await this.sync.disconnectDevice(this.cleanupLatchOwnerId ?? undefined);
       if (
         expectedSessionGeneration !== this.sessionGeneration ||
         expectedRefreshGeneration !== this.accountRefreshGeneration
       ) return false;
+      const latchOwnerId = this.cleanupLatchOwnerId;
+      if (latchOwnerId && !await clearCleanupLatch(latchOwnerId)) {
+        throw new Error("The cleanup latch belongs to a different account.");
+      }
+      this.cleanupLatchOwnerId = null;
+      this.cleanupBlocked = false;
       return true;
     } catch (error) {
       if (
         expectedSessionGeneration !== this.sessionGeneration ||
         expectedRefreshGeneration !== this.accountRefreshGeneration
       ) return false;
-      reportError(error);
-      this.resetCloudState(null);
-      this.notice = "Cloud sync is unavailable until local cleanup succeeds.";
-      this.render();
+      const ownerId = this.cleanupLatchOwnerId ?? this.sync.metadata?.ownerId ?? this.state.user?.id;
+      if (ownerId) await this.recordCleanupFailure(error, ownerId);
+      else {
+        this.cleanupBlocked = true;
+        reportError(error);
+      }
       return false;
     }
   }
@@ -735,6 +854,7 @@ export class AccountPanel {
     return Boolean(
       this.state.session &&
       this.billingReconciled &&
+      !this.cleanupBlocked &&
       this.subscriptionActive === true &&
       this.workspaceAccess === "paid"
     );
@@ -1433,6 +1553,8 @@ export class AccountPanel {
         const calendarActionGeneration = this.actionGeneration;
         const calendarRefreshGeneration = this.accountRefreshGeneration;
         const deleteEvents = confirm("Also remove the Harbourline-created events from Google Calendar?");
+        if (!deleteEvents && !this.googleCalendarStatus.connected) return;
+        const calendarOperationGeneration = ++this.calendarOperationGeneration;
         this.calendarBusy = true;
         this.updateCalendarControls();
         try {
@@ -1441,17 +1563,29 @@ export class AccountPanel {
             sessionGeneration !== this.sessionGeneration ||
             calendarActionGeneration !== this.actionGeneration ||
             calendarRefreshGeneration !== this.accountRefreshGeneration ||
+            calendarOperationGeneration !== this.calendarOperationGeneration ||
             !this.hasConfirmedPaidAccess()
           ) return;
           this.googleCalendarStatus = this.calendarSync.currentStatus;
           this.notice = deleteEvents
             ? "Google Calendar disconnected and Harbourline-created events removed."
             : "Google Calendar disconnected. Existing events were left in place.";
+        } catch (error) {
+          if (
+            sessionGeneration === this.sessionGeneration &&
+            calendarActionGeneration === this.actionGeneration &&
+            calendarRefreshGeneration === this.accountRefreshGeneration &&
+            calendarOperationGeneration === this.calendarOperationGeneration
+          ) {
+            reportError(error);
+            this.notice = error instanceof Error ? error.message : "Google Calendar could not be disconnected.";
+          }
         } finally {
           if (
             sessionGeneration !== this.sessionGeneration ||
             calendarActionGeneration !== this.actionGeneration ||
-            calendarRefreshGeneration !== this.accountRefreshGeneration
+            calendarRefreshGeneration !== this.accountRefreshGeneration ||
+            calendarOperationGeneration !== this.calendarOperationGeneration
           ) return;
           this.calendarBusy = false;
           this.updateCalendarControls();
@@ -1488,7 +1622,7 @@ export class AccountPanel {
         await this.sync.useHouseholdVersion();
       } else if (action === "disconnect-sync") {
         if (!confirm("Disconnect cloud sync on this device? Your cached budget will remain available.")) return;
-        await this.sync.disconnectDevice();
+        if (!await this.disconnectLocalSync(operationSessionGeneration, operationRefreshGeneration)) return;
         if (operationSessionGeneration !== this.sessionGeneration || operationActionGeneration !== this.actionGeneration) return;
         this.state.metadata = null;
       } else if (action === "copy-invite") {

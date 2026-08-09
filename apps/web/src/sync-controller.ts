@@ -8,8 +8,10 @@ import {
 } from "@harbourline/sync";
 import { HarbourlineCloud } from "./cloud";
 import {
+  clearAllPendingMutations,
   clearPendingMutations,
   clearSyncMetadata,
+  clearSyncMetadataIfMatches,
   deletePendingMutation,
   discardUnownedSyncData,
   getSyncMetadata,
@@ -34,9 +36,11 @@ export class SyncController {
   private lifecycleGeneration = 0;
   private cloudAccess = false;
   private ownerId: string | null = null;
+  private readonly subscriptionKeys = new Set<string>();
   private listenersBound = false;
   private onStatus: (status: Release2Status) => void;
   private onConflict: (remote: RemoteBudgetDocument | null) => void;
+  private onCleanupFailure: (error: unknown, ownerId: string) => Promise<void>;
 
   constructor(
     private readonly bridge: HarbourlineLocalBridge,
@@ -44,10 +48,12 @@ export class SyncController {
     callbacks: {
       status: (status: Release2Status) => void;
       conflict: (remote: RemoteBudgetDocument | null) => void;
+      cleanupFailure: (error: unknown, ownerId: string) => Promise<void>;
     }
   ) {
     this.onStatus = callbacks.status;
     this.onConflict = callbacks.conflict;
+    this.onCleanupFailure = callbacks.cleanupFailure;
   }
 
   async initialise(): Promise<void> {
@@ -61,6 +67,11 @@ export class SyncController {
     if (this.cloudAccess === enabled) {
       if (enabled && ownerId && this.ownerId && ownerId !== this.ownerId) {
         throw new Error("Cloud sync owner cannot change without disconnecting the current owner.");
+      }
+      if (!enabled) {
+        this.lifecycleGeneration += 1;
+        window.clearTimeout(this.flushTimer);
+        this.setConflict(null);
       }
       if (enabled) this.bindListeners();
       return;
@@ -119,7 +130,12 @@ export class SyncController {
     if (inFlightRemoteChange) await inFlightRemoteChange.catch(() => undefined);
     await Promise.allSettled(inFlightOperations);
     if (!this.isCurrent(generation, ownerId)) return false;
-    await clearSyncMetadata(ownerId);
+    try {
+      await clearSyncMetadata(ownerId);
+    } catch (error) {
+      await this.onCleanupFailure(error, ownerId);
+      return false;
+    }
     if (!this.isCurrent(generation, ownerId)) return false;
     const remote = await this.cloud.fetchBudget(householdId);
     if (!this.isCurrent(generation, ownerId)) return false;
@@ -127,10 +143,23 @@ export class SyncController {
       this.applyRemote(remote);
       await this.recordRemote(remote, generation);
       if (!this.isCurrent(generation, ownerId)) return false;
-      await clearPendingMutations(ownerId, householdId);
+      try {
+        await clearPendingMutations(ownerId, householdId);
+      } catch (error) {
+        await this.onCleanupFailure(error, ownerId);
+        return false;
+      }
       if (!this.isCurrent(generation, ownerId)) return false;
-      await this.cloud.subscribeToBudget(householdId, () => void this.receiveRemoteChange(householdId));
-      if (!this.isCurrent(generation, ownerId)) return false;
+      const subscriptionKey = await this.cloud.subscribeToBudget(householdId, () => void this.receiveRemoteChange(householdId));
+      if (!this.isCurrent(generation, ownerId)) {
+        try {
+          await this.cloud.unsubscribeFromBudget(subscriptionKey);
+        } catch (error) {
+          await this.onCleanupFailure(error, ownerId);
+        }
+        return false;
+      }
+      this.subscriptionKeys.add(subscriptionKey);
       await this.report("Household budget downloaded to this device.", "good", generation);
       return this.isCurrent(generation, ownerId);
     }
@@ -143,14 +172,31 @@ export class SyncController {
       lastSyncedAt: new Date().toISOString()
     };
     await setSyncMetadata(metadata);
-    if (!this.isCurrent(generation, ownerId)) return false;
+    if (!this.isCurrent(generation, ownerId)) {
+      await clearSyncMetadataIfMatches(metadata);
+      return false;
+    }
     this.metadata = metadata;
-    await clearPendingMutations(ownerId, householdId);
+    try {
+      await clearPendingMutations(ownerId, householdId);
+    } catch (error) {
+      await this.onCleanupFailure(error, ownerId);
+      return false;
+    }
     if (!this.isCurrent(generation, ownerId)) return false;
     await this.queueState(this.bridge.read(), true);
     if (!this.isCurrent(generation, ownerId)) return false;
-    await this.cloud.subscribeToBudget(householdId, () => void this.receiveRemoteChange(householdId));
-    return this.isCurrent(generation, ownerId);
+    const subscriptionKey = await this.cloud.subscribeToBudget(householdId, () => void this.receiveRemoteChange(householdId));
+    if (!this.isCurrent(generation, ownerId)) {
+      try {
+        await this.cloud.unsubscribeFromBudget(subscriptionKey);
+      } catch (error) {
+        await this.onCleanupFailure(error, ownerId);
+      }
+      return false;
+    }
+    this.subscriptionKeys.add(subscriptionKey);
+    return true;
   }
 
   async resumeForHousehold(householdId: string): Promise<void> {
@@ -160,19 +206,30 @@ export class SyncController {
   private async resumeForHouseholdInternal(householdId: string): Promise<void> {
     if (!this.cloudAccess || this.metadata?.householdId !== householdId) return;
     const generation = this.lifecycleGeneration;
+    const ownerId = this.ownerId;
     const currentState = this.bridge.read();
     if (this.metadata && stableStateHash(currentState) !== this.metadata.lastSyncedHash) {
       await this.queueState(currentState, true);
       if (!this.isCurrent(generation) || this.metadata?.householdId !== householdId) return;
     }
-    await this.cloud.subscribeToBudget(householdId, () => void this.receiveRemoteChange(householdId));
-    if (!this.isCurrent(generation) || this.metadata?.householdId !== householdId) return;
+    const subscriptionKey = await this.cloud.subscribeToBudget(householdId, () => void this.receiveRemoteChange(householdId));
+    if (!this.isCurrent(generation, ownerId) || this.metadata?.householdId !== householdId) {
+      if (ownerId) {
+        try {
+          await this.cloud.unsubscribeFromBudget(subscriptionKey);
+        } catch (error) {
+          await this.onCleanupFailure(error, ownerId);
+        }
+      }
+      return;
+    }
+    this.subscriptionKeys.add(subscriptionKey);
     await this.flush();
   }
 
-  async disconnectDevice(): Promise<void> {
+  async disconnectDevice(ownerOverride?: string): Promise<void> {
     if (this.disconnectPromise) return this.disconnectPromise;
-    const operation = this.disconnectDeviceInternal();
+    const operation = this.disconnectDeviceInternal(ownerOverride);
     this.disconnectPromise = operation;
     try {
       await operation;
@@ -181,39 +238,50 @@ export class SyncController {
     }
   }
 
-  private async disconnectDeviceInternal(): Promise<void> {
-    const ownerId = this.ownerId;
+  private async disconnectDeviceInternal(ownerOverride?: string): Promise<void> {
+    if (ownerOverride && this.ownerId && ownerOverride !== this.ownerId) {
+      throw new Error("Cleanup owner does not match the active sync owner.");
+    }
+    const ownerId = this.ownerId ?? ownerOverride ?? null;
     const householdId = this.metadata?.householdId;
+    const subscriptionKeys = [...this.subscriptionKeys];
     await this.suspendCloudAccess(true, true);
+    const disconnectGeneration = this.lifecycleGeneration;
     let firstError: unknown = null;
-    try {
-      await this.cloud.unsubscribeFromBudget();
-    } catch (error) {
-      firstError = error;
-    }
-    try {
-      if (ownerId && this.ownerId === ownerId) {
-        await clearPendingMutations(ownerId, householdId);
+    for (const subscriptionKey of subscriptionKeys) {
+      try {
+        await this.cloud.unsubscribeFromBudget(subscriptionKey);
+        this.subscriptionKeys.delete(subscriptionKey);
+      } catch (error) {
+        firstError ??= error;
+        if (ownerId) await this.onCleanupFailure(error, ownerId);
       }
-    } catch (error) {
-      firstError ??= error;
     }
+    let metadataCleared = false;
     try {
-      if (ownerId && this.ownerId === ownerId) {
+      if (ownerId && (this.ownerId === ownerId || this.ownerId === null)) {
         await clearSyncMetadata(ownerId);
+        metadataCleared = true;
       }
     } catch (error) {
       firstError ??= error;
+    }
+    if (metadataCleared) {
+      try {
+        if (ownerId && (this.ownerId === ownerId || this.ownerId === null)) {
+          await clearAllPendingMutations(ownerId);
+        }
+      } catch (error) {
+        firstError ??= error;
+      }
     }
     if (firstError) throw firstError;
-    if (ownerId && this.ownerId === ownerId) {
-      this.metadata = null;
-      this.ownerId = null;
-      this.setConflict(null);
-    }
-    if (this.ownerId !== ownerId) return;
+    if (this.ownerId !== null && this.ownerId !== ownerId) return;
+    this.metadata = null;
+    this.ownerId = null;
+    this.setConflict(null);
     try {
-      await this.report("Harbourline sync disconnected.", "neutral");
+      await this.reportDisconnected("Harbourline sync disconnected.", disconnectGeneration, ownerId, householdId);
     } catch (error) {
       firstError ??= error;
     }
@@ -246,9 +314,21 @@ export class SyncController {
       lastSyncedAt: new Date().toISOString()
     };
     await setSyncMetadata(metadata);
-    if (!this.isCurrent(generation)) return;
+    if (!this.isCurrent(generation)) {
+      try {
+        await clearSyncMetadataIfMatches(metadata);
+      } catch (error) {
+        await this.onCleanupFailure(error, metadata.ownerId);
+      }
+      return;
+    }
     this.metadata = metadata;
-    await clearPendingMutations(this.ownerId, metadata.householdId);
+    try {
+      await clearPendingMutations(this.ownerId, metadata.householdId);
+    } catch (error) {
+      await this.onCleanupFailure(error, metadata.ownerId);
+      return;
+    }
     if (!this.isCurrent(generation)) return;
     this.setConflict(null);
     await this.queueState(this.bridge.read(), true);
@@ -265,9 +345,15 @@ export class SyncController {
     const remote = this.conflict;
     this.applyRemote(remote);
     await this.recordRemote(remote, generation);
-    if (!this.isCurrent(generation)) return;
-    if (!this.ownerId) return;
-    await clearPendingMutations(this.ownerId, this.metadata?.householdId);
+    if (!this.isCurrent(generation) || !this.ownerId || !this.metadata?.householdId) return;
+    const ownerId = this.ownerId;
+    const householdId = this.metadata.householdId;
+    try {
+      await clearPendingMutations(ownerId, householdId);
+    } catch (error) {
+      await this.onCleanupFailure(error, ownerId);
+      return;
+    }
     if (!this.isCurrent(generation)) return;
     this.setConflict(null);
     await this.report("Household version restored on this device.", "good", generation);
@@ -280,9 +366,10 @@ export class SyncController {
   private async queueStateInternal(state: unknown, immediate = false): Promise<void> {
     if (!this.cloudAccess || !this.metadata || !this.ownerId) return;
     const generation = this.lifecycleGeneration;
+    const ownerId = this.ownerId;
     const metadata = this.metadata;
     const mutation = createPendingMutation({
-      ownerId: this.ownerId,
+      ownerId,
       householdId: metadata.householdId,
       baseRevision: metadata.revision,
       schemaVersion: this.bridge.schemaVersion,
@@ -290,7 +377,11 @@ export class SyncController {
     });
     await putPendingMutation(mutation);
     if (!this.isCurrent(generation)) {
-      await deletePendingMutation(mutation.id).catch(() => undefined);
+      try {
+        await deletePendingMutation(ownerId, mutation.id);
+      } catch (error) {
+        await this.onCleanupFailure(error, ownerId);
+      }
       return;
     }
     await this.report(navigator.onLine ? "Saving to household..." : "Change queued for sync.", "warning", generation);
@@ -328,8 +419,9 @@ export class SyncController {
   private async runFlush(generation: number): Promise<void> {
     try {
       const allPending = await listPendingMutations();
-      if (!this.isCurrent(generation)) return;
-      const queued = compactMutations(allPending.filter((mutation) => mutation.ownerId === this.ownerId))
+      if (!this.isCurrent(generation) || !this.ownerId) return;
+      const ownerId = this.ownerId;
+      const queued = compactMutations(allPending.filter((mutation) => mutation.ownerId === ownerId))
         .filter((mutation) => mutation.householdId === this.metadata?.householdId);
       for (const pending of queued) {
         if (!this.isCurrent(generation) || !this.metadata) return;
@@ -346,11 +438,16 @@ export class SyncController {
           return;
         }
         const superseded = allPending.filter((mutation) => (
-          mutation.ownerId === this.ownerId &&
+          mutation.ownerId === ownerId &&
           mutation.householdId === pending.householdId
           && mutation.createdAt <= pending.createdAt
         ));
-        await Promise.all(superseded.map((mutation) => deletePendingMutation(mutation.id)));
+        try {
+          await Promise.all(superseded.map((mutation) => deletePendingMutation(ownerId, mutation.id)));
+        } catch (error) {
+          await this.onCleanupFailure(error, ownerId);
+          return;
+        }
         if (!this.isCurrent(generation)) return;
         await this.recordRemote(result.document, generation);
       }
@@ -437,7 +534,14 @@ export class SyncController {
       lastSyncedAt: new Date().toISOString()
     };
     await setSyncMetadata(metadata);
-    if (!this.isCurrent(generation)) return;
+    if (!this.isCurrent(generation)) {
+      try {
+        await clearSyncMetadataIfMatches(metadata);
+      } catch (error) {
+        await this.onCleanupFailure(error, metadata.ownerId);
+      }
+      return;
+    }
     this.metadata = metadata;
   }
 
@@ -446,13 +550,40 @@ export class SyncController {
     this.onConflict(remote);
   }
 
+  private async countQueuedMutations(ownerId: string | null, householdId?: string): Promise<number> {
+    if (!ownerId) return 0;
+    const queued = await listPendingMutations();
+    return queued.filter((mutation) =>
+      mutation.ownerId === ownerId &&
+      (householdId === undefined || mutation.householdId === householdId)
+    ).length;
+  }
+
+  private async reportDisconnected(
+    message: string,
+    generation: number,
+    ownerId: string | null,
+    householdId?: string
+  ): Promise<void> {
+    if (this.lifecycleGeneration !== generation || this.cloudAccess || this.ownerId !== null) return;
+    const queued = await this.countQueuedMutations(ownerId, householdId);
+    if (this.lifecycleGeneration !== generation || this.cloudAccess || this.ownerId !== null) return;
+    this.onStatus({ message, tone: "neutral", queued, online: navigator.onLine });
+  }
+
   private async report(
     message: string,
     tone: Release2Status["tone"],
     generation?: number
   ): Promise<void> {
-    const queued = (await listPendingMutations()).length;
-    if (generation !== undefined && !this.isCurrent(generation)) return;
+    const ownerId = this.ownerId;
+    const householdId = this.metadata?.householdId;
+    const queued = await this.countQueuedMutations(ownerId, householdId);
+    if (
+      (generation !== undefined && !this.isCurrent(generation, ownerId)) ||
+      this.ownerId !== ownerId ||
+      this.metadata?.householdId !== householdId
+    ) return;
     this.onStatus({ message, tone, queued, online: navigator.onLine });
   }
 }

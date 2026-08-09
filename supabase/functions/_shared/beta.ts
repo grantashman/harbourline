@@ -11,11 +11,24 @@ export const BETA_EVENT_NAMES = [
   "payday_viewed",
   "onboarding_completed",
   "support_requested",
+  "signup_completed",
   "subscription_past_due",
   "subscription_cancelled"
 ] as const;
 
 export type BetaEventName = (typeof BETA_EVENT_NAMES)[number];
+
+export const CLIENT_BETA_EVENT_NAMES = [
+  "onboarding_started",
+  "household_created",
+  "income_added",
+  "five_bills_added",
+  "payday_viewed",
+  "onboarding_completed",
+  "support_requested"
+] as const;
+
+export type ClientBetaEventName = (typeof CLIENT_BETA_EVENT_NAMES)[number];
 
 export type BetaOnboardingStep =
   | "household"
@@ -38,6 +51,10 @@ export interface BetaOperationsSnapshot {
 }
 
 const defaultAppOrigin = "https://harbourline.app";
+const allowedAppOrigins = new Set([
+  "https://harbourline.app",
+  "https://www.harbourline.app"
+]);
 const legacyAppOrigins = new Set(["https://harbourline-zeta.vercel.app"]);
 
 export function configuredAppOrigin(): string {
@@ -46,7 +63,8 @@ export function configuredAppOrigin(): string {
 
   try {
     const origin = new URL(appUrl).origin;
-    return legacyAppOrigins.has(origin) ? defaultAppOrigin : origin;
+    if (legacyAppOrigins.has(origin)) return defaultAppOrigin;
+    return allowedAppOrigins.has(origin) ? origin : defaultAppOrigin;
   } catch {
     return defaultAppOrigin;
   }
@@ -59,6 +77,7 @@ export const corsHeaders = {
 };
 
 const betaEventNames = new Set<string>(BETA_EVENT_NAMES);
+const clientBetaEventNames = new Set<string>(CLIENT_BETA_EVENT_NAMES);
 const onboardingSteps = new Set<BetaOnboardingStep>([
   "household",
   "income",
@@ -81,6 +100,14 @@ export function validateBetaEvent(value: unknown): BetaEventName {
   return value as BetaEventName;
 }
 
+export function validateClientBetaEvent(value: unknown): ClientBetaEventName {
+  if (typeof value !== "string" || !clientBetaEventNames.has(value)) {
+    throw new HttpError(400, "Unsupported client beta event");
+  }
+
+  return value as ClientBetaEventName;
+}
+
 export function validateBetaOnboardingStep(value: unknown): BetaOnboardingStep {
   if (typeof value !== "string" || !onboardingSteps.has(value as BetaOnboardingStep)) {
     throw new HttpError(400, "Unsupported onboarding step");
@@ -96,6 +123,10 @@ export function parseOperatorEmails(value: string | null | undefined): Set<strin
       .map((email) => email.trim().toLowerCase())
       .filter(Boolean)
   );
+}
+
+export function isVerifiedAuthUser(user: { is_anonymous?: boolean | null }): boolean {
+  return user.is_anonymous === false;
 }
 
 export async function requireAuthenticatedUser(request: Request) {
@@ -116,6 +147,9 @@ export async function requireAuthenticatedUser(request: Request) {
   const { data: { user }, error } = await client.auth.getUser();
   if (error || !user) {
     throw new HttpError(401, "Authentication required");
+  }
+  if (!isVerifiedAuthUser(user)) {
+    throw new HttpError(401, "A verified account is required");
   }
 
   return user;
