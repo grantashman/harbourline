@@ -39,7 +39,12 @@ jobs:
       - run: deno check --node-modules-dir=auto supabase/functions/stripe-webhook/index.ts
       - run: deno test --allow-env=HARBOURLINE_APP_URL --node-modules-dir=auto supabase/functions/_shared/beta.test.ts
       - run: node --experimental-strip-types --test supabase/functions/create-checkout-session/price-validation.test.ts
+      - name: Start local Supabase
+        run: supabase start
       - run: supabase test db
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop
       - name: Verify staging deployment fixture
         env:
           VITE_HARBOURLINE_DEPLOYMENT: staging
