@@ -91,4 +91,4 @@ Only the Supabase publishable browser key belongs in frontend configuration. Nev
 
 Harbourline is in active product development. The current focus is a polished paid-beta release with homepage-led signup, clear onboarding, billing, household sync and strong account safety.
 
-Launch planning and release gates are documented in [`docs/PRODUCTION_AND_PROFITABILITY.md`](docs/PRODUCTION_AND_PROFITABILITY.md), [`docs/PRODUCTION_ACTIVATION.md`](docs/PRODUCTION_ACTIVATION.md) and [`docs/EARLY_ACCESS_LAUNCH_AND_MARKETING.md`](docs/EARLY_ACCESS_LAUNCH_AND_MARKETING.md).
+Launch planning and release gates are documented in [`docs/PRODUCTION_AND_PROFITABILITY.md`](docs/PRODUCTION_AND_PROFITABILITY.md), [`docs/PRODUCTION_ACTIVATION.md`](docs/PRODUCTION_ACTIVATION.md), [`docs/MULTI_CURRENCY_RELEASE.md`](docs/MULTI_CURRENCY_RELEASE.md) and [`docs/EARLY_ACCESS_LAUNCH_AND_MARKETING.md`](docs/EARLY_ACCESS_LAUNCH_AND_MARKETING.md).

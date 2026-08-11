@@ -42,6 +42,22 @@ Resend DNS records were added in Cloudflare for `auth.harbourline.app`:
 
 Resend still reports the domain as pending while DNS verification propagates.
 
+## Multi-currency release status — 11 August 2026
+
+The controlled multi-currency release is **NO-GO**. Production remains AUD-only:
+keep the browser allowlist at `AUD`, keep the database `currency_catalog.enabled`
+flag true only for AUD, and keep the reviewed Stripe billing contract in AUD.
+Do not start the production workflow for the multi-currency migration until the
+exact-money, database, payment, backup/restore, tax/legal and support gates are
+evidenced.
+
+The release runbook, staged activation procedure, monitoring fields, support
+responses and rollback constraints are in
+[`MULTI_CURRENCY_RELEASE.md`](MULTI_CURRENCY_RELEASE.md). It records the
+validation finding that major-unit runtime arithmetic still needs a precision
+fix and that database, Edge Function and hosted payment gates were unavailable
+in the validation environment.
+
 ## 1. Confirm the beta project
 
 The existing project may be used for the controlled beta with:
@@ -79,9 +95,21 @@ VITE_SUPABASE_URL
 VITE_SUPABASE_PUBLISHABLE_KEY
 VITE_HARBOURLINE_STAGING_SUPABASE_URL
 VITE_HARBOURLINE_SUPPORT_EMAIL
+VITE_HARBOURLINE_BILLING_CURRENCY (public display; default AUD)
+VITE_HARBOURLINE_BILLING_LOCALE (public display; default en-AU)
 VITE_SENTRY_DSN
 VITE_HARBOURLINE_RELEASE
 ```
+
+Currency rollout configuration is separate from billing configuration. The
+hosted document bridge may receive a pre-bootstrap
+`globalThis.HarbourlineCurrencyConfig` object with `enabledCurrencies`,
+`defaultCurrency` and `currencies` definitions. The safe production value is
+`enabledCurrencies: ["AUD"]`; AUD must always remain available for legacy
+records. The matching database control is `public.currency_catalog`, where a
+row must include its ISO code, minor-unit precision, locale, verification
+identity and timestamp before it can be enabled. Do not put secrets in this
+object or in any `VITE_*` variable.
 
 Edge Function secrets:
 
@@ -99,6 +127,7 @@ GOOGLE_CALENDAR_CLIENT_ID
 GOOGLE_CALENDAR_CLIENT_SECRET
 GOOGLE_OAUTH_REDIRECT_URI
 GOOGLE_CALENDAR_TOKEN_ENCRYPTION_KEY
+STRIPE_BILLING_CURRENCY (AUD until a reviewed non-AUD Stripe price is approved)
 ```
 
 The Edge Function runtime also receives the public `STRIPE_PRICE_ID` from the
@@ -118,6 +147,13 @@ matches the configured staging Supabase URL.
 The workflow links the project, applies migrations in timestamp order, and
 deploys all Edge Functions. Keep the database password and access token in the
 GitHub environment only; never commit them or place them in frontend variables.
+
+For the multi-currency migration, the workflow is not a rollback mechanism. It
+has no tested destructive down migration. Run it only after the disposable
+backup restore, staging migration, database tests and forward-only recovery
+procedure in [`MULTI_CURRENCY_RELEASE.md`](MULTI_CURRENCY_RELEASE.md) are
+recorded. Keep the production allowlist and database catalog at AUD-only until
+that release is approved.
 The repository CI still runs application, domain, sync, schema and production
 build checks independently.
 
@@ -243,6 +279,13 @@ opening paid signup, deploy the Supabase migration and functions from the
 protected workflow, configure the required Edge Function secrets, and complete
 the first-member billing rehearsal. Keep immediate cancellation and plan
 switching disabled for the single-plan launch.
+
+Budget currency is independent from the subscription price. The current public
+release is AUD-only and performs no foreign exchange. Do not display or enable a
+non-AUD subscription price until a matching Stripe Price, tax/legal treatment,
+refund wording, reconciliation check and support response have been approved;
+follow [`MULTI_CURRENCY_RELEASE.md`](MULTI_CURRENCY_RELEASE.md) for the staged
+procedure.
 
 To activate Google Calendar sync, enable the Google Calendar API, configure the
 OAuth consent screen and an OAuth web client, then add the exact callback URL

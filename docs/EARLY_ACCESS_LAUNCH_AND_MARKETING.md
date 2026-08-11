@@ -14,6 +14,16 @@ using it and see enough value in cloud continuity to upgrade. Marketing should
 bring in the right households, help them reach that first plan, and show where
 the funnel loses them.
 
+### Currency availability
+
+The public launch is AUD-first. Do not claim that Harbourline supports every
+currency, localises subscription pricing globally, or converts budgets. The
+current release supports AUD for budgeting and the introductory subscription.
+Additional currencies may be described only as a controlled pilot after the
+payment, tax, reporting, precision, support and recovery gates are approved.
+Keep the currency promise consistent across the homepage, pricing, onboarding,
+help replies and campaign landing pages.
+
 ### Beta exit criteria
 
 - 70% or more of paid customers complete onboarding.
@@ -76,6 +86,9 @@ the next marketing pass:
 - Explain that a free account and sign-in are required for the local starter,
   while no payment card is needed, and keep the A$2.50/week price visible
   beside the cloud-sync upgrade CTA.
+- Add the currency FAQ: the public release is AUD-first, budget currency changes
+  never convert existing records, and the subscription price is independently
+  configured.
 - Add campaign attribution without sending budget amounts, bill names or free
   text to analytics.
 
