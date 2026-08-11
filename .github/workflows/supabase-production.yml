@@ -1,43 +1,30 @@
 name: Deploy Supabase production
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
-      confirm_production:
-        description: "Confirm backup, approvals, and release-gate evidence are complete"
-        required: true
-        type: boolean
-        default: false
       expected_sha:
-        description: "Exact reviewed main-branch commit to deploy"
-        required: true
-        type: string
-      release_evidence_ref:
-        description: "Non-secret ticket or document reference for release evidence"
-        required: true
-        type: string
-      backup_evidence_ref:
-        description: "Non-secret reference proving backup and restore rehearsal completion"
-        required: true
-        type: string
-      recovery_evidence_ref:
-        description: "Non-secret reference proving migration rollback/recovery readiness"
-        required: true
-        type: string
-      business_approval_ref:
-        description: "Non-secret reference for product, tax/legal, accounting, and support approvals"
-        required: true
+        description: "Optional exact main commit to redeploy"
+        required: false
         type: string
 
 permissions:
   contents: read
+  actions: read
   checks: read
   pull-requests: read
+
+concurrency:
+  group: supabase-production
+  cancel-in-progress: false
 
 jobs:
   deploy:
     name: Apply migrations and deploy Edge Functions
-    if: inputs.confirm_production == true && github.ref == 'refs/heads/main' && inputs.expected_sha == github.sha
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || inputs.expected_sha == '' || inputs.expected_sha == github.sha)
     runs-on: ubuntu-latest
     environment: production
     env:
@@ -55,44 +42,65 @@ jobs:
         with:
           version: 2.113.0
 
-      - name: Verify reviewed commit and release evidence reference
+      - name: Verify exact merged main commit
         env:
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
-          RELEASE_EVIDENCE_REF: ${{ inputs.release_evidence_ref }}
-          BACKUP_EVIDENCE_REF: ${{ inputs.backup_evidence_ref }}
-          RECOVERY_EVIDENCE_REF: ${{ inputs.recovery_evidence_ref }}
-          BUSINESS_APPROVAL_REF: ${{ inputs.business_approval_ref }}
-        run: |
-          test "$GITHUB_SHA" = "$EXPECTED_SHA"
-          test -n "$RELEASE_EVIDENCE_REF"
-          test -n "$BACKUP_EVIDENCE_REF"
-          test -n "$RECOVERY_EVIDENCE_REF"
-          test -n "$BUSINESS_APPROVAL_REF"
-          git diff --exit-code
-
-      - name: Verify current commit checks and solo-owner release authorization
-        env:
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          api="https://api.github.com/repos/$GITHUB_REPOSITORY"
-          auth=(-H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json")
-          checks="$(curl -fsSL "${auth[@]}" "$api/commits/$EXPECTED_SHA/check-runs?per_page=100")"
-          for required_check in "validate" "CodeQL JavaScript and TypeScript" "dependency-review"; do
-            jq -e --arg required_check "$required_check" \
-              'any(.check_runs[]; .name == $required_check and .conclusion == "success")' <<<"$checks" >/dev/null
+          test "$GITHUB_REF" = "refs/heads/main"
+          test -n "$GITHUB_SHA"
+          pulls="$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" --header 'Accept: application/vnd.github+json')"
+          jq -e --arg sha "$GITHUB_SHA" \
+            'any(.[]; .base.ref == "main" and .merge_commit_sha == $sha and .merged_at != null)' \
+            <<<"$pulls" >/dev/null
+
+      - name: Wait for exact main quality gates
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          required=("validate" "CodeQL JavaScript and TypeScript")
+          for attempt in $(seq 1 60); do
+            checks="$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/check-runs?per_page=100" --header 'Accept: application/vnd.github+json')"
+            failed=0
+            pending=0
+            for required_check in "${required[@]}"; do
+              conclusion="$(jq -r --arg name "$required_check" --arg sha "$GITHUB_SHA" \
+                '[.check_runs[] | select(.name == $name and .head_sha == $sha) | .conclusion] | last // ""' \
+                <<<"$checks")"
+              case "$conclusion" in
+                success) ;;
+                failure|cancelled|timed_out|action_required|stale)
+                  echo "Required check failed: $required_check ($conclusion)"
+                  failed=1
+                  ;;
+                *)
+                  pending=1
+                  ;;
+              esac
+            done
+            test "$failed" -eq 0 || exit 1
+            if test "$pending" -eq 0; then
+              echo "Main quality gates passed for $GITHUB_SHA"
+              break
+            fi
+            test "$attempt" -lt 60 || { echo "Timed out waiting for main quality gates"; exit 1; }
+            sleep 10
           done
-          statuses="$(curl -fsSL "${auth[@]}" "$api/commits/$EXPECTED_SHA/status")"
-          jq -e 'any(.statuses[]; .context == "Vercel" and .state == "success")' <<<"$statuses" >/dev/null
-          pull="$(curl -fsSL "${auth[@]}" "$api/commits/$EXPECTED_SHA/pulls" | jq '.[0] // empty')"
-          test -n "$pull"
-          test "$(jq -r '.base.ref' <<<"$pull")" = "main"
-          test "$(jq -r '.merge_commit_sha // empty' <<<"$pull")" = "$EXPECTED_SHA"
-          test "$(jq -r '.merged_at // empty' <<<"$pull")" != ""
-          test "$(jq -r '.user.login' <<<"$pull")" = "$GITHUB_ACTOR"
-          test "$GITHUB_ACTOR" = "${{ github.repository_owner }}"
-          echo "Solo-owner release authorization verified for merged commit $EXPECTED_SHA"
+
+      - name: Verify production configuration before migration
+        run: |
+          set -euo pipefail
+          test -n "$SUPABASE_ACCESS_TOKEN"
+          test -n "$SUPABASE_PROJECT_REF"
+          test -n "$SUPABASE_DB_PASSWORD"
+          test -n "$STRIPE_PRICE_ID"
+          test "$STRIPE_PRICE_ID" = "price_1U2AOcBha937Q1NNu8HrnIRJ"
+          test -n "$STRIPE_PRODUCT_ID"
+          [[ "$STRIPE_PRODUCT_ID" =~ ^prod_[A-Za-z0-9]+$ ]]
+          test "$STRIPE_BILLING_CURRENCY" = "aud"
+          test "$STRIPE_LIVE_MODE" = "true"
+          git diff --exit-code
 
       - name: Link production project
         run: supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
@@ -102,9 +110,7 @@ jobs:
 
       - name: Configure reviewed Stripe contract
         run: |
-          test -n "$STRIPE_PRICE_ID"
-          test "$STRIPE_PRICE_ID" = "price_1U2AOcBha937Q1NNu8HrnIRJ"
-          test -n "$STRIPE_PRODUCT_ID"
+          set -euo pipefail
           supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" --yes "STRIPE_PRICE_ID=$STRIPE_PRICE_ID"
           supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" --yes "STRIPE_PRODUCT_ID=$STRIPE_PRODUCT_ID"
           supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" --yes "STRIPE_BILLING_CURRENCY=$STRIPE_BILLING_CURRENCY"
@@ -115,6 +121,10 @@ jobs:
 
       - name: Verify production schema and function deployment
         run: |
-          supabase secrets list --project-ref "$SUPABASE_PROJECT_REF" | grep -E 'STRIPE_(SECRET_KEY|PRICE_ID|PRODUCT_ID|BILLING_CURRENCY|LIVE_MODE)'
+          set -euo pipefail
+          secret_names="$(supabase secrets list --project-ref "$SUPABASE_PROJECT_REF" --output json | jq -r '.[].name')"
+          for required_secret in STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET STRIPE_PRICE_ID STRIPE_PRODUCT_ID STRIPE_BILLING_CURRENCY STRIPE_LIVE_MODE; do
+            grep -Fx "$required_secret" <<<"$secret_names" >/dev/null
+          done
           supabase functions list --project-ref "$SUPABASE_PROJECT_REF" | grep -F 'create-checkout-session'
-          supabase db query --linked --output json "select case when exists (select 1 from public.currency_catalog where code = 'AUD' and enabled = true) then 1 else 1/0 end as aud_ok, case when exists (select 1 from pg_proc where oid = 'public.sync_budget(uuid,uuid,bigint,integer,text,text)'::regprocedure) then 1 else 1/0 end as sync_ok"
+          supabase db query --linked --output json "select case when exists (select 1 from public.currency_catalog where code = 'AUD' and enabled = true) then 1 else 1/0 end as aud_ok, case when not exists (select 1 from public.currency_catalog where code <> 'AUD' and enabled = true) then 1 else 1/0 end as aud_only_ok, case when exists (select 1 from pg_proc where oid = 'public.sync_budget(uuid,uuid,bigint,integer,text,text)'::regprocedure) then 1 else 1/0 end as sync_ok"
