@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(13);
+select plan(15);
 
 select has_table('public', 'beta_onboarding', 'beta onboarding table exists');
 select has_table('public', 'beta_operational_events', 'beta operational events table exists');
