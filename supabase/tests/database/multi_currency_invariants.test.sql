@@ -4,10 +4,6 @@ create extension if not exists pgtap with schema extensions;
 
 select plan(14);
 
-update public.currency_catalog
-set enabled = true
-where code = 'USD';
-
 insert into auth.users (
   id,
   instance_id,
@@ -33,15 +29,6 @@ values (
   '{}',
   now(),
   now()
-)
-on conflict (id) do nothing;
-
-insert into public.households (id, name, created_by, currency)
-values (
-  '40000000-0000-0000-0000-000000000002',
-  'Currency test household',
-  '40000000-0000-0000-0000-000000000001',
-  'USD'
 )
 on conflict (id) do nothing;
 
@@ -125,6 +112,19 @@ select throws_ok(
   'Budget money must be an integer minor-unit string at $.amount',
   'malformed minor-unit strings are rejected'
 );
+update public.currency_catalog
+set enabled = true
+where code = 'USD';
+
+insert into public.households (id, name, created_by, currency)
+values (
+  '40000000-0000-0000-0000-000000000002',
+  'Currency test household',
+  '40000000-0000-0000-0000-000000000001',
+  'USD'
+)
+on conflict (id) do nothing;
+
 select throws_ok(
   $$select private.validate_budget_state(
     '40000000-0000-0000-0000-000000000002',
