@@ -117,7 +117,18 @@ jobs:
           supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" --yes "STRIPE_LIVE_MODE=$STRIPE_LIVE_MODE"
 
       - name: Deploy all Edge Functions
-        run: supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF"
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF"; then
+              exit 0
+            fi
+            if test "$attempt" -lt 3; then
+              echo "Supabase Edge Function deployment attempt $attempt failed; retrying"
+              sleep 20
+            fi
+          done
+          exit 1
 
       - name: Verify production schema and function deployment
         run: |
