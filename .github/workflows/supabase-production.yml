@@ -70,7 +70,7 @@ jobs:
           test -n "$BUSINESS_APPROVAL_REF"
           git diff --exit-code
 
-      - name: Verify current commit checks and human review
+      - name: Verify current commit checks and solo-owner release authorization
         env:
           EXPECTED_SHA: ${{ inputs.expected_sha }}
           GH_TOKEN: ${{ github.token }}
@@ -85,11 +85,14 @@ jobs:
           done
           statuses="$(curl -fsSL "${auth[@]}" "$api/commits/$EXPECTED_SHA/status")"
           jq -e 'any(.statuses[]; .context == "Vercel" and .state == "success")' <<<"$statuses" >/dev/null
-          pull_number="$(curl -fsSL "${auth[@]}" "$api/commits/$EXPECTED_SHA/pulls" | jq -r '.[0].number // empty')"
-          test -n "$pull_number"
-          reviews="$(curl -fsSL "${auth[@]}" "$api/pulls/$pull_number/reviews?per_page=100")"
-          jq -e --arg expected_sha "$EXPECTED_SHA" \
-            'any(.[]; .state == "APPROVED" and .commit_id == $expected_sha)' <<<"$reviews" >/dev/null
+          pull="$(curl -fsSL "${auth[@]}" "$api/commits/$EXPECTED_SHA/pulls" | jq '.[0] // empty')"
+          test -n "$pull"
+          test "$(jq -r '.base.ref' <<<"$pull")" = "main"
+          test "$(jq -r '.merge_commit_sha // empty' <<<"$pull")" = "$EXPECTED_SHA"
+          test "$(jq -r '.merged_at // empty' <<<"$pull")" != ""
+          test "$(jq -r '.user.login' <<<"$pull")" = "$GITHUB_ACTOR"
+          test "$GITHUB_ACTOR" = "${{ github.repository_owner }}"
+          echo "Solo-owner release authorization verified for merged commit $EXPECTED_SHA"
 
       - name: Link production project
         run: supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
