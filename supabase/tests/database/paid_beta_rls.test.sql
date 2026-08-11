@@ -137,6 +137,7 @@ select throws_ok(
   'customers cannot insert beta onboarding directly'
 );
 
+set local role postgres;
 select is(
   (select signup_verified_at is not null
    from public.beta_operational_events
