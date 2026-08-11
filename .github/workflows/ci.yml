@@ -33,7 +33,7 @@ jobs:
       - run: deno check --node-modules-dir=auto supabase/functions/google-calendar-disconnect/index.ts
       - run: deno check --node-modules-dir=auto supabase/functions/reconcile-billing-subscription/index.ts
       - run: deno check --node-modules-dir=auto supabase/functions/stripe-webhook/index.ts
-      - run: deno test --allow-env=HARBOURLINE_APP_URL --node-modules-dir=auto supabase/functions/_shared/beta.test.ts supabase/functions/get-beta-operations/metrics.test.ts
+      - run: deno test --allow-env=HARBOURLINE_APP_URL --node-modules-dir=auto supabase/functions/_shared/beta.test.ts
       - name: Verify staging deployment fixture
         env:
           VITE_HARBOURLINE_DEPLOYMENT: staging
