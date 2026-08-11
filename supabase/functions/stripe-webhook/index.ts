@@ -160,8 +160,8 @@ async function deliverLifecycleEmail(
   claimToken: string,
   lifecycle: BillingEventLifecycle,
   currentPeriodEnd: string | null
-): Promise<void> {
-  if (!lifecycle.lifecycle_email_kind || !lifecycle.lifecycle_user_id || lifecycle.lifecycle_email_sent_at) return;
+): Promise<boolean> {
+  if (!lifecycle.lifecycle_email_kind || !lifecycle.lifecycle_user_id || lifecycle.lifecycle_email_sent_at) return false;
 
   try {
     const { data: account, error: accountError } = await withTimeout(
@@ -172,7 +172,7 @@ async function deliverLifecycleEmail(
         kind: lifecycle.lifecycle_email_kind,
         message: accountError?.message ?? "No account email was available"
       });
-      return;
+      return false;
     }
 
     const wasSent = await sendLifecycleEmail({
@@ -183,7 +183,7 @@ async function deliverLifecycleEmail(
       currentPeriodEnd,
       idempotencyKey: `harbourline-lifecycle-${eventId}-${lifecycle.lifecycle_email_kind}`
     });
-    if (!wasSent) return;
+    if (!wasSent) return false;
 
     const { error: sentAtError } = await admin
       .from("billing_events")
@@ -201,6 +201,7 @@ async function deliverLifecycleEmail(
       kind: lifecycle.lifecycle_email_kind,
       message: error instanceof Error ? error.message : "unknown error"
     });
+    return false;
   }
 }
 
