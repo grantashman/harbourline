@@ -128,4 +128,4 @@ jobs:
           done
           supabase functions list --project-ref "$SUPABASE_PROJECT_REF" | grep -F 'create-checkout-session'
           schema_check="$(supabase db query --linked --output json "select (exists (select 1 from public.currency_catalog where code = 'AUD' and enabled = true)) as aud_ok, (not exists (select 1 from public.currency_catalog where code <> 'AUD' and enabled = true)) as aud_only_ok, (exists (select 1 from pg_proc where oid = 'public.sync_budget(uuid,uuid,bigint,integer,text,text)'::regprocedure)) as sync_ok")"
-          jq -e '.rows | length == 1 and .[0].aud_ok == true and .[0].aud_only_ok == true and .[0].sync_ok == true' <<<"$schema_check" >/dev/null
+          jq -e '((if type == "array" then .[0] else .rows[0] end) | .aud_ok == true and .aud_only_ok == true and .sync_ok == true)' <<<"$schema_check" >/dev/null
