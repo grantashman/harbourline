@@ -127,4 +127,5 @@ jobs:
             grep -Fx "$required_secret" <<<"$secret_names" >/dev/null
           done
           supabase functions list --project-ref "$SUPABASE_PROJECT_REF" | grep -F 'create-checkout-session'
-          supabase db query --linked --output json "select case when exists (select 1 from public.currency_catalog where code = 'AUD' and enabled = true) then 1 else 1/0 end as aud_ok, case when not exists (select 1 from public.currency_catalog where code <> 'AUD' and enabled = true) then 1 else 1/0 end as aud_only_ok, case when exists (select 1 from pg_proc where oid = 'public.sync_budget(uuid,uuid,bigint,integer,text,text)'::regprocedure) then 1 else 1/0 end as sync_ok"
+          schema_check="$(supabase db query --linked --output json "select (exists (select 1 from public.currency_catalog where code = 'AUD' and enabled = true)) as aud_ok, (not exists (select 1 from public.currency_catalog where code <> 'AUD' and enabled = true)) as aud_only_ok, (exists (select 1 from pg_proc where oid = 'public.sync_budget(uuid,uuid,bigint,integer,text,text)'::regprocedure)) as sync_ok")"
+          jq -e '.rows | length == 1 and .[0].aud_ok == true and .[0].aud_only_ok == true and .[0].sync_ok == true' <<<"$schema_check" >/dev/null
