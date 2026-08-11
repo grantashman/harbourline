@@ -168,7 +168,7 @@ export class AccountPanel {
     this.onboarding = new OnboardingFlow({
       bridge,
       cloud: this.cloud,
-      createHousehold: (name) => this.cloud.createHousehold(name),
+      createHousehold: (name, currency) => this.cloud.createHousehold(name, currency),
       linkHousehold: (householdId) => this.sync.linkDevice(householdId, "device")
     });
     this.calendarSync = new GoogleCalendarSync(bridge, this.cloud);
@@ -204,6 +204,15 @@ export class AccountPanel {
         track("free_starter_payday_viewed");
       }
     });
+  }
+
+  private localCurrency(): string {
+    const localState = this.bridge.read();
+    const source = localState && typeof localState === "object"
+      ? localState as { currency?: unknown; household?: { currency?: unknown } }
+      : {};
+    const currency = String(source.currency ?? source.household?.currency ?? "AUD").trim().toUpperCase();
+    return /^[A-Z]{3}$/.test(currency) ? currency : "AUD";
   }
 
   async initialise(): Promise<void> {
@@ -1539,7 +1548,7 @@ export class AccountPanel {
         await this.refreshAccount();
         if (!isCurrent()) return;
       } else if (action === "create-household") {
-        const householdId = await this.cloud.createHousehold(formValue(form, "name"));
+        const householdId = await this.cloud.createHousehold(formValue(form, "name"), this.localCurrency());
         if (!isCurrent()) return;
         await this.refreshAccount();
         if (!isCurrent()) return;

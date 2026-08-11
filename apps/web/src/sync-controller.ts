@@ -1,4 +1,5 @@
 import {
+  canonicalJson,
   compactMutations,
   compareSyncState,
   createPendingMutation,

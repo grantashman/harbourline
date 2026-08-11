@@ -234,7 +234,7 @@ select lives_ok(
     0,
     3,
     '{"expenses":[{"name":"Rent"}]}',
-    'fnv1a-test'
+    private.state_hash('{"expenses":[{"name":"Rent"}]}')
   )$$,
   'member can use the guarded sync function'
 );
@@ -257,7 +257,7 @@ select throws_ok(
     1,
     3,
     '{"expenses":[]}',
-    'fnv1a-canceled'
+    private.state_hash('{"expenses":[]}')
   )$$,
   '42501',
   'An active household Harbourline subscription is required for cloud changes',

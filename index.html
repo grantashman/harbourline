@@ -4690,13 +4690,22 @@
       USD: { code: "USD", minorUnit: 2, locale: "en-US" }
     };
     const injectedCurrencyConfig = globalThis.HarbourlineCurrencyConfig || {};
+    function isValidLocale(locale) {
+      if (typeof locale !== "string" || !locale.trim()) return false;
+      try {
+        new Intl.NumberFormat(locale);
+        return true;
+      } catch {
+        return false;
+      }
+    }
     const customCurrencyDefinitions = injectedCurrencyConfig.currencies && typeof injectedCurrencyConfig.currencies === "object"
       ? Object.fromEntries(Object.entries(injectedCurrencyConfig.currencies).flatMap(([rawCode, rawDefinition]) => {
         const code = String(rawCode).trim().toUpperCase();
         const definition = rawDefinition && typeof rawDefinition === "object" ? rawDefinition : {};
         const minorUnit = Number(definition.minorUnit);
         const locale = String(definition.locale || "").trim();
-        return /^[A-Z]{3}$/.test(code) && Number.isInteger(minorUnit) && minorUnit >= 0 && minorUnit <= 6 && locale
+        return /^[A-Z]{3}$/.test(code) && Number.isInteger(minorUnit) && minorUnit >= 0 && minorUnit <= 6 && isValidLocale(locale)
           ? [[code, { code, minorUnit, locale }]]
           : [];
       }))
@@ -4991,7 +5000,7 @@
 
     function createDefaultState() {
       return {
-        schemaVersion: 2,
+        schemaVersion: 4,
         moneyRepresentation: "major-unit-runtime",
         currency: DEFAULT_CURRENCY,
         locale: CURRENCY_DEFINITIONS[DEFAULT_CURRENCY].locale,
@@ -5144,7 +5153,7 @@
     function serialiseState(runtimeState) {
       const source = JSON.parse(JSON.stringify(runtimeState));
       const currency = resolveStateCurrency(source);
-      source.schemaVersion = 2;
+      source.schemaVersion = 4;
       source.moneyRepresentation = "minor-unit-string";
       source.currency = currency;
       source.locale = source.locale || CURRENCY_DEFINITIONS[currency].locale;
@@ -5164,7 +5173,7 @@
           : null;
 
       return {
-        schemaVersion: 2,
+        schemaVersion: 4,
         moneyRepresentation: "major-unit-runtime",
         currency,
         locale: String(parsed.locale || CURRENCY_DEFINITIONS[currency].locale),
@@ -5237,7 +5246,12 @@
               value: Math.max(Number(item.value) || 0, 0)
             }))
           : [],
-        netWorthHistory: Array.isArray(parsed.netWorthHistory) ? parsed.netWorthHistory.filter(Boolean) : [],
+        netWorthHistory: Array.isArray(parsed.netWorthHistory)
+          ? parsed.netWorthHistory.filter(Boolean).map((snapshot) => ({
+              date: String(snapshot.date || ""),
+              value: Math.max(Number(snapshot.value ?? snapshot.total) || 0, 0)
+            }))
+          : [],
         expenses: Array.isArray(parsed.expenses)
           ? parsed.expenses.filter(Boolean).map((expense) => ({
               ...expense,
@@ -7537,7 +7551,7 @@
     function exportDataBackup() {
       const backup = {
         format: `${PRODUCT_NAME} Backup`,
-        version: 4,
+        version: 5,
         exportedAt: new Date().toISOString(),
         locale: state.locale,
         currency: state.currency,
@@ -7626,7 +7640,7 @@
     function renderNetWorth() {
       const totals = netWorthTotals();
       const history = state.netWorthHistory || [];
-      const last = history.length ? Number(history[history.length - 1].total) || 0 : totals.total;
+      const last = history.length ? Number(history[history.length - 1].value) || 0 : totals.total;
       const change = totals.total - last;
       document.querySelector("#netWorthAssets").textContent = money(totals.assets);
       document.querySelector("#netWorthLiabilities").textContent = money(totals.liabilities);
@@ -8303,7 +8317,7 @@
       });
       netWorthRows.push([], { cells: [xText("Saved snapshots", 2)], height: 23 }, [xText("Date", 3), xText("Net worth", 3)]);
       (state.netWorthHistory || []).forEach((snapshot) => {
-        netWorthRows.push([xDate(snapshot.date), xNumber(snapshot.total, 5)]);
+        netWorthRows.push([xDate(snapshot.date), xNumber(snapshot.value, 5)]);
       });
 
       const remaining = incomeMonthly() - expenseMonthlyTotal();
@@ -9138,12 +9152,13 @@
         ...state.transactions.map((item) => item.amount),
         ...state.goals.flatMap((item) => [item.target, item.current]),
         ...state.netWorthItems.map((item) => item.value),
+        ...state.netWorthHistory.map((snapshot) => snapshot.value),
         state.savingsPlan?.startingSavings,
         state.debtPlan?.extraPayment,
         state.paydayPlan?.billsAccountBalance
       ];
       return values.some((value) => Number(value) !== 0) || state.expenses.length > 0 || state.transactions.length > 0
-        || state.goals.length > 0 || state.netWorthItems.length > 0;
+        || state.goals.length > 0 || state.netWorthItems.length > 0 || state.netWorthHistory.length > 0;
     }
 
     currencySelector?.addEventListener("change", () => {
@@ -9471,7 +9486,7 @@
 
     document.querySelector("#saveNetWorthSnapshot").addEventListener("click", () => {
       const totals = netWorthTotals();
-      state.netWorthHistory.push({ date: todayValue(), total: totals.total });
+      state.netWorthHistory.push({ date: todayValue(), value: totals.total });
       saveState();
       renderNetWorth();
       showToast("Net worth snapshot saved");

@@ -27,9 +27,10 @@ Deno.serve(async (request) => {
 
   const stripeSecret = Deno.env.get("STRIPE_SECRET_KEY");
   const priceId = Deno.env.get("STRIPE_PRICE_ID");
+  const productId = Deno.env.get("STRIPE_PRODUCT_ID");
   const billingCurrency = (Deno.env.get("STRIPE_BILLING_CURRENCY") ?? "aud").trim().toLowerCase();
   const appUrl = configuredAppOrigin();
-  if (!stripeSecret || !priceId) return new Response("Billing is not configured", { status: 503, headers: corsHeaders });
+  if (!stripeSecret || !priceId || !productId) return new Response("Billing is not configured", { status: 503, headers: corsHeaders });
   if (!/^[a-z]{3}$/.test(billingCurrency)) return new Response("Billing currency is misconfigured", { status: 500, headers: corsHeaders });
 
   // Budget currencies are independent from the subscription price currency.
@@ -45,7 +46,7 @@ Deno.serve(async (request) => {
   } catch {
     return new Response("Billing price could not be verified", { status: 502, headers: corsHeaders });
   }
-  if (!priceResponse.ok || !isConfiguredStripePrice(pricePayload as Record<string, unknown>, billingCurrency)) {
+  if (!priceResponse.ok || !isConfiguredStripePrice(pricePayload as Record<string, unknown>, billingCurrency, productId)) {
     return new Response("Billing price does not match the reviewed subscription contract", { status: 502, headers: corsHeaders });
   }
 

@@ -5,6 +5,7 @@ import {
   type Session,
   type SupabaseClient
 } from "@supabase/supabase-js";
+import { canonicalJson } from "@harbourline/sync";
 import type {
   HouseholdRole,
   HouseholdSummary,
@@ -381,9 +382,10 @@ export class HarbourlineCloud {
     });
   }
 
-  async createHousehold(name: string): Promise<string> {
+  async createHousehold(name: string, currency = "AUD"): Promise<string> {
     const { data, error } = await this.requireClient().rpc("create_household", {
-      household_name: name
+      household_name: name,
+      household_currency: currency.trim().toUpperCase()
     });
     if (error) throw error;
     return String(data);
@@ -431,7 +433,7 @@ export class HarbourlineCloud {
       mutation_id: mutation.id,
       base_revision: mutation.baseRevision,
       document_schema_version: mutation.schemaVersion,
-      document_state: mutation.state,
+      document_state: canonicalJson(mutation.state),
       document_state_hash: mutation.stateHash
     });
     if (error) throw error;

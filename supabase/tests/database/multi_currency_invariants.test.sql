@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(7);
+select plan(12);
 
 select ok(
   to_regclass('public.currency_catalog') is not null,
@@ -43,6 +43,36 @@ select ok(
 select ok(
   to_regprocedure('private.validate_budget_state(uuid,jsonb,integer)') is not null,
   'budget state validation function exists'
+);
+select ok(
+  to_regprocedure('private.validate_exact_money_json(jsonb,text,text)') is not null,
+  'recursive exact-money validation function exists'
+);
+select ok(
+  to_regprocedure('public.create_household(text,text)') is not null,
+  'household creation accepts a requested currency'
+);
+select ok(
+  to_regprocedure('public.sync_budget(uuid,uuid,bigint,integer,text,text)') is not null,
+  'sync RPC accepts canonical JSON text and a SHA-256 state hash'
+);
+select lives_ok(
+  $$select private.validate_exact_money_json(
+    '{"currency":"AUD","moneyRepresentation":"minor-unit-string","amount":"12345"}'::jsonb,
+    'AUD',
+    '$'
+  )$$,
+  'integer minor-unit strings pass recursive validation'
+);
+select throws_ok(
+  $$select private.validate_exact_money_json(
+    '{"currency":"AUD","moneyRepresentation":"minor-unit-string","amount":123.45}'::jsonb,
+    'AUD',
+    '$'
+  )$$,
+  '22023',
+  'Budget money must be an integer minor-unit string at $.amount',
+  'decimal major-unit money is rejected even with the marker'
 );
 
 select * from finish();

@@ -139,7 +139,7 @@ function normaliseNetWorthItem(value: Record<string, unknown>, index: number): N
 function normaliseNetWorthSnapshot(value: Record<string, unknown>): NetWorthSnapshot {
   return {
     date: text(value.date),
-    value: Number.isFinite(Number(value.value)) ? Number(value.value) : 0
+    value: Number.isFinite(Number(value.value ?? value.total)) ? Number(value.value ?? value.total) : 0
   };
 }
 
@@ -360,7 +360,7 @@ export function serialiseBudgetState(
 ): Record<string, unknown> {
   const normalised = normaliseBudgetState(state, { registry });
   const serialised = cloneRecord(normalised);
-  serialised.schemaVersion = 2;
+  serialised.schemaVersion = 4;
   serialised.moneyRepresentation = "minor-unit-string";
   const currency = normalised.household.currency;
   serialised.currency = currency;

@@ -35,7 +35,7 @@ function isRevision(value: unknown, minimum = 0): value is number {
 }
 
 function isStateHash(value: unknown): value is string {
-  return typeof value === "string" && /^fnv1a-[0-9a-f]{8}$/.test(value);
+  return typeof value === "string" && /^sha256-[0-9a-f]{64}$/.test(value);
 }
 
 function isOwnedMetadata(value: unknown): value is LocalSyncMetadata {
