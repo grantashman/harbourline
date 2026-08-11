@@ -21,6 +21,9 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - uses: supabase/setup-cli@v3
+        with:
+          version: latest
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
@@ -31,9 +34,12 @@ jobs:
       - run: deno check --node-modules-dir=auto supabase/functions/google-calendar-status/index.ts
       - run: deno check --node-modules-dir=auto supabase/functions/google-calendar-sync/index.ts
       - run: deno check --node-modules-dir=auto supabase/functions/google-calendar-disconnect/index.ts
+      - run: deno check --node-modules-dir=auto supabase/functions/create-checkout-session/index.ts
       - run: deno check --node-modules-dir=auto supabase/functions/reconcile-billing-subscription/index.ts
       - run: deno check --node-modules-dir=auto supabase/functions/stripe-webhook/index.ts
       - run: deno test --allow-env=HARBOURLINE_APP_URL --node-modules-dir=auto supabase/functions/_shared/beta.test.ts
+      - run: node --experimental-strip-types --test supabase/functions/create-checkout-session/price-validation.test.ts
+      - run: supabase test db
       - name: Verify staging deployment fixture
         env:
           VITE_HARBOURLINE_DEPLOYMENT: staging

@@ -56,6 +56,10 @@ export class SyncController {
     this.onCleanupFailure = callbacks.cleanupFailure;
   }
 
+  private readSyncState(): unknown {
+    return this.bridge.readPersisted?.() ?? this.bridge.read();
+  }
+
   async initialise(): Promise<void> {
     await discardUnownedSyncData();
     this.metadata = await getSyncMetadata();
@@ -184,7 +188,7 @@ export class SyncController {
       return false;
     }
     if (!this.isCurrent(generation, ownerId)) return false;
-    await this.queueState(this.bridge.read(), true);
+    await this.queueState(this.readSyncState(), true);
     if (!this.isCurrent(generation, ownerId)) return false;
     const subscriptionKey = await this.cloud.subscribeToBudget(householdId, () => void this.receiveRemoteChange(householdId));
     if (!this.isCurrent(generation, ownerId)) {
@@ -207,7 +211,7 @@ export class SyncController {
     if (!this.cloudAccess || this.metadata?.householdId !== householdId) return;
     const generation = this.lifecycleGeneration;
     const ownerId = this.ownerId;
-    const currentState = this.bridge.read();
+    const currentState = this.readSyncState();
     if (this.metadata && stableStateHash(currentState) !== this.metadata.lastSyncedHash) {
       await this.queueState(currentState, true);
       if (!this.isCurrent(generation) || this.metadata?.householdId !== householdId) return;
@@ -310,7 +314,7 @@ export class SyncController {
     const metadata: LocalSyncMetadata = {
       ...this.metadata,
       revision: this.conflict.revision,
-      lastSyncedHash: stableStateHash(this.bridge.read()),
+      lastSyncedHash: stableStateHash(this.readSyncState()),
       lastSyncedAt: new Date().toISOString()
     };
     await setSyncMetadata(metadata);
@@ -331,7 +335,7 @@ export class SyncController {
     }
     if (!this.isCurrent(generation)) return;
     this.setConflict(null);
-    await this.queueState(this.bridge.read(), true);
+    await this.queueState(this.readSyncState(), true);
     if (!this.isCurrent(generation)) return;
   }
 
@@ -490,7 +494,7 @@ export class SyncController {
     try {
       const remote = await this.cloud.fetchBudget(householdId);
       if (!this.isCurrent(generation, ownerId) || this.metadata?.householdId !== householdId) return;
-      const comparison = compareSyncState(this.bridge.read(), this.metadata, remote);
+      const comparison = compareSyncState(this.readSyncState(), this.metadata, remote);
       if (comparison.decision === "download") {
         this.applyRemote(remote);
         await this.recordRemote(remote, generation);

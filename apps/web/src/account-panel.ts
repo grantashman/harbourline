@@ -37,6 +37,9 @@ const INITIAL_STATUS: Release2Status = {
 };
 
 const SUPPORT_EMAIL = String(import.meta.env.VITE_HARBOURLINE_SUPPORT_EMAIL ?? "").trim();
+const BILLING_CURRENCY = String(import.meta.env.VITE_HARBOURLINE_BILLING_CURRENCY ?? "AUD").trim().toUpperCase();
+const BILLING_LOCALE = String(import.meta.env.VITE_HARBOURLINE_BILLING_LOCALE ?? "en-AU").trim() || "en-AU";
+const BILLING_PRICE_LABEL = BILLING_CURRENCY === "AUD" ? "A$2.50/week" : `${BILLING_CURRENCY} 2.50/week`;
 const PAID_CLOUD_ACTIONS = new Set([
   "create-household",
   "create-invite",
@@ -80,7 +83,7 @@ function formatBillingDate(value: string | null): string | null {
   const date = new Date(value);
   return Number.isNaN(date.getTime())
     ? null
-    : new Intl.DateTimeFormat("en-AU", { dateStyle: "medium" }).format(date);
+    : new Intl.DateTimeFormat(BILLING_LOCALE, { dateStyle: "medium" }).format(date);
 }
 
 function emptyGoogleCalendarStatus(): GoogleCalendarStatus {
@@ -1109,7 +1112,7 @@ export class AccountPanel {
         <div class="release2-fact-grid">
           <div><span>Account</span><strong>Harbourline</strong></div>
           <div><span>Registration</span><strong>Homepage only</strong></div>
-          <div><span>Currency</span><strong>AUD</strong></div>
+          <div><span>Currency</span><strong>${escapeHtml(BILLING_CURRENCY)}</strong></div>
         </div>
       </section>
     `;
@@ -1294,7 +1297,7 @@ export class AccountPanel {
       </section>
       <section class="release2-section release2-plan-card release2-plan-${planState}">
         <div class="release2-section-heading">
-          <div><span>Harbourline plan</span><h3>A$2.50/week introductory early access</h3></div>
+          <div><span>Harbourline plan</span><h3>${escapeHtml(BILLING_PRICE_LABEL)} introductory early access</h3></div>
           <span class="badge release2-plan-badge ${planState === "active" ? "is-active" : planState === "attention" ? "is-attention" : planState === "pending" || planState === "checking" ? "is-pending" : ""}">${planState === "active" ? "Subscribed" : planState === "pending" ? "Confirming" : planState === "checking" ? "Checking" : planState === "attention" ? "Payment needed" : "One plan"}</span>
         </div>
         ${confirmedSubscriptionActive ? `<div class="release2-plan-confirmation" role="status"><span class="release2-plan-check" aria-hidden="true">✓</span><div><strong>Subscription active</strong><p>Payment confirmed. Harbourline is ready for household planning and sync.</p></div></div>` : ""}
@@ -1381,7 +1384,7 @@ export class AccountPanel {
       <article class="release2-household ${linked ? "is-linked" : ""}">
         <div>
           <strong>${escapeHtml(household.name)}</strong>
-          <span>${escapeHtml(household.role)} · Version ${household.revision}${linked ? " · Synced here" : ""}</span>
+          <span>${escapeHtml(household.role)} · ${escapeHtml(household.currency ?? "AUD")} · Version ${household.revision}${linked ? " · Synced here" : ""}</span>
         </div>
         ${linked
           ? `<span class="release2-linked-label">Connected</span>`
@@ -1441,7 +1444,7 @@ export class AccountPanel {
         ? `<button class="btn secondary" type="button" data-action="open-billing-portal" ${this.busy ? "disabled" : ""}>Manage subscription</button>`
         : `<span class="badge release2-plan-badge is-attention">Payment needed</span>`;
     }
-    return `<button class="btn secondary" type="button" data-action="start-checkout" ${this.busy ? "disabled" : ""}>Unlock with A$2.50/week</button>`;
+    return `<button class="btn secondary" type="button" data-action="start-checkout" ${this.busy ? "disabled" : ""}>Unlock with ${escapeHtml(BILLING_PRICE_LABEL)}</button>`;
   }
 
   private renderSupport(): string {
@@ -1463,7 +1466,7 @@ export class AccountPanel {
   }
 
   private renderConflict(remote: RemoteBudgetDocument): string {
-    const updated = new Intl.DateTimeFormat("en-AU", {
+    const updated = new Intl.DateTimeFormat(BILLING_LOCALE, {
       dateStyle: "medium",
       timeStyle: "short"
     }).format(new Date(remote.updatedAt));

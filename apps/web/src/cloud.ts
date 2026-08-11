@@ -28,6 +28,7 @@ interface HouseholdMemberRow {
 interface HouseholdRow {
   id: string;
   name: string;
+  currency: string;
   updated_at: string;
 }
 
@@ -351,7 +352,7 @@ export class HarbourlineCloud {
 
     const [{ data: householdData, error: householdError }, { data: budgetData, error: budgetError }] =
       await Promise.all([
-        client.from("households").select("id, name, updated_at").in("id", ids),
+        client.from("households").select("id, name, currency, updated_at").in("id", ids),
         client.from("budget_documents").select("household_id, revision, updated_at").in("household_id", ids)
       ]);
     if (householdError) throw householdError;
@@ -373,6 +374,7 @@ export class HarbourlineCloud {
         id: household.id,
         name: household.name,
         role: membership.role,
+        currency: household.currency,
         revision: Number(budget?.revision ?? 0),
         updatedAt: budget?.updated_at ?? household.updated_at
       }];

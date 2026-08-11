@@ -5,6 +5,7 @@ export interface HouseholdSummary {
   id: string;
   name: string;
   role: HouseholdRole;
+  currency?: string;
   revision: number;
   updatedAt: string;
 }

@@ -2,6 +2,12 @@ name: Deploy Supabase production
 
 on:
   workflow_dispatch:
+    inputs:
+      confirm_production:
+        description: "Confirm backup, approvals, and release-gate evidence are complete"
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -9,6 +15,7 @@ permissions:
 jobs:
   deploy:
     name: Apply migrations and deploy Edge Functions
+    if: inputs.confirm_production == true && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: production
     env:
@@ -16,6 +23,7 @@ jobs:
       SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       STRIPE_PRICE_ID: ${{ vars.STRIPE_PRICE_ID }}
+      STRIPE_BILLING_CURRENCY: aud
     steps:
       - uses: actions/checkout@v7
 
@@ -31,6 +39,7 @@ jobs:
           test -n "$STRIPE_PRICE_ID"
           test "$STRIPE_PRICE_ID" = "price_1U2AOcBha937Q1NNu8HrnIRJ"
           supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" --yes "STRIPE_PRICE_ID=$STRIPE_PRICE_ID"
+          supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" --yes "STRIPE_BILLING_CURRENCY=$STRIPE_BILLING_CURRENCY"
 
       - name: Apply production migrations
         run: supabase db push --linked

@@ -13,11 +13,14 @@ export type Frequency = (typeof FREQUENCIES)[number];
 
 export type DebtStrategy = "avalanche" | "snowball";
 
+export type CurrencyCode = string;
+
 export interface Household {
   id: string;
   name: string;
-  currency: "AUD";
-  locale: "en-AU";
+  currency: CurrencyCode;
+  locale: string;
+  timeZone?: string;
 }
 
 export interface IncomeSource {
@@ -129,9 +132,9 @@ export interface BudgetState {
 
 export interface BudgetBackup {
   format: "Harbourline Backup";
-  version: 4;
+  version: number;
   exportedAt: string;
-  locale: "en-AU";
-  currency: "AUD";
-  state: BudgetState;
+  locale: string;
+  currency: CurrencyCode;
+  state: unknown;
 }

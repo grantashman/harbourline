@@ -1,4 +1,5 @@
 export * from "./beta.js";
+export * from "./currency.js";
 export * from "./debt.js";
 export * from "./frequencies.js";
 export * from "./numbers.js";

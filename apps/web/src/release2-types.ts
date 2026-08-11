@@ -6,10 +6,11 @@ import type {
 } from "@harbourline/sync";
 
 export interface HarbourlineLocalBridge {
-  version: 1;
+  version: 2;
   schemaVersion: number;
   storageKey: string;
   read(): unknown;
+  readPersisted?(): unknown;
   setUserScope(userId: string | null): void;
   replace(state: unknown, source?: string): void;
   openWorkspace(tab: "payday"): void;
