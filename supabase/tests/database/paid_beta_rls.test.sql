@@ -149,6 +149,9 @@ select is(
 
 reset role;
 
+delete from public.households
+where id = '50000000-0000-0000-0000-000000000001';
+
 delete from auth.users
 where id = '40000000-0000-0000-0000-000000000001';
 
