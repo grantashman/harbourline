@@ -2,6 +2,7 @@ import { assertEquals, assertThrows } from "jsr:@std/assert";
 import { lifecycleEmailFor, signupNotificationContent } from "./beta-email.ts";
 import { parseOperatorEmails, isVerifiedAuthUser, validateBetaEvent, validateClientBetaEvent } from "./beta.ts";
 import { isStaleSubscriptionEvent } from "../stripe-subscription-ordering.ts";
+import { noSubscriptionReconciliation } from "../reconcile-billing-subscription/reconciliation.ts";
 
 Deno.test("validates the fixed customer event allowlist", () => {
   assertEquals(validateBetaEvent("income_added"), "income_added");
@@ -37,6 +38,14 @@ Deno.test("sends welcome only when a subscription first becomes active", () => {
 
 Deno.test("sends cancellation guidance only after cancellation", () => {
   assertEquals(lifecycleEmailFor({ previousStatus: "active", nextStatus: "canceled" })?.kind, "cancelled");
+});
+
+Deno.test("resolves a verified free account when Stripe has no subscription", () => {
+  assertEquals(noSubscriptionReconciliation(null), {
+    active: false,
+    reconciled: true,
+    subscription: null
+  });
 });
 
 Deno.test("ignores delayed Stripe subscription snapshots", () => {

@@ -1,4 +1,5 @@
 import { createServiceRoleClient, corsHeaders, errorResponse, HttpError, jsonResponse, requireAuthenticatedUser } from "../_shared/beta.ts";
+import { noSubscriptionReconciliation } from "./reconciliation.ts";
 
 type StripeObject = Record<string, unknown>;
 
@@ -174,11 +175,7 @@ Deno.serve(async (request) => {
 
     const chosen = chooseSubscription(candidates, user.id, email, existingBilling?.stripe_customer_id ?? null);
     if (!chosen) {
-      return jsonResponse({
-        active: Boolean(existingBilling && ACCESS_STATUSES.has(existingBilling.status)),
-        reconciled: false,
-        subscription: existingBilling ?? null
-      });
+      return jsonResponse(noSubscriptionReconciliation(existingBilling));
     }
 
     const snapshot = subscriptionSnapshot(chosen.subscription, String(chosen.customer.id));
