@@ -16,9 +16,23 @@ on:
         description: "Non-secret ticket or document reference for release evidence"
         required: true
         type: string
+      backup_evidence_ref:
+        description: "Non-secret reference proving backup and restore rehearsal completion"
+        required: true
+        type: string
+      recovery_evidence_ref:
+        description: "Non-secret reference proving migration rollback/recovery readiness"
+        required: true
+        type: string
+      business_approval_ref:
+        description: "Non-secret reference for product, tax/legal, accounting, and support approvals"
+        required: true
+        type: string
 
 permissions:
   contents: read
+  checks: read
+  pull-requests: read
 
 jobs:
   deploy:
@@ -33,6 +47,7 @@ jobs:
       STRIPE_PRICE_ID: ${{ vars.STRIPE_PRICE_ID }}
       STRIPE_PRODUCT_ID: ${{ vars.STRIPE_PRODUCT_ID }}
       STRIPE_BILLING_CURRENCY: aud
+      STRIPE_LIVE_MODE: "true"
     steps:
       - uses: actions/checkout@v7
 
@@ -44,10 +59,37 @@ jobs:
         env:
           EXPECTED_SHA: ${{ inputs.expected_sha }}
           RELEASE_EVIDENCE_REF: ${{ inputs.release_evidence_ref }}
+          BACKUP_EVIDENCE_REF: ${{ inputs.backup_evidence_ref }}
+          RECOVERY_EVIDENCE_REF: ${{ inputs.recovery_evidence_ref }}
+          BUSINESS_APPROVAL_REF: ${{ inputs.business_approval_ref }}
         run: |
           test "$GITHUB_SHA" = "$EXPECTED_SHA"
           test -n "$RELEASE_EVIDENCE_REF"
+          test -n "$BACKUP_EVIDENCE_REF"
+          test -n "$RECOVERY_EVIDENCE_REF"
+          test -n "$BUSINESS_APPROVAL_REF"
           git diff --exit-code
+
+      - name: Verify current commit checks and human review
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          api="https://api.github.com/repos/$GITHUB_REPOSITORY"
+          auth=(-H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json")
+          checks="$(curl -fsSL "${auth[@]}" "$api/commits/$EXPECTED_SHA/check-runs?per_page=100")"
+          for required_check in "validate" "CodeQL JavaScript and TypeScript" "dependency-review"; do
+            jq -e --arg required_check "$required_check" \
+              'any(.check_runs[]; .name == $required_check and .conclusion == "success")' <<<"$checks" >/dev/null
+          done
+          statuses="$(curl -fsSL "${auth[@]}" "$api/commits/$EXPECTED_SHA/status")"
+          jq -e 'any(.statuses[]; .context == "Vercel" and .state == "success")' <<<"$statuses" >/dev/null
+          pull_number="$(curl -fsSL "${auth[@]}" "$api/commits/$EXPECTED_SHA/pulls" | jq -r '.[0].number // empty')"
+          test -n "$pull_number"
+          reviews="$(curl -fsSL "${auth[@]}" "$api/pulls/$pull_number/reviews?per_page=100")"
+          jq -e --arg expected_sha "$EXPECTED_SHA" \
+            'any(.[]; .state == "APPROVED" and .commit_id == $expected_sha)' <<<"$reviews" >/dev/null
 
       - name: Link production project
         run: supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
@@ -63,12 +105,13 @@ jobs:
           supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" --yes "STRIPE_PRICE_ID=$STRIPE_PRICE_ID"
           supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" --yes "STRIPE_PRODUCT_ID=$STRIPE_PRODUCT_ID"
           supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" --yes "STRIPE_BILLING_CURRENCY=$STRIPE_BILLING_CURRENCY"
+          supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" --yes "STRIPE_LIVE_MODE=$STRIPE_LIVE_MODE"
 
       - name: Deploy all Edge Functions
         run: supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF"
 
       - name: Verify production schema and function deployment
         run: |
-          supabase secrets list --project-ref "$SUPABASE_PROJECT_REF" | grep -E 'STRIPE_(SECRET_KEY|PRICE_ID|PRODUCT_ID|BILLING_CURRENCY)'
+          supabase secrets list --project-ref "$SUPABASE_PROJECT_REF" | grep -E 'STRIPE_(SECRET_KEY|PRICE_ID|PRODUCT_ID|BILLING_CURRENCY|LIVE_MODE)'
           supabase functions list --project-ref "$SUPABASE_PROJECT_REF" | grep -F 'create-checkout-session'
           supabase db query --linked --output json "select case when exists (select 1 from public.currency_catalog where code = 'AUD' and enabled = true) then 1 else 1/0 end as aud_ok, case when exists (select 1 from pg_proc where oid = 'public.sync_budget(uuid,uuid,bigint,integer,text,text)'::regprocedure) then 1 else 1/0 end as sync_ok"

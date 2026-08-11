@@ -1,4 +1,5 @@
 import { createServiceRoleClient, corsHeaders, errorResponse, HttpError, jsonResponse, requireAuthenticatedUser } from "../_shared/beta.ts";
+import { isConfiguredStripePrice } from "../_shared/stripe-price-contract.ts";
 import { noSubscriptionReconciliation } from "./reconciliation.ts";
 
 type StripeObject = Record<string, unknown>;
@@ -51,7 +52,10 @@ function subscriptionSnapshot(subscription: StripeObject, customerId: string): {
 
 async function stripeGet(path: string, params: Record<string, string>, secret: string): Promise<StripeObject> {
   const url = new URL(`https://api.stripe.com${path}`);
-  for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
+  for (const [key, value] of Object.entries(params)) {
+    if (key.endsWith("[]")) url.searchParams.append(key, value);
+    else url.searchParams.set(key, value);
+  }
 
   const response = await fetch(url, {
     headers: { Authorization: `Bearer ${secret}` }
@@ -61,12 +65,39 @@ async function stripeGet(path: string, params: Record<string, string>, secret: s
   return asObject(payload);
 }
 
+function reviewedPriceConfiguration(): { currency: string; productId: string; priceId: string; liveMode: boolean } {
+  const currency = Deno.env.get("STRIPE_BILLING_CURRENCY")?.trim().toUpperCase() ?? "";
+  const productId = Deno.env.get("STRIPE_PRODUCT_ID")?.trim() ?? "";
+  const priceId = Deno.env.get("STRIPE_PRICE_ID")?.trim() ?? "";
+  const liveMode = Deno.env.get("STRIPE_LIVE_MODE");
+  if (!currency || !productId || !priceId || !liveMode || !["true", "false"].includes(liveMode)) {
+    throw new HttpError(503, "Reviewed Stripe price configuration is incomplete.");
+  }
+  return { currency, productId, priceId, liveMode: liveMode === "true" };
+}
+
+function assertReviewedSubscription(subscription: StripeObject): void {
+  const items = asObject(subscription.items);
+  const itemsData = Array.isArray(items.data) ? items.data : [];
+  if (itemsData.length !== 1) throw new HttpError(502, "Stripe returned an unexpected subscription price shape.");
+  const price = asObject(asObject(itemsData[0]).price);
+  const configuration = reviewedPriceConfiguration();
+  if (!isConfiguredStripePrice(price, configuration.currency, configuration.productId, configuration.priceId, { requireActive: false, expectedLiveMode: configuration.liveMode })) {
+    throw new HttpError(502, "Stripe subscription price does not match the reviewed subscription contract.");
+  }
+}
+
 function customerEmail(customer: StripeObject): string | null {
   return asString(customer.email)?.trim().toLowerCase() ?? null;
 }
 
 async function subscriptionsForCustomer(customerId: string, secret: string): Promise<StripeObject[]> {
-  const payload = await stripeGet("/v1/subscriptions", { customer: customerId, status: "all", limit: "100" }, secret);
+  const payload = await stripeGet("/v1/subscriptions", {
+    customer: customerId,
+    status: "all",
+    limit: "100",
+    "expand[]": "data.items.data.price"
+  }, secret);
   return Array.isArray(payload.data) ? payload.data.map(asObject) : [];
 }
 
@@ -101,7 +132,8 @@ function chooseSubscription(
 
 async function hasHouseholdCloudAccess(
   admin: ReturnType<typeof createServiceRoleClient>,
-  userId: string
+  userId: string,
+  stripeSecret: string
 ): Promise<boolean> {
   const { data: memberships, error: membershipError } = await admin
     .from("household_members")
@@ -121,12 +153,27 @@ async function hasHouseholdCloudAccess(
 
   const { data: activeSubscriptions, error: subscriptionError } = await admin
     .from("billing_subscriptions")
-    .select("user_id")
+    .select("user_id, stripe_subscription_id, price_id")
     .in("user_id", memberIds)
     .in("status", ["active", "trialing"])
-    .limit(1);
+    .limit(100);
   if (subscriptionError) throw new HttpError(500, "Household access could not be reconciled.");
-  return Boolean(activeSubscriptions?.length);
+  const reviewedPriceId = reviewedPriceConfiguration().priceId;
+  for (const candidate of activeSubscriptions ?? []) {
+    if (candidate.price_id !== reviewedPriceId || typeof candidate.stripe_subscription_id !== "string") continue;
+    try {
+      const subscription = await stripeGet(
+        `/v1/subscriptions/${encodeURIComponent(candidate.stripe_subscription_id)}`,
+        { "expand[]": "items.data.price" },
+        stripeSecret
+      );
+      assertReviewedSubscription(subscription);
+      if (ACCESS_STATUSES.has(String(subscription.status))) return true;
+    } catch (error) {
+      if (error instanceof HttpError && error.status === 503) throw error;
+    }
+  }
+  return false;
 }
 
 Deno.serve(async (request) => {
@@ -149,7 +196,7 @@ Deno.serve(async (request) => {
       .maybeSingle();
     if (billingError) throw new HttpError(500, "Billing status could not be loaded.");
 
-    const inheritedHouseholdAccess = await hasHouseholdCloudAccess(admin, user.id);
+    const inheritedHouseholdAccess = await hasHouseholdCloudAccess(admin, user.id, stripeSecret);
     if (inheritedHouseholdAccess) {
       return jsonResponse({
         active: true,
@@ -173,7 +220,16 @@ Deno.serve(async (request) => {
       }
     }
 
-    const chosen = chooseSubscription(candidates, user.id, email, existingBilling?.stripe_customer_id ?? null);
+    const reviewedCandidates = candidates.filter(({ subscription }) => {
+      try {
+        assertReviewedSubscription(subscription);
+        return true;
+      } catch (error) {
+        if (error instanceof HttpError && error.status === 503) throw error;
+        return false;
+      }
+    });
+    const chosen = chooseSubscription(reviewedCandidates, user.id, email, existingBilling?.stripe_customer_id ?? null);
     if (!chosen) {
       return jsonResponse(noSubscriptionReconciliation(existingBilling));
     }

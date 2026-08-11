@@ -212,7 +212,11 @@ export function scaleMinorDecimal(
 }
 
 export function minorToNumber(value: string | bigint, code: string, registry: CurrencyRegistry = DEFAULT_CURRENCY_REGISTRY): number {
-  const result = Number(minorToMajor(value, code, registry));
+  const minor = BigInt(normaliseMinor(value));
+  if (minor > BigInt(Number.MAX_SAFE_INTEGER) || minor < BigInt(Number.MIN_SAFE_INTEGER)) {
+    throw new Error("Money value is outside the safe numeric range.");
+  }
+  const result = Number(minorToMajor(minor, code, registry));
   if (!Number.isFinite(result)) throw new Error("Money value is outside the supported numeric range.");
   return result;
 }

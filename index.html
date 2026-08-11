@@ -4853,7 +4853,11 @@
     }
 
     function minorNumber(value, code = DEFAULT_CURRENCY) {
-      const result = Number(minorToMajor(value, code));
+      const minor = BigInt(minorString(value));
+      if (minor > BigInt(Number.MAX_SAFE_INTEGER) || minor < BigInt(Number.MIN_SAFE_INTEGER)) {
+        throw new Error("Money value is outside the safe numeric range.");
+      }
+      const result = Number(minorToMajor(minor, code));
       if (!Number.isFinite(result)) throw new Error("Money value is outside the supported numeric range.");
       return result;
     }
@@ -5025,6 +5029,7 @@
     const defaultState = createDefaultState();
 
     let activeStorageKey = STORAGE_KEY;
+    let stateLoadError = null;
     let state = loadState();
     let stateChangeSource = "local";
     let editingExpenseId = null;
@@ -5145,7 +5150,7 @@
       const source = parsed && typeof parsed === "object" ? JSON.parse(JSON.stringify(parsed)) : {};
       const currency = resolveStateCurrency(source);
       if (source.moneyRepresentation === "minor-unit-string") {
-        transformPersistedMoney(source, currency, (value, code) => Number(minorToMajor(value, code)));
+        transformPersistedMoney(source, currency, (value, code) => minorNumber(value, code));
       }
       return { source, currency };
     }
@@ -5282,9 +5287,11 @@
     }
 
     function loadState(storageKey = activeStorageKey) {
+      let saved = null;
+      stateLoadError = null;
       try {
         const candidates = storageCandidates(storageKey);
-        const saved = firstStoredValue(candidates);
+        saved = firstStoredValue(candidates);
         if (saved && !localStorage.getItem(storageKey)) localStorage.setItem(storageKey, saved);
         if (!saved) return createDefaultState();
         const parsed = JSON.parse(saved);
@@ -5293,12 +5300,25 @@
           localStorage.setItem(storageKey, JSON.stringify(serialiseState(restored)));
         }
         return restored;
-      } catch {
+      } catch (error) {
+        if (saved) {
+          try {
+            localStorage.setItem(`${storageKey}:quarantine`, saved);
+          } catch {
+            // Preserve the in-memory recovery state even if storage is unavailable.
+          }
+          stateLoadError = "Stored budget data could not be read. Restore a backup or explicitly reset this budget.";
+          console.error("Harbourline state quarantined", error);
+        }
         return createDefaultState();
       }
     }
 
     function saveState() {
+      if (stateLoadError) {
+        console.warn(stateLoadError);
+        return false;
+      }
       localStorage.setItem(activeStorageKey, JSON.stringify(serialiseState(state)));
       window.dispatchEvent(new CustomEvent("harbourline:state-changed", {
         detail: {
@@ -5353,6 +5373,7 @@
         stateChangeSource = source;
         try {
           state = normaliseState(nextState);
+          stateLoadError = null;
           saveState();
           render();
         } finally {
@@ -7361,9 +7382,13 @@
 
       const rows = transactionMonthRows(realityMonth.value);
       const expenseRows = rows.filter((transaction) => transaction.type === "expense");
-      const actual = expenseRows.reduce((total, transaction) => total + Number(transaction.amount || 0), 0);
-      const planned = expenseMonthlyTotal();
-      const variance = actual - planned;
+      const code = state?.currency || DEFAULT_CURRENCY;
+      const actualMinor = sumMinor(expenseRows.map((transaction) => parseMajorToMinor(transaction.amount || 0, code)));
+      const plannedMinor = parseMajorToMinor(expenseMonthlyTotal(), code);
+      const actual = minorNumber(actualMinor, code);
+      const planned = minorNumber(plannedMinor, code);
+      const varianceMinor = (BigInt(actualMinor) - BigInt(plannedMinor)).toString();
+      const variance = minorNumber(varianceMinor, code);
       const unmatched = expenseRows.filter((transaction) => !transaction.matchedExpenseId).length;
       document.querySelector("#realityPlanned").textContent = money(planned);
       document.querySelector("#realityActual").textContent = money(actual);
@@ -7373,23 +7398,41 @@
       document.querySelector("#realityUnmatched").textContent = String(unmatched);
       document.querySelector("#transactionCount").textContent = `${rows.length} entr${rows.length === 1 ? "y" : "ies"}`;
 
-      const plannedByCategory = Object.fromEntries(categoryMonthlyTotals().map((item) => [item.name, item.value]));
-      const actualByCategory = expenseRows.reduce((totals, transaction) => {
+      const plannedByCategoryMinor = Object.fromEntries(categoryMonthlyTotals()
+        .map((item) => [item.name, parseMajorToMinor(item.value, code)]));
+      const actualByCategoryMinor = expenseRows.reduce((totals, transaction) => {
         const category = transaction.category || "Other";
-        totals[category] = (totals[category] || 0) + Number(transaction.amount || 0);
+        totals[category] = sumMinor([
+          totals[category] || "0",
+          parseMajorToMinor(transaction.amount || 0, code)
+        ]);
         return totals;
       }, {});
-      const categories = [...new Set([...Object.keys(plannedByCategory), ...Object.keys(actualByCategory)])]
-        .sort((a, b) => Math.max(actualByCategory[b] || 0, plannedByCategory[b] || 0) - Math.max(actualByCategory[a] || 0, plannedByCategory[a] || 0));
+      const categories = [...new Set([...Object.keys(plannedByCategoryMinor), ...Object.keys(actualByCategoryMinor)])]
+        .sort((a, b) => {
+          const left = BigInt(plannedByCategoryMinor[a] || "0") > BigInt(actualByCategoryMinor[a] || "0")
+            ? BigInt(plannedByCategoryMinor[a] || "0")
+            : BigInt(actualByCategoryMinor[a] || "0");
+          const right = BigInt(plannedByCategoryMinor[b] || "0") > BigInt(actualByCategoryMinor[b] || "0")
+            ? BigInt(plannedByCategoryMinor[b] || "0")
+            : BigInt(actualByCategoryMinor[b] || "0");
+          return right > left ? 1 : right < left ? -1 : a.localeCompare(b);
+        });
       const comparison = document.querySelector("#actualComparison");
       comparison.innerHTML = "";
       if (!categories.length) {
         comparison.innerHTML = '<div class="empty-workspace">Add planned expenses or actual transactions to compare the month.</div>';
       } else {
-        const max = Math.max(...categories.flatMap((category) => [plannedByCategory[category] || 0, actualByCategory[category] || 0]), 1);
+        const maxMinor = categories.reduce((max, category) => {
+          const plannedValue = BigInt(plannedByCategoryMinor[category] || "0");
+          const actualValue = BigInt(actualByCategoryMinor[category] || "0");
+          return plannedValue > max ? (plannedValue > actualValue ? plannedValue : actualValue) : (actualValue > max ? actualValue : max);
+        }, 1n);
         categories.forEach((category) => {
-          const categoryPlanned = plannedByCategory[category] || 0;
-          const categoryActual = actualByCategory[category] || 0;
+          const categoryPlannedMinor = plannedByCategoryMinor[category] || "0";
+          const categoryActualMinor = actualByCategoryMinor[category] || "0";
+          const categoryPlanned = minorNumber(categoryPlannedMinor, code);
+          const categoryActual = minorNumber(categoryActualMinor, code);
           const row = document.createElement("div");
           row.className = "comparison-row";
           row.innerHTML = `
@@ -7400,7 +7443,7 @@
             <span></span>
           `;
           row.querySelector("strong").textContent = category;
-          row.querySelector(".comparison-bar span").style.width = `${Math.min(categoryActual / max * 100, 100)}%`;
+          row.querySelector(".comparison-bar span").style.width = `${Math.min(Number((BigInt(categoryActualMinor) * 100n) / maxMinor), 100)}%`;
           const values = row.querySelectorAll(":scope > span");
           values[1].textContent = `Plan ${money(categoryPlanned)}`;
           values[2].textContent = `Actual ${money(categoryActual)}`;
@@ -9434,6 +9477,7 @@
         const confirmed = window.confirm("Replace the current budget with this backup?");
         if (!confirmed) return;
         state = normaliseState(restored);
+        stateLoadError = null;
         saveState();
         resetExpenseForm();
         render();
@@ -9575,6 +9619,7 @@
       if (!confirmed) return;
       resetExpenseForm();
       state = createDefaultState();
+      stateLoadError = null;
       state.paydayPlan.nextPayday = todayValue();
       saveState();
       render();
@@ -9613,6 +9658,7 @@
     toggleDebtEntryFields();
     renderExpenseConversionPreview();
     render();
+    if (stateLoadError) showToast(stateLoadError);
   </script>
 </body>
 </html>

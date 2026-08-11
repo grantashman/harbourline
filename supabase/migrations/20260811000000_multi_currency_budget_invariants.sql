@@ -15,14 +15,44 @@ create table if not exists public.currency_catalog (
 insert into public.currency_catalog (code, minor_unit, default_locale, enabled)
 values
   ('AUD', 2, 'en-AU', true),
+  ('BHD', 3, 'en-BH', false),
   ('CAD', 2, 'en-CA', false),
   ('EUR', 2, 'en-IE', false),
   ('GBP', 2, 'en-GB', false),
+  ('INR', 2, 'en-IN', false),
   ('JPY', 0, 'ja-JP', false),
+  ('MXN', 2, 'es-MX', false),
   ('NZD', 2, 'en-NZ', false),
   ('SGD', 2, 'en-SG', false),
   ('USD', 2, 'en-US', false)
 on conflict (code) do nothing;
+
+do $$
+begin
+  if exists (
+    select 1
+    from public.currency_catalog as existing
+    join (values
+      ('AUD', 2, 'en-AU'),
+      ('BHD', 3, 'en-BH'),
+      ('CAD', 2, 'en-CA'),
+      ('EUR', 2, 'en-IE'),
+      ('GBP', 2, 'en-GB'),
+      ('INR', 2, 'en-IN'),
+      ('JPY', 0, 'ja-JP'),
+      ('MXN', 2, 'es-MX'),
+      ('NZD', 2, 'en-NZ'),
+      ('SGD', 2, 'en-SG'),
+      ('USD', 2, 'en-US')
+    ) as expected(code, minor_unit, default_locale)
+      on expected.code = existing.code
+    where existing.minor_unit <> expected.minor_unit
+      or existing.default_locale <> expected.default_locale
+  ) then
+    raise exception 'Currency catalog metadata conflicts with the reviewed application catalog' using errcode = '22023';
+  end if;
+end;
+$$;
 
 alter table public.households
   add column if not exists currency text not null default 'AUD';
@@ -159,6 +189,10 @@ begin
   end if;
   if not private.currency_is_enabled(document_currency) then
     raise exception 'Budget currency is not enabled' using errcode = '22023';
+  end if;
+
+  if target_schema_version < 4 and document_currency <> 'AUD' then
+    raise exception 'Non-AUD budget states must use schema version 4 or newer' using errcode = '22023';
   end if;
 
   if target_schema_version >= 4 then

@@ -41,6 +41,10 @@ interface BudgetRow {
   updated_at: string;
 }
 
+interface HouseholdCurrencyRow {
+  currency: string;
+}
+
 export interface BillingSubscription {
   stripe_customer_id: string | null;
   status: string;
@@ -418,13 +422,25 @@ export class HarbourlineCloud {
   }
 
   async fetchBudget(householdId: string): Promise<RemoteBudgetDocument> {
-    const { data, error } = await this.requireClient()
-      .from("budget_documents")
-      .select("household_id, revision, schema_version, state, updated_at")
-      .eq("household_id", householdId)
-      .single();
-    if (error) throw error;
-    return this.mapBudget(data as BudgetRow);
+    const client = this.requireClient();
+    const [{ data: budgetData, error: budgetError }, { data: householdData, error: householdError }] = await Promise.all([
+      client
+        .from("budget_documents")
+        .select("household_id, revision, schema_version, state, updated_at")
+        .eq("household_id", householdId)
+        .single(),
+      client
+        .from("households")
+        .select("currency")
+        .eq("id", householdId)
+        .single()
+    ]);
+    if (budgetError) throw budgetError;
+    if (householdError) throw householdError;
+    return this.mapBudget(
+      budgetData as BudgetRow,
+      (householdData as HouseholdCurrencyRow).currency
+    );
   }
 
   async syncBudget(mutation: PendingMutation): Promise<SyncResult> {
@@ -604,9 +620,10 @@ export class HarbourlineCloud {
     return new Error(detail || error.message);
   }
 
-  private mapBudget(row: BudgetRow): RemoteBudgetDocument {
+  private mapBudget(row: BudgetRow, currency?: string): RemoteBudgetDocument {
     return {
       householdId: row.household_id,
+      ...(currency ? { currency: currency.trim().toUpperCase() } : {}),
       revision: Number(row.revision),
       schemaVersion: Number(row.schema_version),
       state: row.state,

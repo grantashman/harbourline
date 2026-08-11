@@ -6,6 +6,7 @@ import {
   createMoney,
   formatMoney,
   minorUnitStep,
+  minorToNumber,
   parseMajorToMinor,
   scaleMinor,
   monthlyMinorAmount,
@@ -81,6 +82,14 @@ describe("exact money representation", () => {
     const money = createMoney("USD", "100", registry);
     assert.deepEqual(scaleMinor(money.amountMinor, 1, 3), "33");
     assert.equal(formatMoney(createMoney("USD", "123456", registry), "en-US", registry), "$1,234.56");
+  });
+
+  it("rejects minor-unit values that cannot round-trip through runtime numbers", () => {
+    const registry = createCurrencyRegistry({ enabledCurrencies: ["AUD"] });
+    assert.throws(
+      () => minorToNumber("9007199254740993", "AUD", registry),
+      /safe numeric range/
+    );
   });
 });
 

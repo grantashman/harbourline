@@ -2,7 +2,48 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(12);
+select plan(14);
+
+update public.currency_catalog
+set enabled = true
+where code = 'USD';
+
+insert into auth.users (
+  id,
+  instance_id,
+  aud,
+  role,
+  email,
+  encrypted_password,
+  email_confirmed_at,
+  raw_app_meta_data,
+  raw_user_meta_data,
+  created_at,
+  updated_at
+)
+values (
+  '40000000-0000-0000-0000-000000000001',
+  '00000000-0000-0000-0000-000000000000',
+  'authenticated',
+  'authenticated',
+  'currency-test@example.com',
+  extensions.crypt('not-used', extensions.gen_salt('bf')),
+  now(),
+  '{"provider":"email","providers":["email"]}',
+  '{}',
+  now(),
+  now()
+)
+on conflict (id) do nothing;
+
+insert into public.households (id, name, created_by, currency)
+values (
+  '40000000-0000-0000-0000-000000000002',
+  'Currency test household',
+  '40000000-0000-0000-0000-000000000001',
+  'USD'
+)
+on conflict (id) do nothing;
 
 select ok(
   to_regclass('public.currency_catalog') is not null,
@@ -73,6 +114,26 @@ select throws_ok(
   '22023',
   'Budget money must be an integer minor-unit string at $.amount',
   'decimal major-unit money is rejected even with the marker'
+);
+select throws_ok(
+  $$select private.validate_exact_money_json(
+    '{"currency":"AUD","moneyRepresentation":"minor-unit-string","amount":"12.3"}'::jsonb,
+    'AUD',
+    '$'
+  )$$,
+  '22023',
+  'Budget money must be an integer minor-unit string at $.amount',
+  'malformed minor-unit strings are rejected'
+);
+select throws_ok(
+  $$select private.validate_budget_state(
+    '40000000-0000-0000-0000-000000000002',
+    '{"currency":"USD","amount":100}'::jsonb,
+    3
+  )$$,
+  '22023',
+  'Non-AUD budget states must use schema version 4 or newer',
+  'legacy schema versions cannot bypass exact-money validation for non-AUD households'
 );
 
 select * from finish();

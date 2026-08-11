@@ -1,4 +1,4 @@
-import { DEFAULT_CURRENCY_REGISTRY, minorToMajor, parseMajorToMinor, type CurrencyRegistry } from "./currency.js";
+import { DEFAULT_CURRENCY_REGISTRY, minorToNumber, parseMajorToMinor, type CurrencyRegistry } from "./currency.js";
 import { nonNegative } from "./numbers.js";
 import { FREQUENCIES } from "./types.js";
 import type {
@@ -344,9 +344,7 @@ function decodeMoneyValue(value: unknown, currency: string, registry: CurrencyRe
   if (typeof value !== "string" || !/^-?(?:0|[1-9]\d*)$/.test(value.trim())) {
     throw new Error("Persisted minor-unit money values must be integer strings.");
   }
-  const major = Number(minorToMajor(value, currency, registry));
-  if (!Number.isFinite(major)) throw new Error("Persisted money value is outside the supported numeric range.");
-  return major;
+  return minorToNumber(value, currency, registry);
 }
 
 /**

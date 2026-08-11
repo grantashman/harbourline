@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { lifecycleEmailFor, sendLifecycleEmail, type LifecycleEmailKind } from "../_shared/beta-email.ts";
 import { captureServerError } from "../_shared/monitoring.ts";
+import { isConfiguredStripePrice } from "../_shared/stripe-price-contract.ts";
 
 type StripeObject = Record<string, unknown>;
 
@@ -82,13 +83,37 @@ async function verifySignature(payload: string, header: string, secret: string):
 }
 
 async function stripeGetSubscription(subscriptionId: string, secret: string): Promise<StripeObject> {
-  const response = await fetch(`https://api.stripe.com/v1/subscriptions/${encodeURIComponent(subscriptionId)}`, {
+  const url = new URL(`https://api.stripe.com/v1/subscriptions/${encodeURIComponent(subscriptionId)}`);
+  url.searchParams.append("expand[]", "items.data.price");
+  const response = await fetch(url, {
     headers: { Authorization: `Bearer ${secret}` },
     signal: AbortSignal.timeout(8_000)
   });
   const payload = await response.json();
   if (!response.ok) throw new Error(payload.error?.message ?? "Stripe subscription lookup failed");
   return asObject(payload);
+}
+
+function reviewedPriceConfiguration(): { currency: string; productId: string; priceId: string; liveMode: boolean } {
+  const currency = Deno.env.get("STRIPE_BILLING_CURRENCY")?.trim().toUpperCase() ?? "";
+  const productId = Deno.env.get("STRIPE_PRODUCT_ID")?.trim() ?? "";
+  const priceId = Deno.env.get("STRIPE_PRICE_ID")?.trim() ?? "";
+  const liveMode = Deno.env.get("STRIPE_LIVE_MODE");
+  if (!currency || !productId || !priceId || !liveMode || !["true", "false"].includes(liveMode)) {
+    throw new Error("Reviewed Stripe price configuration is incomplete");
+  }
+  return { currency, productId, priceId, liveMode: liveMode === "true" };
+}
+
+function assertReviewedSubscription(subscription: StripeObject): void {
+  const items = asObject(subscription.items);
+  const itemsData = Array.isArray(items.data) ? items.data : [];
+  if (itemsData.length !== 1) throw new Error("Stripe subscription has an unexpected number of price items");
+  const price = asObject(asObject(itemsData[0]).price);
+  const configuration = reviewedPriceConfiguration();
+  if (!isConfiguredStripePrice(price, configuration.currency, configuration.productId, configuration.priceId, { requireActive: false, expectedLiveMode: configuration.liveMode })) {
+    throw new Error("Stripe subscription price does not match the reviewed subscription contract");
+  }
 }
 
 async function withTimeout<T>(operation: PromiseLike<T>, milliseconds = 8_000): Promise<T> {
@@ -366,6 +391,7 @@ Deno.serve(async (request) => {
       if (!subscriptionId) throw new Error("Subscription identifier was missing from billing event");
 
       const subscription = await stripeGetSubscription(subscriptionId, stripeSecret);
+      assertReviewedSubscription(subscription);
       const snapshot = snapshotFromSubscription(subscription, object);
       const userId = snapshot.userId ?? await findKnownUserId(admin, snapshot.subscriptionId, snapshot.customerId);
       if (!userId || !snapshot.subscriptionId || !snapshot.status) {

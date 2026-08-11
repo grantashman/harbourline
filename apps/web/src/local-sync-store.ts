@@ -44,6 +44,7 @@ function isOwnedMetadata(value: unknown): value is LocalSyncMetadata {
   return (
     typeof metadata.ownerId === "string" && metadata.ownerId.trim().length > 0 &&
     typeof metadata.householdId === "string" && metadata.householdId.trim().length > 0 &&
+    (metadata.currency === undefined || /^[A-Z]{3}$/.test(metadata.currency)) &&
     isRevision(metadata.revision) &&
     isStateHash(metadata.lastSyncedHash) &&
     isTimestamp(metadata.lastSyncedAt)

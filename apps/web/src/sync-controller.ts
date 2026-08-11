@@ -25,6 +25,18 @@ import type {
   Release2Status
 } from "./release2-types";
 
+function stateCurrency(value: unknown): string | null {
+  if (!value || typeof value !== "object") return null;
+  const source = value as { currency?: unknown; household?: { currency?: unknown } };
+  const candidate = source.currency ?? source.household?.currency;
+  if (typeof candidate !== "string" || !/^[A-Za-z]{3}$/.test(candidate.trim())) return null;
+  return candidate.trim().toUpperCase();
+}
+
+function currencyMatches(left: string | undefined, right: string | null): boolean {
+  return !left || !right || left.trim().toUpperCase() === right;
+}
+
 export class SyncController {
   metadata: LocalSyncMetadata | null = null;
   conflict: RemoteBudgetDocument | null = null;
@@ -144,6 +156,11 @@ export class SyncController {
     if (!this.isCurrent(generation, ownerId)) return false;
     const remote = await this.cloud.fetchBudget(householdId);
     if (!this.isCurrent(generation, ownerId)) return false;
+    const localCurrency = stateCurrency(this.readSyncState());
+    if ((choice === "device" || remote.revision === 0) && !currencyMatches(remote.currency, localCurrency)) {
+      await this.report("This household uses a different currency. Create a matching household before linking.", "danger", generation);
+      return false;
+    }
     if (choice === "household" && remote.revision > 0) {
       this.applyRemote(remote);
       await this.recordRemote(remote, generation);
@@ -172,6 +189,7 @@ export class SyncController {
     const metadata: LocalSyncMetadata = {
       ownerId,
       householdId,
+      currency: remote.currency,
       revision: remote.revision,
       lastSyncedHash: stableStateHash(remote.state),
       lastSyncedAt: new Date().toISOString()
@@ -212,6 +230,12 @@ export class SyncController {
     if (!this.cloudAccess || this.metadata?.householdId !== householdId) return;
     const generation = this.lifecycleGeneration;
     const ownerId = this.ownerId;
+    if (this.metadata && !this.metadata.currency) {
+      const remote = await this.cloud.fetchBudget(householdId);
+      if (!this.isCurrent(generation, ownerId) || this.metadata?.householdId !== householdId) return;
+      this.metadata = { ...this.metadata, currency: remote.currency };
+      await setSyncMetadata(this.metadata);
+    }
     const currentState = this.readSyncState();
     if (this.metadata && stableStateHash(currentState) !== this.metadata.lastSyncedHash) {
       await this.queueState(currentState, true);
@@ -372,7 +396,18 @@ export class SyncController {
     if (!this.cloudAccess || !this.metadata || !this.ownerId) return;
     const generation = this.lifecycleGeneration;
     const ownerId = this.ownerId;
-    const metadata = this.metadata;
+    let metadata = this.metadata;
+    if (!metadata.currency) {
+      const remote = await this.cloud.fetchBudget(metadata.householdId);
+      if (!this.isCurrent(generation, ownerId)) return;
+      metadata = { ...metadata, currency: remote.currency };
+      this.metadata = metadata;
+      await setSyncMetadata(metadata);
+    }
+    if (!currencyMatches(metadata.currency, stateCurrency(state))) {
+      await this.report("This budget currency does not match the connected household.", "danger", generation);
+      return;
+    }
     const mutation = createPendingMutation({
       ownerId,
       householdId: metadata.householdId,
@@ -534,6 +569,7 @@ export class SyncController {
     const metadata: LocalSyncMetadata = {
       ownerId: this.ownerId,
       householdId: remote.householdId,
+      currency: remote.currency ?? this.metadata?.currency,
       revision: remote.revision,
       lastSyncedHash: stableStateHash(remote.state),
       lastSyncedAt: new Date().toISOString()
