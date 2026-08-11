@@ -234,7 +234,7 @@ select lives_ok(
     0,
     3,
     '{"expenses":[{"name":"Rent"}]}',
-    'fnv1a-test'
+    'sha256-edf69da2ce9c8b9a5e38fc06065624ef7412ef4791facb7a54eae5fd9c345e9d'
   )$$,
   'member can use the guarded sync function'
 );
@@ -257,7 +257,7 @@ select throws_ok(
     1,
     3,
     '{"expenses":[]}',
-    'fnv1a-canceled'
+    'sha256-2d03d267bfb76336ffd2533f385ad1d7dfb04a927de3cadac8af5ef03dbffdc0'
   )$$,
   '42501',
   'An active household Harbourline subscription is required for cloud changes',
@@ -277,7 +277,7 @@ where user_id = '10000000-0000-0000-0000-000000000001';
 set local role authenticated;
 select set_config(
   'request.jwt.claims',
-  '{"sub":"10000000-0000-0000-0000-000000000002","email":"member@example.com","role":"authenticated"}',
+  '{"sub":"10000000-0000-0000-0000-000000000001","email":"owner@example.com","role":"authenticated"}',
   true
 );
 

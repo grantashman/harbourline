@@ -39,6 +39,19 @@ On payday, a household should be able to answer:
 - Focused: every supported customer receives the same core planning experience;
   paid cloud continuity additionally uses Supabase-backed account and household services.
 
+### Currency availability
+
+Harbourline is AUD-first. The current public release enables Australian dollars
+(AUD) for budgeting and the introductory subscription; additional currencies are
+pilot-only and must not be promised until their payment, tax, reporting,
+precision, support and recovery gates are approved. Budget currency is metadata
+for a household plan, not a foreign-exchange service, and Harbourline never
+moves or converts customer money.
+
+A currency change never converts a non-empty budget. Users who need another
+currency should keep an export and start a new empty budget only when that
+currency appears in their approved account experience.
+
 ## Commercial model
 
 ### Harbourline
@@ -68,9 +81,23 @@ The paid plan includes:
 - optional Google Calendar synchronisation
 
 Introductory early-access pricing is A$2.50 per week on one recurring plan.
-Account creation is available from the public Harbourline homepage only. The
-hosted application requires sign-in for both the free local starter and paid
-cloud features; payment is only required for the paid Household plan.
+The subscription currency is configured independently from a budget's display
+currency; it is not converted at checkout. Account creation is available from
+the public Harbourline homepage only. The hosted application requires sign-in
+for both the free local starter and paid cloud features; payment is only
+required for the paid Household plan.
+
+### Currency and pricing help
+
+- **Which currencies are supported?** The current public release supports AUD.
+  Future pilot currencies will be named explicitly in the account experience.
+- **Will Harbourline convert my existing budget?** No. A non-empty budget is not
+  silently converted; start a new empty budget and retain the original export.
+- **Is the subscription charged in my budget currency?** Not necessarily. The
+  subscription uses the reviewed Stripe price configured for the release, and
+  Harbourline does not perform foreign exchange.
+- **How are refunds handled?** Refunds use the original provider billing
+  currency and the approved Stripe/support process.
 
 ### Bank connectivity
 

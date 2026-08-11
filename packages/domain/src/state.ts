@@ -1,3 +1,4 @@
+import { DEFAULT_CURRENCY_REGISTRY, minorToNumber, parseMajorToMinor, type CurrencyRegistry } from "./currency.js";
 import { nonNegative } from "./numbers.js";
 import { FREQUENCIES } from "./types.js";
 import type {
@@ -138,7 +139,7 @@ function normaliseNetWorthItem(value: Record<string, unknown>, index: number): N
 function normaliseNetWorthSnapshot(value: Record<string, unknown>): NetWorthSnapshot {
   return {
     date: text(value.date),
-    value: Number.isFinite(Number(value.value)) ? Number(value.value) : 0
+    value: Number.isFinite(Number(value.value ?? value.total)) ? Number(value.value ?? value.total) : 0
   };
 }
 
@@ -167,15 +168,24 @@ function normalisePaydayRecord(value: Record<string, unknown>, index: number): P
   };
 }
 
-export function createDefaultBudgetState(): BudgetState {
+export function createDefaultBudgetState(options: {
+  registry?: CurrencyRegistry;
+  currency?: string;
+  locale?: string;
+  timeZone?: string;
+} = {}): BudgetState {
+  const registry = options.registry ?? DEFAULT_CURRENCY_REGISTRY;
+  const currency = options.currency ?? registry.defaultCurrency;
+  const definition = registry.get(currency);
   return {
     schemaVersion: 1,
     showExpenseNamesOnCalendar: false,
     household: {
       id: "local-household",
       name: "My household",
-      currency: "AUD",
-      locale: "en-AU"
+      currency,
+      locale: options.locale ?? definition.defaultLocale,
+      timeZone: options.timeZone ?? "Australia/Sydney"
     },
     incomes: DEFAULT_INCOMES.map((income) => ({ ...income })),
     savingsPlan: {
@@ -209,7 +219,13 @@ export function createDefaultBudgetState(): BudgetState {
   };
 }
 
-export function normaliseBudgetState(input: unknown): BudgetState {
+export function normaliseBudgetState(input: unknown, options: {
+  registry?: CurrencyRegistry;
+  defaultCurrency?: string;
+  defaultLocale?: string;
+  defaultTimeZone?: string;
+} = {}): BudgetState {
+  const registry = options.registry ?? DEFAULT_CURRENCY_REGISTRY;
   const source = isRecord(input) ? input : {};
   const household = isRecord(source.household) ? source.household : {};
   const savings = isRecord(source.savingsPlan) ? source.savingsPlan : {};
@@ -229,6 +245,11 @@ export function normaliseBudgetState(input: unknown): BudgetState {
     ? incomeRecords.map(normaliseIncome)
     : DEFAULT_INCOMES.map((income) => ({ ...income }));
   const debtStrategy: DebtStrategy = debt.strategy === "snowball" ? "snowball" : "avalanche";
+  const configuredCurrency = household.currency ?? source.currency ?? options.defaultCurrency ?? registry.defaultCurrency;
+  const currency = typeof configuredCurrency === "string" && configuredCurrency.trim()
+    ? registry.get(configuredCurrency).code
+    : registry.defaultCurrency;
+  const currencyDefinition = registry.get(currency);
 
   return {
     schemaVersion: 1,
@@ -236,8 +257,9 @@ export function normaliseBudgetState(input: unknown): BudgetState {
     household: {
       id: identifier(household.id, "local-household"),
       name: text(household.name, "My household"),
-      currency: "AUD",
-      locale: "en-AU"
+      currency,
+      locale: text(household.locale, options.defaultLocale ?? currencyDefinition.defaultLocale),
+      timeZone: text(household.timeZone, options.defaultTimeZone ?? "Australia/Sydney")
     },
     incomes,
     savingsPlan: {
@@ -265,21 +287,125 @@ export function normaliseBudgetState(input: unknown): BudgetState {
   };
 }
 
-export function parseBudgetBackup(input: unknown): BudgetState {
-  if (!isRecord(input)) return createDefaultBudgetState();
-  return normaliseBudgetState(input.state ?? input.budget ?? input);
+const MONEY_ARRAY_FIELDS: ReadonlyArray<readonly [string, readonly string[]]> = [
+  ["incomes", ["amount"]],
+  ["expenses", ["amount", "reservedAmount", "debtBalance"]],
+  ["transactions", ["amount"]],
+  ["goals", ["target", "current"]],
+  ["netWorthItems", ["value"]],
+  ["netWorthHistory", ["value"]]
+];
+
+function cloneRecord(value: unknown): Record<string, unknown> {
+  return isRecord(value) ? JSON.parse(JSON.stringify(value)) as Record<string, unknown> : {};
+}
+
+function transformMoneyFields(
+  state: Record<string, unknown>,
+  currency: string,
+  registry: CurrencyRegistry,
+  transform: (value: unknown, currency: string, registry: CurrencyRegistry) => unknown
+): void {
+  for (const [collectionName, fieldNames] of MONEY_ARRAY_FIELDS) {
+    const collection = Array.isArray(state[collectionName]) ? state[collectionName] : [];
+    for (const item of collection) {
+      if (!isRecord(item)) continue;
+      for (const fieldName of fieldNames) {
+        if (item[fieldName] !== undefined) item[fieldName] = transform(item[fieldName], currency, registry);
+      }
+    }
+  }
+  const nestedFields: ReadonlyArray<readonly [string, readonly string[]]> = [
+    ["savingsPlan", ["startingSavings"]],
+    ["debtPlan", ["extraPayment"]],
+    ["paydayPlan", ["billsAccountBalance"]]
+  ];
+  for (const [objectName, fieldNames] of nestedFields) {
+    const object = isRecord(state[objectName]) ? state[objectName] : {};
+    for (const fieldName of fieldNames) {
+      if (object[fieldName] !== undefined) object[fieldName] = transform(object[fieldName], currency, registry);
+    }
+  }
+  const payday = isRecord(state.paydayPlan) ? state.paydayPlan : {};
+  const history = Array.isArray(payday.history) ? payday.history : [];
+  for (const item of history) {
+    if (!isRecord(item)) continue;
+    for (const fieldName of ["income", "transfer", "savings", "extraDebt", "safeSpend"]) {
+      if (item[fieldName] !== undefined) item[fieldName] = transform(item[fieldName], currency, registry);
+    }
+  }
+}
+
+function encodeMoneyValue(value: unknown, currency: string, registry: CurrencyRegistry): string {
+  return parseMajorToMinor(value, currency, registry);
+}
+
+function decodeMoneyValue(value: unknown, currency: string, registry: CurrencyRegistry): number {
+  if (typeof value !== "string" || !/^-?(?:0|[1-9]\d*)$/.test(value.trim())) {
+    throw new Error("Persisted minor-unit money values must be integer strings.");
+  }
+  return minorToNumber(value, currency, registry);
+}
+
+/**
+ * Serialise a runtime budget into the portable, exact-money representation.
+ * Legacy runtime fields remain major-unit numbers for rendering compatibility;
+ * persistence stores every monetary leaf as a decimal integer string.
+ */
+export function serialiseBudgetState(
+  state: BudgetState,
+  registry: CurrencyRegistry = DEFAULT_CURRENCY_REGISTRY
+): Record<string, unknown> {
+  const normalised = normaliseBudgetState(state, { registry });
+  const serialised = cloneRecord(normalised);
+  serialised.schemaVersion = 4;
+  serialised.moneyRepresentation = "minor-unit-string";
+  const currency = normalised.household.currency;
+  serialised.currency = currency;
+  serialised.locale = normalised.household.locale;
+  transformMoneyFields(serialised, currency, registry, encodeMoneyValue);
+  return serialised;
+}
+
+/** Read both legacy decimal-number states and the exact minor-unit schema. */
+export function parsePersistedBudgetState(
+  input: unknown,
+  registry: CurrencyRegistry = DEFAULT_CURRENCY_REGISTRY
+): BudgetState {
+  const source = cloneRecord(input);
+  const household = isRecord(source.household) ? source.household : {};
+  const currency = typeof household.currency === "string"
+    ? household.currency
+    : typeof source.currency === "string"
+      ? source.currency
+      : registry.defaultCurrency;
+  registry.get(currency);
+  if (source.moneyRepresentation === "minor-unit-string") {
+    transformMoneyFields(source, currency, registry, decodeMoneyValue);
+  }
+  return normaliseBudgetState({ ...source, household: { ...household, currency } }, { registry });
+}
+
+export function parseBudgetBackup(
+  input: unknown,
+  registry: CurrencyRegistry = DEFAULT_CURRENCY_REGISTRY
+): BudgetState {
+  if (!isRecord(input)) return createDefaultBudgetState({ registry });
+  return parsePersistedBudgetState(input.state ?? input.budget ?? input, registry);
 }
 
 export function createBudgetBackup(
   state: BudgetState,
-  exportedAt = new Date().toISOString()
+  exportedAt = new Date().toISOString(),
+  registry: CurrencyRegistry = DEFAULT_CURRENCY_REGISTRY
 ): BudgetBackup {
+  const normalised = normaliseBudgetState(state, { registry });
   return {
     format: "Harbourline Backup",
-    version: 4,
+    version: 5,
     exportedAt,
-    locale: "en-AU",
-    currency: "AUD",
-    state: normaliseBudgetState(state)
+    locale: normalised.household.locale,
+    currency: normalised.household.currency,
+    state: serialiseBudgetState(normalised, registry)
   };
 }

@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(13);
+select plan(15);
 
 select has_table('public', 'beta_onboarding', 'beta onboarding table exists');
 select has_table('public', 'beta_operational_events', 'beta operational events table exists');
@@ -137,6 +137,7 @@ select throws_ok(
   'customers cannot insert beta onboarding directly'
 );
 
+set local role postgres;
 select is(
   (select signup_verified_at is not null
    from public.beta_operational_events
@@ -147,6 +148,9 @@ select is(
 );
 
 reset role;
+
+delete from public.households
+where id = '50000000-0000-0000-0000-000000000001';
 
 delete from auth.users
 where id = '40000000-0000-0000-0000-000000000001';

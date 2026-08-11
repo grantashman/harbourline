@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, createServiceRoleClient, configuredAppOrigin } from "../_shared/beta.ts";
+import { isConfiguredStripePrice } from "./price-validation.ts";
 
 function stripeValue(value: string): string {
   return value.trim();
@@ -26,8 +27,31 @@ Deno.serve(async (request) => {
 
   const stripeSecret = Deno.env.get("STRIPE_SECRET_KEY");
   const priceId = Deno.env.get("STRIPE_PRICE_ID");
+  const productId = Deno.env.get("STRIPE_PRODUCT_ID");
+  const billingCurrency = (Deno.env.get("STRIPE_BILLING_CURRENCY") ?? "aud").trim().toLowerCase();
+  const liveMode = Deno.env.get("STRIPE_LIVE_MODE");
   const appUrl = configuredAppOrigin();
-  if (!stripeSecret || !priceId) return new Response("Billing is not configured", { status: 503, headers: corsHeaders });
+  if (!stripeSecret || !priceId || !productId || !liveMode || !["true", "false"].includes(liveMode)) {
+    return new Response("Billing is not configured", { status: 503, headers: corsHeaders });
+  }
+  if (!/^[a-z]{3}$/.test(billingCurrency)) return new Response("Billing currency is misconfigured", { status: 500, headers: corsHeaders });
+
+  // Budget currencies are independent from the subscription price currency.
+  // Verify the configured Stripe Price rather than attempting an FX conversion.
+  let priceResponse: Response;
+  let pricePayload: unknown;
+  try {
+    priceResponse = await fetch(`https://api.stripe.com/v1/prices/${encodeURIComponent(priceId)}`, {
+      headers: { Authorization: `Bearer ${stripeSecret}` },
+      signal: AbortSignal.timeout(8_000)
+    });
+    pricePayload = await priceResponse.json();
+  } catch {
+    return new Response("Billing price could not be verified", { status: 502, headers: corsHeaders });
+  }
+  if (!priceResponse.ok || !isConfiguredStripePrice(pricePayload as Record<string, unknown>, billingCurrency, productId, priceId, { expectedLiveMode: liveMode === "true" })) {
+    return new Response("Billing price does not match the reviewed subscription contract", { status: 502, headers: corsHeaders });
+  }
 
   const { data: existingBilling, error: billingError } = await supabase
     .from("billing_subscriptions")

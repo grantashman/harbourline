@@ -1,0 +1,436 @@
+begin;
+
+-- Currency metadata is explicit and configuration-driven. AUD is the only
+-- enabled currency until a reviewed staging rollout turns another row on.
+create table if not exists public.currency_catalog (
+  code text primary key check (code ~ '^[A-Z]{3}$'),
+  minor_unit smallint not null check (minor_unit between 0 and 6),
+  default_locale text not null check (char_length(trim(default_locale)) between 2 and 40),
+  enabled boolean not null default false,
+  verified_at timestamptz,
+  verified_by uuid references auth.users(id),
+  updated_at timestamptz not null default now()
+);
+
+insert into public.currency_catalog (code, minor_unit, default_locale, enabled)
+values
+  ('AUD', 2, 'en-AU', true),
+  ('BHD', 3, 'en-BH', false),
+  ('CAD', 2, 'en-CA', false),
+  ('EUR', 2, 'en-IE', false),
+  ('GBP', 2, 'en-GB', false),
+  ('INR', 2, 'en-IN', false),
+  ('JPY', 0, 'ja-JP', false),
+  ('MXN', 2, 'es-MX', false),
+  ('NZD', 2, 'en-NZ', false),
+  ('SGD', 2, 'en-SG', false),
+  ('USD', 2, 'en-US', false)
+on conflict (code) do nothing;
+
+do $$
+begin
+  if exists (
+    select 1
+    from public.currency_catalog as existing
+    join (values
+      ('AUD', 2, 'en-AU'),
+      ('BHD', 3, 'en-BH'),
+      ('CAD', 2, 'en-CA'),
+      ('EUR', 2, 'en-IE'),
+      ('GBP', 2, 'en-GB'),
+      ('INR', 2, 'en-IN'),
+      ('JPY', 0, 'ja-JP'),
+      ('MXN', 2, 'es-MX'),
+      ('NZD', 2, 'en-NZ'),
+      ('SGD', 2, 'en-SG'),
+      ('USD', 2, 'en-US')
+    ) as expected(code, minor_unit, default_locale)
+      on expected.code = existing.code
+    where existing.minor_unit <> expected.minor_unit
+      or existing.default_locale <> expected.default_locale
+  ) then
+    raise exception 'Currency catalog metadata conflicts with the reviewed application catalog' using errcode = '22023';
+  end if;
+end;
+$$;
+
+alter table public.households
+  add column if not exists currency text not null default 'AUD';
+
+alter table public.households
+  drop constraint if exists households_currency_format;
+alter table public.households
+  add constraint households_currency_format check (currency ~ '^[A-Z]{3}$');
+
+alter table public.currency_catalog enable row level security;
+revoke all on public.currency_catalog from anon, authenticated;
+
+create or replace function private.currency_is_enabled(target_currency text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.currency_catalog
+    where code = upper(trim(target_currency))
+      and enabled = true
+  );
+$$;
+
+create or replace function private.validate_exact_money_json(
+  target_state jsonb,
+  expected_currency text,
+  current_path text default '$'
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  entry record;
+begin
+  case jsonb_typeof(target_state)
+    when 'object' then
+      for entry in select key, value from jsonb_each(target_state) loop
+        if entry.key = 'currency' then
+          if jsonb_typeof(entry.value) <> 'string'
+            or upper(trim(entry.value #>> '{}')) <> expected_currency
+          then
+            raise exception 'Budget currency metadata is inconsistent at %', current_path || '.' || entry.key
+              using errcode = '22023';
+          end if;
+        elsif entry.key = 'moneyRepresentation' then
+          if entry.value #>> '{}' <> 'minor-unit-string' then
+            raise exception 'Budget money representation is invalid at %', current_path || '.' || entry.key
+              using errcode = '22023';
+          end if;
+        elsif entry.key = any (array[
+          'amount', 'reservedAmount', 'debtBalance', 'target', 'current', 'value', 'total',
+          'startingSavings', 'extraPayment', 'billsAccountBalance',
+          'income', 'transfer', 'savings', 'extraDebt', 'safeSpend'
+        ]) then
+          if jsonb_typeof(entry.value) <> 'string'
+            or (entry.value #>> '{}') !~ '^-?(0|[1-9][0-9]*)$'
+          then
+            raise exception 'Budget money must be an integer minor-unit string at %', current_path || '.' || entry.key
+              using errcode = '22023';
+          end if;
+        end if;
+        perform private.validate_exact_money_json(entry.value, expected_currency, current_path || '.' || entry.key);
+      end loop;
+    when 'array' then
+      for entry in select value from jsonb_array_elements(target_state) loop
+        perform private.validate_exact_money_json(entry.value, expected_currency, current_path || '[]');
+      end loop;
+    else
+      null;
+  end case;
+end;
+$$;
+
+create or replace function private.state_hash(target_state text)
+returns text
+language sql
+immutable
+security definer
+set search_path = ''
+as $$
+  select 'sha256-' || encode(extensions.digest(target_state, 'sha256'), 'hex');
+$$;
+
+create or replace function private.validate_budget_state(
+  target_household uuid,
+  target_state jsonb,
+  target_schema_version integer
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  household_currency text;
+  document_currency text;
+  nested_currency text;
+  representation text;
+begin
+  select currency into household_currency
+  from public.households
+  where id = target_household;
+
+  if household_currency is null then
+    raise exception 'Household currency is not configured' using errcode = 'P0002';
+  end if;
+  if not private.currency_is_enabled(household_currency) then
+    raise exception 'Household currency is not enabled' using errcode = '22023';
+  end if;
+  if jsonb_typeof(target_state) <> 'object' then
+    raise exception 'Budget state must be a JSON object' using errcode = '22023';
+  end if;
+
+  -- Empty documents are created before the first local state is uploaded.
+  if target_state = '{}'::jsonb then return; end if;
+
+  document_currency := nullif(upper(trim(target_state ->> 'currency')), '');
+  if document_currency is null then
+    -- Existing release-2 documents are AUD legacy records. They remain
+    -- readable, but a new schema-version-4 client must upload the exact form.
+    if household_currency <> 'AUD' or target_schema_version >= 4 then
+      raise exception 'Budget state must declare its currency' using errcode = '22023';
+    end if;
+    return;
+  end if;
+  if document_currency <> household_currency then
+    raise exception 'Budget currency cannot differ from its household currency' using errcode = '22023';
+  end if;
+  if not private.currency_is_enabled(document_currency) then
+    raise exception 'Budget currency is not enabled' using errcode = '22023';
+  end if;
+
+  if target_schema_version < 4 and document_currency <> 'AUD' then
+    raise exception 'Non-AUD budget states must use schema version 4 or newer' using errcode = '22023';
+  end if;
+
+  if target_schema_version >= 4 then
+    if target_state ? 'household' then
+      if jsonb_typeof(target_state -> 'household') <> 'object' then
+        raise exception 'Budget household metadata must be an object' using errcode = '22023';
+      end if;
+      nested_currency := nullif(upper(trim(target_state #>> '{household,currency}')), '');
+      if nested_currency is null or nested_currency <> document_currency then
+        raise exception 'Nested household currency must match the budget currency' using errcode = '22023';
+      end if;
+    end if;
+
+    representation := target_state ->> 'moneyRepresentation';
+    if representation <> 'minor-unit-string' then
+      raise exception 'Budget money must use minor-unit strings' using errcode = '22023';
+    end if;
+    perform private.validate_exact_money_json(target_state, document_currency);
+  end if;
+end;
+$$;
+
+create or replace function private.enforce_budget_currency()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  perform private.validate_budget_state(new.household_id, new.state, new.schema_version);
+  return new;
+end;
+$$;
+
+drop trigger if exists budget_documents_currency_invariant on public.budget_documents;
+create trigger budget_documents_currency_invariant
+before insert or update of schema_version, state on public.budget_documents
+for each row execute function private.enforce_budget_currency();
+
+-- Keep the household and its document aligned if an operator changes the
+-- catalogue or performs a controlled migration. Normal clients cannot update
+-- this column through RLS; existing rows remain AUD.
+create or replace function private.enforce_household_currency()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  current_document jsonb;
+begin
+  if not private.currency_is_enabled(new.currency) then
+    raise exception 'Household currency is not enabled' using errcode = '22023';
+  end if;
+  select state into current_document
+  from public.budget_documents
+  where household_id = new.id;
+  if current_document is not null and current_document <> '{}'::jsonb
+     and coalesce(current_document ->> 'currency', 'AUD') <> new.currency then
+    raise exception 'Existing budget records must be migrated before changing currency' using errcode = '22023';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists households_currency_invariant on public.households;
+create trigger households_currency_invariant
+before insert or update of currency on public.households
+for each row execute function private.enforce_household_currency();
+
+-- New households inherit the active local budget currency so the first cloud
+-- document cannot be paired with an AUD-only household by accident.
+drop function if exists public.create_household(text);
+create or replace function public.create_household(
+  household_name text,
+  household_currency text default 'AUD'
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  current_user_id uuid := auth.uid();
+  normalised_currency text := upper(trim(coalesce(household_currency, 'AUD')));
+  new_household_id uuid;
+begin
+  if current_user_id is null then
+    raise exception 'Authentication required' using errcode = '42501';
+  end if;
+  if char_length(trim(coalesce(household_name, ''))) not between 1 and 80 then
+    raise exception 'Household name must be between 1 and 80 characters' using errcode = '22023';
+  end if;
+  if not private.currency_is_enabled(normalised_currency) then
+    raise exception 'Household currency is not enabled' using errcode = '22023';
+  end if;
+
+  insert into public.households (name, created_by, currency)
+  values (trim(household_name), current_user_id, normalised_currency)
+  returning id into new_household_id;
+
+  insert into public.household_members (household_id, user_id, role)
+  values (new_household_id, current_user_id, 'owner');
+
+  insert into public.budget_documents (
+    household_id,
+    revision,
+    schema_version,
+    state,
+    updated_by
+  )
+  values (
+    new_household_id,
+    0,
+    4,
+    '{}'::jsonb,
+    current_user_id
+  );
+
+  return new_household_id;
+end;
+$$;
+
+-- The client sends the canonical JSON text so the server can verify the exact
+-- bytes that were hashed before parsing and storing JSONB.
+drop function if exists public.sync_budget(uuid, uuid, bigint, integer, jsonb, text);
+create or replace function public.sync_budget(
+  target_household uuid,
+  mutation_id uuid,
+  base_revision bigint,
+  document_schema_version integer,
+  document_state text,
+  document_state_hash text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  current_user_id uuid := auth.uid();
+  current_document public.budget_documents%rowtype;
+  prior_revision bigint;
+  parsed_state jsonb;
+begin
+  if not private.is_household_member(target_household, current_user_id) then
+    raise exception 'Household membership required' using errcode = '42501';
+  end if;
+  if base_revision < 0 or document_schema_version < 1 then
+    raise exception 'Invalid sync metadata' using errcode = '22023';
+  end if;
+  if document_state is null or document_state = '' then
+    raise exception 'Budget state is required' using errcode = '22023';
+  end if;
+  if document_state_hash is null
+    or document_state_hash !~ '^sha256-[0-9a-f]{64}$'
+    or private.state_hash(document_state) <> document_state_hash
+  then
+    raise exception 'Budget state hash does not match the canonical state' using errcode = '22023';
+  end if;
+  begin
+    parsed_state := document_state::jsonb;
+  exception when others then
+    raise exception 'Budget state must be valid JSON' using errcode = '22023';
+  end;
+  perform private.validate_budget_state(target_household, parsed_state, document_schema_version);
+
+  select applied_revision into prior_revision
+  from public.sync_mutations
+  where id = mutation_id and household_id = target_household and user_id = current_user_id;
+  if found then
+    select * into current_document from public.budget_documents where household_id = target_household;
+    return jsonb_build_object(
+      'conflict', false, 'idempotent', true,
+      'document', jsonb_build_object(
+        'householdId', current_document.household_id,
+        'revision', current_document.revision,
+        'schemaVersion', current_document.schema_version,
+        'state', current_document.state,
+        'updatedAt', current_document.updated_at
+      )
+    );
+  end if;
+
+  select * into current_document
+  from public.budget_documents
+  where household_id = target_household
+  for update;
+  if not found then
+    raise exception 'Household budget document not found' using errcode = 'P0002';
+  end if;
+  if current_document.revision <> base_revision then
+    return jsonb_build_object(
+      'conflict', true, 'idempotent', false,
+      'document', jsonb_build_object(
+        'householdId', current_document.household_id,
+        'revision', current_document.revision,
+        'schemaVersion', current_document.schema_version,
+        'state', current_document.state,
+        'updatedAt', current_document.updated_at
+      )
+    );
+  end if;
+
+  update public.budget_documents
+  set revision = current_document.revision + 1,
+      schema_version = document_schema_version,
+      state = parsed_state,
+      updated_by = current_user_id,
+      updated_at = now()
+  where household_id = target_household
+  returning * into current_document;
+
+  insert into public.sync_mutations (id, household_id, user_id, base_revision, applied_revision, state_hash)
+  values (mutation_id, target_household, current_user_id, base_revision, current_document.revision, document_state_hash);
+
+  return jsonb_build_object(
+    'conflict', false, 'idempotent', false,
+    'document', jsonb_build_object(
+      'householdId', current_document.household_id,
+      'revision', current_document.revision,
+      'schemaVersion', current_document.schema_version,
+      'state', current_document.state,
+      'updatedAt', current_document.updated_at
+    )
+  );
+end;
+$$;
+
+revoke all on function private.currency_is_enabled(text) from public;
+revoke all on function private.state_hash(text) from public;
+revoke all on function private.validate_exact_money_json(jsonb, text, text) from public;
+revoke all on function private.validate_budget_state(uuid, jsonb, integer) from public;
+revoke all on function private.enforce_budget_currency() from public;
+revoke all on function private.enforce_household_currency() from public;
+revoke all on function public.create_household(text, text) from public;
+grant execute on function public.create_household(text, text) to authenticated;
+revoke all on function public.sync_budget(uuid, uuid, bigint, integer, text, text) from public;
+grant execute on function public.sync_budget(uuid, uuid, bigint, integer, text, text) to authenticated;
+
+commit;

@@ -180,6 +180,22 @@ describe("savings projection", () => {
     assert.equal(projection.gap, 500);
     assert.equal(projection.balance, 7200);
   });
+
+  it("keeps repeated cent contributions exact", () => {
+    const projection = projectSavings({
+      monthlyIncome: 0.01,
+      monthlyExpenses: 0,
+      debtExtraPayment: 0,
+      allocationPercent: 100,
+      startingSavings: 0,
+      annualReturnPercent: 0,
+      years: 1
+    });
+
+    assert.equal(projection.monthlyContribution, 0.01);
+    assert.equal(projection.contributions, 0.12);
+    assert.equal(projection.balance, 0.12);
+  });
 });
 
 const debts = [
@@ -376,12 +392,21 @@ describe("budget state migration", () => {
       },
       {
         format: "Harbourline Backup",
-        version: 4,
+        version: 5,
         exportedAt: "2026-07-30T00:00:00.000Z",
         currency: "AUD"
       }
     );
-    assert.equal(backup.state.schemaVersion, 1);
+    assert.equal(backup.state.schemaVersion, 4);
+  });
+
+  it("round-trips net-worth history through exact-money backup storage", () => {
+    const state = createDefaultBudgetState();
+    state.netWorthHistory = [{ date: "2026-08-11", value: 123.45 }];
+    const backup = createBudgetBackup(state, "2026-08-11T00:00:00.000Z");
+
+    assert.equal(backup.state.netWorthHistory[0].value, "12345");
+    assert.equal(parseBudgetBackup(backup).netWorthHistory[0].value, 123.45);
   });
 });
 

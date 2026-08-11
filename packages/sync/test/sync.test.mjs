@@ -14,6 +14,7 @@ describe("canonical state hashing", () => {
     const right = { income: 100, expenses: [{ name: "Phone", amount: 20 }] };
     assert.equal(canonicalJson(left), canonicalJson(right));
     assert.equal(stableStateHash(left), stableStateHash(right));
+    assert.match(stableStateHash(left), /^sha256-[0-9a-f]{64}$/);
   });
 });
 

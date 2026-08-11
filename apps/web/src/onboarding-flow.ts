@@ -12,7 +12,7 @@ type GuidedStep = Exclude<BetaOnboardingStep, "complete">;
 export interface OnboardingDependencies {
   bridge: HarbourlineLocalBridge;
   cloud: Pick<HarbourlineCloud, "getBetaOnboarding" | "saveBetaProgress" | "recordBetaEvent">;
-  createHousehold(name: string): Promise<string>;
+  createHousehold(name: string, currency: string): Promise<string>;
   linkHousehold(householdId: string): Promise<boolean>;
 }
 
@@ -250,7 +250,10 @@ export class OnboardingFlow {
     this.ensureActive(operationGeneration);
     const name = formValue(form, "name");
     if (!name) throw new Error("Enter a household name.");
-    const householdId = await this.dependencies.createHousehold(name);
+    const localState = this.dependencies.bridge.read();
+    const source = localState && typeof localState === "object" ? localState as { currency?: unknown; household?: { currency?: unknown } } : {};
+    const currency = String(source.currency ?? source.household?.currency ?? "AUD").trim().toUpperCase();
+    const householdId = await this.dependencies.createHousehold(name, currency);
     this.ensureActive(operationGeneration);
     const linked = await this.dependencies.linkHousehold(householdId);
     if (!linked) throw new Error("The household could not be connected while access was changing.");

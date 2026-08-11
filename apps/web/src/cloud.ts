@@ -5,6 +5,7 @@ import {
   type Session,
   type SupabaseClient
 } from "@supabase/supabase-js";
+import { canonicalJson } from "@harbourline/sync";
 import type {
   HouseholdRole,
   HouseholdSummary,
@@ -28,6 +29,7 @@ interface HouseholdMemberRow {
 interface HouseholdRow {
   id: string;
   name: string;
+  currency: string;
   updated_at: string;
 }
 
@@ -37,6 +39,10 @@ interface BudgetRow {
   schema_version: number;
   state: unknown;
   updated_at: string;
+}
+
+interface HouseholdCurrencyRow {
+  currency: string;
 }
 
 export interface BillingSubscription {
@@ -351,7 +357,7 @@ export class HarbourlineCloud {
 
     const [{ data: householdData, error: householdError }, { data: budgetData, error: budgetError }] =
       await Promise.all([
-        client.from("households").select("id, name, updated_at").in("id", ids),
+        client.from("households").select("id, name, currency, updated_at").in("id", ids),
         client.from("budget_documents").select("household_id, revision, updated_at").in("household_id", ids)
       ]);
     if (householdError) throw householdError;
@@ -373,15 +379,17 @@ export class HarbourlineCloud {
         id: household.id,
         name: household.name,
         role: membership.role,
+        currency: household.currency,
         revision: Number(budget?.revision ?? 0),
         updatedAt: budget?.updated_at ?? household.updated_at
       }];
     });
   }
 
-  async createHousehold(name: string): Promise<string> {
+  async createHousehold(name: string, currency = "AUD"): Promise<string> {
     const { data, error } = await this.requireClient().rpc("create_household", {
-      household_name: name
+      household_name: name,
+      household_currency: currency.trim().toUpperCase()
     });
     if (error) throw error;
     return String(data);
@@ -414,13 +422,25 @@ export class HarbourlineCloud {
   }
 
   async fetchBudget(householdId: string): Promise<RemoteBudgetDocument> {
-    const { data, error } = await this.requireClient()
-      .from("budget_documents")
-      .select("household_id, revision, schema_version, state, updated_at")
-      .eq("household_id", householdId)
-      .single();
-    if (error) throw error;
-    return this.mapBudget(data as BudgetRow);
+    const client = this.requireClient();
+    const [{ data: budgetData, error: budgetError }, { data: householdData, error: householdError }] = await Promise.all([
+      client
+        .from("budget_documents")
+        .select("household_id, revision, schema_version, state, updated_at")
+        .eq("household_id", householdId)
+        .single(),
+      client
+        .from("households")
+        .select("currency")
+        .eq("id", householdId)
+        .single()
+    ]);
+    if (budgetError) throw budgetError;
+    if (householdError) throw householdError;
+    return this.mapBudget(
+      budgetData as BudgetRow,
+      (householdData as HouseholdCurrencyRow).currency
+    );
   }
 
   async syncBudget(mutation: PendingMutation): Promise<SyncResult> {
@@ -429,7 +449,7 @@ export class HarbourlineCloud {
       mutation_id: mutation.id,
       base_revision: mutation.baseRevision,
       document_schema_version: mutation.schemaVersion,
-      document_state: mutation.state,
+      document_state: canonicalJson(mutation.state),
       document_state_hash: mutation.stateHash
     });
     if (error) throw error;
@@ -600,9 +620,10 @@ export class HarbourlineCloud {
     return new Error(detail || error.message);
   }
 
-  private mapBudget(row: BudgetRow): RemoteBudgetDocument {
+  private mapBudget(row: BudgetRow, currency?: string): RemoteBudgetDocument {
     return {
       householdId: row.household_id,
+      ...(currency ? { currency: currency.trim().toUpperCase() } : {}),
       revision: Number(row.revision),
       schemaVersion: Number(row.schema_version),
       state: row.state,

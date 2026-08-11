@@ -3900,6 +3900,11 @@
         <div class="menu-wrap">
           <button class="btn secondary menu-button" id="settingsMenuButton" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="settingsMenu">Settings</button>
           <div class="topbar-menu" id="settingsMenu" role="menu" hidden>
+            <span class="menu-caption">Budget currency</span>
+            <label class="sr-only" for="currencySelector">Budget currency</label>
+            <select class="menu-item" id="currencySelector"></select>
+            <p class="menu-help">Currency changes apply to this budget only. Existing records are not converted.</p>
+            <div class="menu-divider"></div>
             <span class="menu-caption">Colour scheme</span>
             <div class="theme-options" role="group" aria-label="Colour scheme">
               <button class="theme-option" type="button" role="menuitemradio" data-theme-option="harbour-night" aria-checked="true">
@@ -3940,7 +3945,7 @@
       <aside class="summary-panel paycheck-card" aria-labelledby="incomeTitle">
         <div class="panel-title">
           <h2 id="incomeTitle">Household income</h2>
-          <span class="badge">AUD</span>
+          <span class="badge" data-currency-label>AUD</span>
         </div>
         <div class="income-source-grid" id="incomeSourceGrid"></div>
         <div class="income-toolbar">
@@ -4139,7 +4144,7 @@
             <h2>Cash-flow calendar</h2>
             <p>See expected paydays, recurring bills and actual transactions together in one monthly view.</p>
           </div>
-          <span class="badge">AUD timeline</span>
+          <span class="badge" data-currency-label>AUD timeline</span>
         </div>
         <div class="calendar-toolbar">
           <div class="calendar-nav" aria-label="Calendar month navigation">
@@ -4653,10 +4658,12 @@
   <script>
     const PRODUCT_NAME = "Harbourline";
     const PRODUCT_SLUG = "harbourline";
-    const STORAGE_KEY = "harbourline-aud-v1";
-    const LEGACY_STORAGE_KEYS = ["pocket-harbour-aud-v1", "budget-studio-aud-v1"];
+    const STORAGE_KEY = "harbourline-v2";
+    const LEGACY_STORAGE_KEYS = ["harbourline-aud-v1", "pocket-harbour-aud-v1", "budget-studio-aud-v1"];
     const ACCOUNT_OWNER_KEY = `${STORAGE_KEY}:owner`;
     const USER_STORAGE_PREFIX = `${STORAGE_KEY}:user:`;
+    const LEGACY_ACCOUNT_OWNER_KEYS = LEGACY_STORAGE_KEYS.map((key) => `${key}:owner`);
+    const LEGACY_USER_STORAGE_PREFIXES = LEGACY_STORAGE_KEYS.map((key) => `${key}:user:`);
     const THEME_KEY = "harbourline-theme";
     const LEGACY_THEME_KEYS = ["pocket-harbour-theme", "budget-studio-theme"];
     const DEFAULT_THEME = "harbour-night";
@@ -4666,10 +4673,56 @@
       "deep-ocean": { label: "Deep Ocean", mode: "dark", browserColor: "#071321", mark: "assets/harbourline-mark-deep-ocean.svg", icon: "assets/favicon-deep-ocean.svg" },
       "sunset-ledger": { label: "Sunset Ledger", mode: "light", browserColor: "#fbf4ec", mark: "assets/harbourline-mark-sunset-ledger.svg", icon: "assets/favicon-sunset-ledger.svg" }
     };
-    const CURRENCY_FORMATTER = new Intl.NumberFormat("en-AU", {
-      style: "currency",
-      currency: "AUD"
-    });
+
+    // Deployment may inject window.HarbourlineCurrencyConfig. The safe default is
+    // AUD only; provider/library support never enables a currency by itself.
+    const BASE_CURRENCY_DEFINITIONS = {
+      AUD: { code: "AUD", minorUnit: 2, locale: "en-AU" },
+      BHD: { code: "BHD", minorUnit: 3, locale: "en-BH" },
+      CAD: { code: "CAD", minorUnit: 2, locale: "en-CA" },
+      EUR: { code: "EUR", minorUnit: 2, locale: "en-IE" },
+      GBP: { code: "GBP", minorUnit: 2, locale: "en-GB" },
+      INR: { code: "INR", minorUnit: 2, locale: "en-IN" },
+      JPY: { code: "JPY", minorUnit: 0, locale: "ja-JP" },
+      MXN: { code: "MXN", minorUnit: 2, locale: "es-MX" },
+      NZD: { code: "NZD", minorUnit: 2, locale: "en-NZ" },
+      SGD: { code: "SGD", minorUnit: 2, locale: "en-SG" },
+      USD: { code: "USD", minorUnit: 2, locale: "en-US" }
+    };
+    const injectedCurrencyConfig = globalThis.HarbourlineCurrencyConfig || {};
+    function isValidLocale(locale) {
+      if (typeof locale !== "string" || !locale.trim()) return false;
+      try {
+        new Intl.NumberFormat(locale);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+    const customCurrencyDefinitions = injectedCurrencyConfig.currencies && typeof injectedCurrencyConfig.currencies === "object"
+      ? Object.fromEntries(Object.entries(injectedCurrencyConfig.currencies).flatMap(([rawCode, rawDefinition]) => {
+        const code = String(rawCode).trim().toUpperCase();
+        const definition = rawDefinition && typeof rawDefinition === "object" ? rawDefinition : {};
+        const minorUnit = Number(definition.minorUnit);
+        const locale = String(definition.locale || "").trim();
+        return /^[A-Z]{3}$/.test(code) && Number.isInteger(minorUnit) && minorUnit >= 0 && minorUnit <= 6 && isValidLocale(locale)
+          ? [[code, { code, minorUnit, locale }]]
+          : [];
+      }))
+      : {};
+    const CURRENCY_DEFINITIONS = { ...BASE_CURRENCY_DEFINITIONS, ...customCurrencyDefinitions };
+    const configuredCurrencyCodes = Array.isArray(injectedCurrencyConfig.enabledCurrencies)
+      ? injectedCurrencyConfig.enabledCurrencies
+      : typeof injectedCurrencyConfig.enabledCurrencies === "string"
+        ? injectedCurrencyConfig.enabledCurrencies.split(",")
+        : ["AUD"];
+    const SUPPORTED_CURRENCY_CODES = [...new Set(["AUD", ...configuredCurrencyCodes]
+      .map((code) => String(code).trim().toUpperCase())
+      .filter((code) => /^[A-Z]{3}$/.test(code) && CURRENCY_DEFINITIONS[code]))];
+    if (!SUPPORTED_CURRENCY_CODES.length) SUPPORTED_CURRENCY_CODES.push("AUD");
+    const DEFAULT_CURRENCY = SUPPORTED_CURRENCY_CODES.includes(String(injectedCurrencyConfig.defaultCurrency || "").toUpperCase())
+      ? String(injectedCurrencyConfig.defaultCurrency).toUpperCase()
+      : SUPPORTED_CURRENCY_CODES[0];
 
     const FREQUENCY_MULTIPLIERS = {
       weekly: 52 / 12,
@@ -4723,6 +4776,127 @@
       "color-mix(in srgb, var(--amber) 68%, var(--blue))",
       "color-mix(in srgb, var(--rose) 68%, var(--blue))"
     ];
+
+    function currencyDefinition(code = DEFAULT_CURRENCY) {
+      const normalised = String(code || DEFAULT_CURRENCY).trim().toUpperCase();
+      if (!SUPPORTED_CURRENCY_CODES.includes(normalised)) throw new Error(`Currency ${normalised} is not enabled.`);
+      return CURRENCY_DEFINITIONS[normalised];
+    }
+
+    function minorString(value) {
+      const text = typeof value === "bigint" ? value.toString() : String(value).trim();
+      if (!/^-?(?:0|[1-9]\d*)$/.test(text)) throw new Error("Minor-unit amounts must be integer strings.");
+      return BigInt(text).toString();
+    }
+
+    function parseMajorToMinor(value, code = DEFAULT_CURRENCY) {
+      const definition = currencyDefinition(code);
+      const input = typeof value === "number" ? String(value) : String(value ?? "").trim();
+      if (!/^-?(?:\d+)(?:\.\d+)?$/.test(input)) {
+        throw new Error("Money amounts must be plain decimal amounts.");
+      }
+      const negative = input.startsWith("-");
+      const unsigned = negative ? input.slice(1) : input;
+      const [wholePart, fractionPart = ""] = unsigned.split(".");
+      const scale = 10n ** BigInt(definition.minorUnit);
+      const retained = definition.minorUnit
+        ? fractionPart.slice(0, definition.minorUnit).padEnd(definition.minorUnit, "0")
+        : "";
+      let minor = BigInt(wholePart || "0") * scale + BigInt(retained || "0");
+      if (fractionPart.slice(definition.minorUnit) && Number(fractionPart[definition.minorUnit]) >= 5) minor += 1n;
+      return (negative ? -minor : minor).toString();
+    }
+
+    function minorToMajor(value, code = DEFAULT_CURRENCY) {
+      const definition = currencyDefinition(code);
+      const minor = minorString(value);
+      const negative = minor.startsWith("-");
+      const unsigned = negative ? minor.slice(1) : minor;
+      if (!definition.minorUnit) return `${negative ? "-" : ""}${unsigned}`;
+      const padded = unsigned.padStart(definition.minorUnit + 1, "0");
+      const splitAt = padded.length - definition.minorUnit;
+      return `${negative ? "-" : ""}${padded.slice(0, splitAt)}.${padded.slice(splitAt)}`;
+    }
+
+    function scaleMinor(amount, numerator, denominator) {
+      const top = BigInt(minorString(amount)) * BigInt(numerator);
+      const bottom = BigInt(denominator);
+      if (bottom === 0n) throw new Error("A scale denominator cannot be zero.");
+      const sign = top < 0n !== bottom < 0n ? -1n : 1n;
+      const absoluteTop = top < 0n ? -top : top;
+      const absoluteBottom = bottom < 0n ? -bottom : bottom;
+      let rounded = absoluteTop / absoluteBottom;
+      if ((absoluteTop % absoluteBottom) * 2n >= absoluteBottom) rounded += 1n;
+      return (sign * rounded).toString();
+    }
+
+    function parseDecimalFraction(value) {
+      const input = typeof value === "number" ? String(value) : String(value ?? "").trim();
+      if (!/^-?(?:\d+)(?:\.\d+)?$/.test(input)) throw new Error("Decimal values must use plain decimal notation.");
+      const negative = input.startsWith("-");
+      const unsigned = negative ? input.slice(1) : input;
+      const [whole, fraction = ""] = unsigned.split(".");
+      const denominator = 10n ** BigInt(fraction.length);
+      const numerator = BigInt(`${whole || "0"}${fraction}` || "0") * (negative ? -1n : 1n);
+      return [numerator, denominator];
+    }
+
+    function sumMinor(values) {
+      let total = 0n;
+      for (const value of values) total += BigInt(minorString(value));
+      return total.toString();
+    }
+
+    function scaleMinorDecimal(amount, value, denominator = 1n) {
+      const [numerator, decimalDenominator] = parseDecimalFraction(value);
+      return scaleMinor(amount, numerator, decimalDenominator * BigInt(denominator));
+    }
+
+    function minorNumber(value, code = DEFAULT_CURRENCY) {
+      const minor = BigInt(minorString(value));
+      if (minor > BigInt(Number.MAX_SAFE_INTEGER) || minor < BigInt(Number.MIN_SAFE_INTEGER)) {
+        throw new Error("Money value is outside the safe numeric range.");
+      }
+      const result = Number(minorToMajor(minor, code));
+      if (!Number.isFinite(result)) throw new Error("Money value is outside the supported numeric range.");
+      return result;
+    }
+
+    function exactMonthlyMinor(amount, frequency, code = DEFAULT_CURRENCY) {
+      const ratios = {
+        weekly: [52, 12], fortnightly: [26, 12], fourWeekly: [13, 12], monthly: [1, 1],
+        quarterly: [1, 3], sixMonthly: [1, 6], yearly: [1, 12], once: [1, 1]
+      };
+      const ratio = ratios[frequency] || ratios.monthly;
+      return scaleMinor(parseMajorToMinor(amount, code), ratio[0], ratio[1]);
+    }
+
+    function exactWeeklyMinor(amount, frequency, code = DEFAULT_CURRENCY) {
+      const ratios = {
+        weekly: [1, 1], fortnightly: [1, 2], fourWeekly: [1, 4], monthly: [3, 13],
+        quarterly: [1, 13], sixMonthly: [1, 26], yearly: [1, 52], once: [3, 13]
+      };
+      const ratio = ratios[frequency] || ratios.monthly;
+      return scaleMinor(parseMajorToMinor(amount, code), ratio[0], ratio[1]);
+    }
+
+    function exactFortnightlyMinor(amount, frequency, code = DEFAULT_CURRENCY) {
+      const ratios = {
+        weekly: [2, 1], fortnightly: [1, 1], fourWeekly: [1, 2], monthly: [6, 13],
+        quarterly: [2, 13], sixMonthly: [1, 13], yearly: [1, 26], once: [6, 13]
+      };
+      const ratio = ratios[frequency] || ratios.monthly;
+      return scaleMinor(parseMajorToMinor(amount, code), ratio[0], ratio[1]);
+    }
+
+    function exactAnnualMinor(amount, frequency, code = DEFAULT_CURRENCY) {
+      const ratios = {
+        weekly: [52, 1], fortnightly: [26, 1], fourWeekly: [13, 1], monthly: [12, 1],
+        quarterly: [4, 1], sixMonthly: [2, 1], yearly: [1, 1], once: [1, 1]
+      };
+      const ratio = ratios[frequency] || ratios.monthly;
+      return scaleMinor(parseMajorToMinor(amount, code), ratio[0], ratio[1]);
+    }
 
     function createId() {
       return `item-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -4830,6 +5004,11 @@
 
     function createDefaultState() {
       return {
+        schemaVersion: 4,
+        moneyRepresentation: "major-unit-runtime",
+        currency: DEFAULT_CURRENCY,
+        locale: CURRENCY_DEFINITIONS[DEFAULT_CURRENCY].locale,
+        timeZone: "Australia/Sydney",
         showExpenseNamesOnCalendar: false,
         incomes: createIncomeSources(),
         savingsPlan: { ...DEFAULT_SAVINGS_PLAN },
@@ -4850,6 +5029,7 @@
     const defaultState = createDefaultState();
 
     let activeStorageKey = STORAGE_KEY;
+    let stateLoadError = null;
     let state = loadState();
     let stateChangeSource = "local";
     let editingExpenseId = null;
@@ -4875,6 +5055,7 @@
     const sortSelect = document.querySelector("#sortSelect");
     const toast = document.querySelector("#toast");
     const themeOptions = document.querySelectorAll("[data-theme-option]");
+    const currencySelector = document.querySelector("#currencySelector");
     const savingsRate = document.querySelector("#savingsRate");
     const savingsRateNumber = document.querySelector("#savingsRateNumber");
     const startingSavings = document.querySelector("#startingSavings");
@@ -4924,7 +5105,72 @@
     const netWorthList = document.querySelector("#netWorthList");
     const scenarioInputs = document.querySelectorAll("#scenarioIncomeChange, #scenarioExpenseChange, #scenarioOneOff, #scenarioDebtWeekly");
 
+    function transformPersistedMoney(state, currency, transform) {
+      const collections = [
+        ["incomes", ["amount"]],
+        ["expenses", ["amount", "reservedAmount", "debtBalance"]],
+        ["transactions", ["amount"]],
+        ["goals", ["target", "current"]],
+        ["netWorthItems", ["value"]],
+        ["netWorthHistory", ["value"]]
+      ];
+      collections.forEach(([collectionName, fields]) => {
+        const collection = Array.isArray(state[collectionName]) ? state[collectionName] : [];
+        collection.forEach((item) => {
+          if (!item || typeof item !== "object") return;
+          fields.forEach((field) => {
+            if (item[field] !== undefined) item[field] = transform(item[field], currency);
+          });
+        });
+      });
+      [["savingsPlan", ["startingSavings"]], ["debtPlan", ["extraPayment"]], ["paydayPlan", ["billsAccountBalance"]]]
+        .forEach(([objectName, fields]) => {
+          const object = state[objectName];
+          if (!object || typeof object !== "object") return;
+          fields.forEach((field) => {
+            if (object[field] !== undefined) object[field] = transform(object[field], currency);
+          });
+        });
+      const history = Array.isArray(state.paydayPlan?.history) ? state.paydayPlan.history : [];
+      history.forEach((item) => {
+        if (!item || typeof item !== "object") return;
+        ["income", "transfer", "savings", "extraDebt", "safeSpend"].forEach((field) => {
+          if (item[field] !== undefined) item[field] = transform(item[field], currency);
+        });
+      });
+    }
+
+    function resolveStateCurrency(parsed) {
+      const candidate = parsed?.currency || parsed?.household?.currency || DEFAULT_CURRENCY;
+      currencyDefinition(candidate);
+      return String(candidate).trim().toUpperCase();
+    }
+
+    function decodePersistedState(parsed) {
+      const source = parsed && typeof parsed === "object" ? JSON.parse(JSON.stringify(parsed)) : {};
+      const currency = resolveStateCurrency(source);
+      if (source.moneyRepresentation === "minor-unit-string") {
+        transformPersistedMoney(source, currency, (value, code) => minorNumber(value, code));
+      }
+      return { source, currency };
+    }
+
+    function serialiseState(runtimeState) {
+      const source = JSON.parse(JSON.stringify(runtimeState));
+      const currency = resolveStateCurrency(source);
+      source.schemaVersion = 4;
+      source.moneyRepresentation = "minor-unit-string";
+      source.currency = currency;
+      source.locale = source.locale || CURRENCY_DEFINITIONS[currency].locale;
+      source.timeZone = source.timeZone || "Australia/Sydney";
+      transformPersistedMoney(source, currency, (value, code) => parseMajorToMinor(value, code));
+      return source;
+    }
+
     function normaliseState(parsed = {}) {
+      const decoded = decodePersistedState(parsed);
+      parsed = decoded.source;
+      const currency = decoded.currency;
       const savedIncomes = Array.isArray(parsed.incomes)
         ? parsed.incomes
         : parsed.incomeAmount != null
@@ -4932,6 +5178,11 @@
           : null;
 
       return {
+        schemaVersion: 4,
+        moneyRepresentation: "major-unit-runtime",
+        currency,
+        locale: String(parsed.locale || CURRENCY_DEFINITIONS[currency].locale),
+        timeZone: String(parsed.timeZone || "Australia/Sydney"),
         showExpenseNamesOnCalendar: parsed.showExpenseNamesOnCalendar === true,
         incomes: createIncomeSources(savedIncomes),
         savingsPlan: {
@@ -5000,7 +5251,12 @@
               value: Math.max(Number(item.value) || 0, 0)
             }))
           : [],
-        netWorthHistory: Array.isArray(parsed.netWorthHistory) ? parsed.netWorthHistory.filter(Boolean) : [],
+        netWorthHistory: Array.isArray(parsed.netWorthHistory)
+          ? parsed.netWorthHistory.filter(Boolean).map((snapshot) => ({
+              date: String(snapshot.date || ""),
+              value: Math.max(Number(snapshot.value ?? snapshot.total) || 0, 0)
+            }))
+          : [],
         expenses: Array.isArray(parsed.expenses)
           ? parsed.expenses.filter(Boolean).map((expense) => ({
               ...expense,
@@ -5015,23 +5271,55 @@
       return `${USER_STORAGE_PREFIX}${encodeURIComponent(userId)}`;
     }
 
+    function storageCandidates(storageKey) {
+      if (storageKey === STORAGE_KEY) return [storageKey, ...LEGACY_STORAGE_KEYS];
+      if (!storageKey.startsWith(USER_STORAGE_PREFIX)) return [storageKey];
+      const suffix = storageKey.slice(USER_STORAGE_PREFIX.length);
+      return [storageKey, ...LEGACY_USER_STORAGE_PREFIXES.map((prefix) => `${prefix}${suffix}`)];
+    }
+
+    function ownerKeys() {
+      return [ACCOUNT_OWNER_KEY, ...LEGACY_ACCOUNT_OWNER_KEYS];
+    }
+
+    function firstStoredValue(keys) {
+      return keys.map((key) => localStorage.getItem(key)).find(Boolean) ?? null;
+    }
+
     function loadState(storageKey = activeStorageKey) {
+      let saved = null;
+      stateLoadError = null;
       try {
-        const saved = localStorage.getItem(storageKey)
-          || (storageKey === STORAGE_KEY
-            ? LEGACY_STORAGE_KEYS.map((key) => localStorage.getItem(key)).find(Boolean)
-            : null);
-        if (saved && storageKey === STORAGE_KEY && !localStorage.getItem(STORAGE_KEY)) {
-          localStorage.setItem(STORAGE_KEY, saved);
+        const candidates = storageCandidates(storageKey);
+        saved = firstStoredValue(candidates);
+        if (saved && !localStorage.getItem(storageKey)) localStorage.setItem(storageKey, saved);
+        if (!saved) return createDefaultState();
+        const parsed = JSON.parse(saved);
+        const restored = normaliseState(parsed);
+        if (parsed.moneyRepresentation !== "minor-unit-string") {
+          localStorage.setItem(storageKey, JSON.stringify(serialiseState(restored)));
         }
-        return saved ? normaliseState(JSON.parse(saved)) : createDefaultState();
-      } catch {
+        return restored;
+      } catch (error) {
+        if (saved) {
+          try {
+            localStorage.setItem(`${storageKey}:quarantine`, saved);
+          } catch {
+            // Preserve the in-memory recovery state even if storage is unavailable.
+          }
+          stateLoadError = "Stored budget data could not be read. Restore a backup or explicitly reset this budget.";
+          console.error("Harbourline state quarantined", error);
+        }
         return createDefaultState();
       }
     }
 
     function saveState() {
-      localStorage.setItem(activeStorageKey, JSON.stringify(state));
+      if (stateLoadError) {
+        console.warn(stateLoadError);
+        return false;
+      }
+      localStorage.setItem(activeStorageKey, JSON.stringify(serialiseState(state)));
       window.dispatchEvent(new CustomEvent("harbourline:state-changed", {
         detail: {
           source: stateChangeSource,
@@ -5041,25 +5329,33 @@
     }
 
     window.HarbourlineLocal = Object.freeze({
-      version: 1,
-      schemaVersion: 3,
+      version: 2,
+      schemaVersion: 4,
       get storageKey() {
         return activeStorageKey;
       },
       read() {
         return JSON.parse(JSON.stringify(state));
       },
+      readPersisted() {
+        return serialiseState(state);
+      },
       setUserScope(userId) {
         const nextStorageKey = userId ? storageKeyForUser(userId) : STORAGE_KEY;
         if (nextStorageKey === activeStorageKey) return;
 
         if (userId && !localStorage.getItem(nextStorageKey)) {
-          const anonymousState = localStorage.getItem(STORAGE_KEY);
-          const anonymousOwner = localStorage.getItem(ACCOUNT_OWNER_KEY);
+          const scopedLegacyState = firstStoredValue(storageCandidates(nextStorageKey).slice(1));
+          if (scopedLegacyState) localStorage.setItem(nextStorageKey, scopedLegacyState);
+        }
+        if (userId && !localStorage.getItem(nextStorageKey)) {
+          const anonymousState = firstStoredValue([STORAGE_KEY, ...LEGACY_STORAGE_KEYS]);
+          const anonymousOwner = firstStoredValue(ownerKeys());
           if (anonymousState && !anonymousOwner) {
             localStorage.setItem(nextStorageKey, anonymousState);
             localStorage.setItem(ACCOUNT_OWNER_KEY, userId);
             localStorage.removeItem(STORAGE_KEY);
+            LEGACY_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
           }
         }
 
@@ -5077,6 +5373,7 @@
         stateChangeSource = source;
         try {
           state = normaliseState(nextState);
+          stateLoadError = null;
           saveState();
           render();
         } finally {
@@ -5094,21 +5391,35 @@
     window.dispatchEvent(new CustomEvent("harbourline:ready"));
 
     function money(value) {
-      return CURRENCY_FORMATTER.format(Number.isFinite(value) ? value : 0);
+      const code = state?.currency || DEFAULT_CURRENCY;
+      const definition = currencyDefinition(code);
+      const minor = parseMajorToMinor(Number.isFinite(Number(value)) ? Number(value) : 0, code);
+      const amount = Number(minorToMajor(minor, code));
+      return new Intl.NumberFormat(state?.locale || definition.locale, {
+        style: "currency",
+        currency: code,
+        minimumFractionDigits: definition.minorUnit,
+        maximumFractionDigits: definition.minorUnit
+      }).format(Number.isFinite(amount) ? amount : 0);
     }
 
     function monthlyAmount(amount, frequency) {
-      return (Number(amount) || 0) * (FREQUENCY_MULTIPLIERS[frequency] || 1);
+      return Number(minorToMajor(exactMonthlyMinor(amount, frequency, state?.currency || DEFAULT_CURRENCY), state?.currency || DEFAULT_CURRENCY));
     }
 
     function weeklyAmount(amount, frequency) {
-      return monthlyAmount(amount, frequency) * 12 / 52;
+      return Number(minorToMajor(exactWeeklyMinor(amount, frequency, state?.currency || DEFAULT_CURRENCY), state?.currency || DEFAULT_CURRENCY));
+    }
+
+    function annualAmount(amount, frequency) {
+      return Number(minorToMajor(exactAnnualMinor(amount, frequency, state?.currency || DEFAULT_CURRENCY), state?.currency || DEFAULT_CURRENCY));
     }
 
     function expenseWeeklyTotal() {
-      return state.expenses.reduce((total, expense) => {
-        return total + weeklyAmount(expense.amount, expense.frequency);
-      }, 0);
+      const code = state?.currency || DEFAULT_CURRENCY;
+      return minorNumber(sumMinor(state.expenses.map((expense) => (
+        exactWeeklyMinor(expense.amount, expense.frequency, code)
+      ))), code);
     }
 
     function todayValue() {
@@ -5221,10 +5532,12 @@
     }
 
     function sourceYearlyIncome(source) {
-      return monthlyAmount(source.amount, source.frequency) * 12;
+      const code = state?.currency || DEFAULT_CURRENCY;
+      return minorNumber(exactAnnualMinor(source.amount, source.frequency, code), code);
     }
 
     function householdPayEvents(start, end) {
+      const code = state?.currency || DEFAULT_CURRENCY;
       const eventsByDate = new Map();
       const fallbackDates = fallbackPayDates(start, end);
 
@@ -5233,23 +5546,27 @@
         if (!amount) return;
         const hasPayDate = Boolean(parseDateValue(source.nextPayDate));
         const occurrences = hasPayDate ? incomeOccurrences(source, start, end) : fallbackDates;
-        const eventAmount = hasPayDate ? amount : sourceYearlyIncome(source) / cyclesPerYear();
+        const eventAmountMinor = hasPayDate
+          ? parseMajorToMinor(amount, code)
+          : scaleMinor(exactAnnualMinor(source.amount, source.frequency, code), 1, cyclesPerYear());
 
         occurrences.forEach((date) => {
           const key = dateValue(date);
           const event = eventsByDate.get(key) || {
             date: new Date(date),
-            income: 0,
+            incomeMinor: 0n,
             sources: []
           };
-          event.income += eventAmount;
+          event.incomeMinor += BigInt(eventAmountMinor);
           const label = incomeSourceLabel(source);
           if (!event.sources.includes(label)) event.sources.push(label);
           eventsByDate.set(key, event);
         });
       });
 
-      return [...eventsByDate.values()].sort((a, b) => a.date - b.date);
+      return [...eventsByDate.values()]
+        .map(({ incomeMinor, ...event }) => ({ ...event, income: minorNumber(incomeMinor, code) }))
+        .sort((a, b) => a.date - b.date);
     }
 
     function normalisedNextPayday() {
@@ -5270,58 +5587,71 @@
     }
 
     function billFunding(expense) {
-      const target = Math.max(Number(expense.amount) || 0, 0);
-      const reserved = Math.max(Number(expense.reservedAmount) || 0, 0);
-      const gap = Math.max(target - reserved, 0);
+      const code = state?.currency || DEFAULT_CURRENCY;
+      const targetMinor = BigInt(parseMajorToMinor(Math.max(Number(expense.amount) || 0, 0), code));
+      const reservedMinor = BigInt(parseMajorToMinor(Math.max(Number(expense.reservedAmount) || 0, 0), code));
+      const gapMinor = targetMinor > reservedMinor ? targetMinor - reservedMinor : 0n;
       const due = nextDueDate(expense);
-      const averagePerCycle = weeklyAmount(expense.amount, expense.frequency) * (cycleDays() / 7);
+      const averagePerCycleMinor = BigInt(exactWeeklyMinor(expense.amount, expense.frequency, code)) * BigInt(cycleDays() / 7);
       const paydayCount = due ? paydaysUntil(due) : 0;
-      const requiredPerCycle = due ? gap / Math.max(paydayCount, 1) : averagePerCycle;
+      const requiredPerCycleMinor = due
+        ? BigInt(scaleMinor(gapMinor, 1, Math.max(paydayCount, 1)))
+        : averagePerCycleMinor;
       const originalDue = parseDateValue(expense.due);
-      const overdue = expense.frequency === "once" && originalDue && originalDue < parseDateValue(todayValue()) && gap > 0;
+      const overdue = expense.frequency === "once" && originalDue && originalDue < parseDateValue(todayValue()) && gapMinor > 0n;
       let status = "on-track";
-      if (gap <= 0.005) status = "funded";
+      if (gapMinor === 0n) status = "funded";
       else if (overdue) status = "overdue";
-      else if (due && requiredPerCycle > Math.max(averagePerCycle * 1.15, averagePerCycle + 1)) status = "behind";
+      else if (
+        due
+        && (
+          requiredPerCycleMinor > BigInt(scaleMinor(averagePerCycleMinor, 115, 100))
+          && requiredPerCycleMinor > averagePerCycleMinor + BigInt(parseMajorToMinor(1, code))
+        )
+      ) status = "behind";
 
       return {
-        target,
-        reserved,
-        gap,
+        target: minorNumber(targetMinor, code),
+        reserved: minorNumber(reservedMinor, code),
+        gap: minorNumber(gapMinor, code),
         due,
         paydayCount,
-        averagePerCycle,
-        requiredPerCycle,
+        averagePerCycle: minorNumber(averagePerCycleMinor, code),
+        requiredPerCycle: minorNumber(requiredPerCycleMinor, code),
         status
       };
     }
 
     function paydaySummary() {
+      const code = state?.currency || DEFAULT_CURRENCY;
       const today = parseDateValue(todayValue());
       const nextYearEvents = householdPayEvents(today, addDays(today, 370));
       const annualEvents = nextYearEvents.filter((event) => event.date <= addDays(today, 363));
       const nextEvent = nextYearEvents[0] || null;
       const cycles = annualEvents.length || (nextEvent ? 1 : cyclesPerYear());
-      const income = nextEvent?.income ?? incomeYearly() / cyclesPerYear();
+      const incomeMinor = BigInt(parseMajorToMinor(
+        nextEvent?.income ?? minorNumber(scaleMinor(parseMajorToMinor(incomeYearly(), code), 1, cyclesPerYear()), code),
+        code
+      ));
       const fundings = state.expenses.map((expense) => ({ expense, ...billFunding(expense) }));
-      const transfer = fundings.reduce((total, item) => total + item.requiredPerCycle, 0);
-      const savingsRate = Math.max(Number(state.savingsPlan?.allocationPercent) || 0, 0) / 100;
-      const savings = income * savingsRate;
-      const annualIncome = incomeYearly();
-      const annualExtraDebt = Math.max(Number(state.debtPlan?.extraPayment) || 0, 0) * 12;
-      const extraDebt = annualIncome > 0
-        ? annualExtraDebt * (income / annualIncome)
-        : annualExtraDebt / cycles;
+      const transferMinor = BigInt(sumMinor(fundings.map((item) => parseMajorToMinor(item.requiredPerCycle, code))));
+      const savingsMinor = BigInt(scaleMinorDecimal(incomeMinor, Math.max(Number(state.savingsPlan?.allocationPercent) || 0, 0), 100n));
+      const annualIncomeMinor = BigInt(parseMajorToMinor(incomeYearly(), code));
+      const annualExtraDebtMinor = BigInt(parseMajorToMinor(Math.max(Number(state.debtPlan?.extraPayment) || 0, 0), code)) * 12n;
+      const extraDebtMinor = annualIncomeMinor > 0n
+        ? BigInt(scaleMinor(annualExtraDebtMinor, incomeMinor, annualIncomeMinor))
+        : BigInt(scaleMinor(annualExtraDebtMinor, 1, cycles));
+      const safeSpendMinor = incomeMinor - transferMinor - savingsMinor - extraDebtMinor;
       return {
         cycles,
-        income,
+        income: minorNumber(incomeMinor, code),
         nextPayday: nextEvent?.date || normalisedFallbackPayday(),
         incomeSources: nextEvent?.sources || [],
         fundings,
-        transfer,
-        savings,
-        extraDebt,
-        safeSpend: income - transfer - savings - extraDebt
+        transfer: minorNumber(transferMinor, code),
+        savings: minorNumber(savingsMinor, code),
+        extraDebt: minorNumber(extraDebtMinor, code),
+        safeSpend: minorNumber(safeSpendMinor, code)
       };
     }
 
@@ -5374,9 +5704,9 @@
         const paydayDate = parseDateValue(record.paydayDate);
         const confirmedAt = record.confirmedAt ? new Date(record.confirmedAt) : null;
         item.querySelector("strong").textContent = paydayDate
-          ? `Payday plan | ${paydayDate.toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}`
+          ? `Payday plan | ${paydayDate.toLocaleDateString(state?.locale || "en-AU", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}`
           : "Payday plan";
-        item.querySelector("div span").textContent = `${confirmedAt && !Number.isNaN(confirmedAt.getTime()) ? `Confirmed ${confirmedAt.toLocaleDateString("en-AU", { day: "numeric", month: "short" })}` : "Confirmed"} | ${record.billsPaid || 0} bill${record.billsPaid === 1 ? "" : "s"} marked paid`;
+        item.querySelector("div span").textContent = `${confirmedAt && !Number.isNaN(confirmedAt.getTime()) ? `Confirmed ${confirmedAt.toLocaleDateString(state?.locale || "en-AU", { day: "numeric", month: "short" })}` : "Confirmed"} | ${record.billsPaid || 0} bill${record.billsPaid === 1 ? "" : "s"} marked paid`;
         item.querySelector(".payday-history-values").textContent = `Transfer ${money(record.transfer)} | Safe ${money(record.safeSpend)}`;
         paydayHistory.append(item);
       });
@@ -5387,7 +5717,11 @@
       const checklistReset = ensurePaydayChecklist(paydayDate);
       if (checklistReset) saveState();
       const checklist = state.paydayPlan.checklist;
-      const safeSpendPerDay = summary.safeSpend / cycleDays();
+      const code = state?.currency || DEFAULT_CURRENCY;
+      const safeSpendPerDay = minorNumber(
+        scaleMinor(parseMajorToMinor(summary.safeSpend, code), 1, cycleDays()),
+        code
+      );
       const completed = [
         checklist.billsTransferConfirmed,
         checklist.savingsDebtConfirmed,
@@ -5395,7 +5729,7 @@
       ].filter(Boolean).length;
       const confirmed = Boolean(checklist.confirmedAt) && paydayChecklistComplete(checklist);
 
-      paydayCheckinDate.textContent = summary.nextPayday.toLocaleDateString("en-AU", {
+      paydayCheckinDate.textContent = summary.nextPayday.toLocaleDateString(state?.locale || "en-AU", {
         weekday: "short",
         day: "numeric",
         month: "short"
@@ -5407,8 +5741,12 @@
       document.querySelector("#paydayStepBillsNote").textContent = summary.transfer > 0
         ? "Transfer this amount to protect upcoming bills."
         : "Add bills to calculate the transfer.";
-      document.querySelector("#paydayStepSavingsDebtAmount").textContent = money(summary.savings + summary.extraDebt);
-      document.querySelector("#paydayStepSavingsDebtNote").textContent = summary.savings + summary.extraDebt > 0
+      const savingsDebt = minorNumber(
+        sumMinor([parseMajorToMinor(summary.savings, code), parseMajorToMinor(summary.extraDebt, code)]),
+        code
+      );
+      document.querySelector("#paydayStepSavingsDebtAmount").textContent = money(savingsDebt);
+      document.querySelector("#paydayStepSavingsDebtNote").textContent = savingsDebt > 0
         ? `${money(summary.savings)} savings | ${money(summary.extraDebt)} extra debt`
         : "No savings or extra debt allocated yet.";
       document.querySelector("#paydayStepSafeSpendAmount").textContent = money(summary.safeSpend);
@@ -5417,7 +5755,7 @@
         : `About ${money(Math.max(safeSpendPerDay, 0))} per day until next pay.`;
       paydayChecklistProgress.textContent = `${completed} of 3 steps complete`;
       paydayChecklistStatus.textContent = confirmed
-        ? `Confirmed for this payday${checklist.confirmedAt ? ` | ${new Date(checklist.confirmedAt).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" })}` : ""}.`
+        ? `Confirmed for this payday${checklist.confirmedAt ? ` | ${new Date(checklist.confirmedAt).toLocaleTimeString(state?.locale || "en-AU", { hour: "numeric", minute: "2-digit" })}` : ""}.`
         : completed === 3
           ? "Your plan is ready to confirm."
           : "Complete the checklist to confirm this payday plan.";
@@ -5553,6 +5891,7 @@
           title: event.sources.join(" + ") || "Household income",
           meta: "Scheduled household income",
           amount: event.income,
+          amountMinor: parseMajorToMinor(event.income, state.currency),
           direction: "in",
           type: "income",
           planned: true
@@ -5567,7 +5906,8 @@
             date: key,
             title: expense.name,
             meta: `${expense.category || "Other"} | ${frequencyLabel(expense.frequency)}`,
-            amount: Math.max(Number(expense.amount) || 0, 0),
+            amount: minorNumber(parseMajorToMinor(Math.max(Number(expense.amount) || 0, 0), state.currency), state.currency),
+            amountMinor: parseMajorToMinor(Math.max(Number(expense.amount) || 0, 0), state.currency),
             direction: "out",
             type: "bill",
             planned: true
@@ -5584,7 +5924,8 @@
           date: dateValue(date),
           title: transaction.description || (isIncome ? "Income" : "Expense"),
           meta: `Actual ${isIncome ? "income" : "expense"} | ${transaction.category || "Other"}`,
-          amount: Math.max(Number(transaction.amount) || 0, 0),
+          amount: minorNumber(parseMajorToMinor(Math.max(Number(transaction.amount) || 0, 0), state.currency), state.currency),
+          amountMinor: parseMajorToMinor(Math.max(Number(transaction.amount) || 0, 0), state.currency),
           direction: isIncome ? "in" : "out",
           type: isIncome ? "actual-income" : "actual-expense",
           planned: false
@@ -5612,16 +5953,17 @@
 
     function renderCalendarAgenda(events) {
       const selected = parseDateValue(selectedCalendarDate) || calendarMonth;
-      document.querySelector("#calendarSelectedDate").textContent = selected.toLocaleDateString("en-AU", {
+      document.querySelector("#calendarSelectedDate").textContent = selected.toLocaleDateString(state?.locale || "en-AU", {
         weekday: "long",
         day: "numeric",
         month: "long"
       });
 
       const dayEvents = events.filter((event) => event.date === selectedCalendarDate);
-      const dayNet = dayEvents.reduce((total, event) => (
-        total + (event.direction === "in" ? event.amount : -event.amount)
-      ), 0);
+      const dayNetMinor = BigInt(sumMinor(dayEvents.map((event) => (
+        event.direction === "in" ? event.amountMinor : `-${event.amountMinor}`
+      ))));
+      const dayNet = minorNumber(dayNetMinor, state.currency);
       const dayBalance = document.querySelector("#calendarDayBalance");
       dayBalance.textContent = `${money(dayNet)} net`;
       dayBalance.style.color = dayNet < 0 ? "var(--rose)" : dayNet > 0 ? "var(--mint-dark)" : "";
@@ -5663,21 +6005,24 @@
         return map;
       }, new Map());
 
-      document.querySelector("#calendarMonthLabel").textContent = calendarMonth.toLocaleDateString("en-AU", {
+      document.querySelector("#calendarMonthLabel").textContent = calendarMonth.toLocaleDateString(state?.locale || "en-AU", {
         month: "long",
         year: "numeric"
       });
 
-      const plannedIncome = allEvents
+      const plannedIncomeMinor = BigInt(sumMinor(allEvents
         .filter((event) => event.planned && event.direction === "in")
-        .reduce((total, event) => total + event.amount, 0);
-      const plannedOutflow = allEvents
+        .map((event) => event.amountMinor)));
+      const plannedOutflowMinor = BigInt(sumMinor(allEvents
         .filter((event) => event.planned && event.direction === "out")
-        .reduce((total, event) => total + event.amount, 0);
-      const actualNet = allEvents
+        .map((event) => event.amountMinor)));
+      const actualNetMinor = BigInt(sumMinor(allEvents
         .filter((event) => !event.planned)
-        .reduce((total, event) => total + (event.direction === "in" ? event.amount : -event.amount), 0);
-      const plannedNet = plannedIncome - plannedOutflow;
+        .map((event) => event.direction === "in" ? event.amountMinor : `-${event.amountMinor}`)));
+      const plannedIncome = minorNumber(plannedIncomeMinor, state.currency);
+      const plannedOutflow = minorNumber(plannedOutflowMinor, state.currency);
+      const actualNet = minorNumber(actualNetMinor, state.currency);
+      const plannedNet = minorNumber(plannedIncomeMinor - plannedOutflowMinor, state.currency);
       document.querySelector("#calendarPlannedIncome").textContent = money(plannedIncome);
       document.querySelector("#calendarPlannedOutflow").textContent = money(plannedOutflow);
       document.querySelector("#calendarPlannedNet").textContent = money(plannedNet);
@@ -5695,9 +6040,9 @@
         const date = addDays(gridStart, index);
         const key = dateValue(date);
         const dayEvents = eventsByDate.get(key) || [];
-        const dayNet = dayEvents.reduce((total, event) => (
-          total + (event.direction === "in" ? event.amount : -event.amount)
-        ), 0);
+        const dayNet = minorNumber(BigInt(sumMinor(dayEvents.map((event) => (
+          event.direction === "in" ? event.amountMinor : `-${event.amountMinor}`
+        )))), state.currency);
         const button = document.createElement("button");
         button.className = "calendar-day";
         button.type = "button";
@@ -5785,7 +6130,7 @@
           `DTSTART;VALUE=DATE:${date}`,
           `DTEND;VALUE=DATE:${nextDate}`,
           `SUMMARY:${escapeCalendarText(summary)}`,
-          `DESCRIPTION:${escapeCalendarText(`${calendarEventAmount(event)} AUD | ${event.meta}`)}`,
+          `DESCRIPTION:${escapeCalendarText(`${calendarEventAmount(event)} ${state.currency} | ${event.meta}`)}`,
           "TRANSP:TRANSPARENT",
           "END:VEVENT"
         );
@@ -5805,6 +6150,7 @@
     }
 
     function buildPaydayForecast() {
+      const code = state?.currency || DEFAULT_CURRENCY;
       const summary = paydaySummary();
       const today = parseDateValue(todayValue());
       const forecastEnd = addDays(today, 90);
@@ -5813,27 +6159,38 @@
       const dueEvents = [];
       state.expenses.forEach((expense) => {
         expenseOccurrences(expense, today, forecastEnd).forEach((date) => {
-          dueEvents.push({ date, expense, amount: Math.max(Number(expense.amount) || 0, 0) });
+          const amountMinor = parseMajorToMinor(Math.max(Number(expense.amount) || 0, 0), code);
+          dueEvents.push({ date, expense, amount: minorNumber(amountMinor, code), amountMinor });
         });
       });
 
-      let balance = Math.max(Number(state.paydayPlan?.billsAccountBalance) || 0, 0);
+      let balanceMinor = BigInt(parseMajorToMinor(Math.max(Number(state.paydayPlan?.billsAccountBalance) || 0, 0), code));
+      const transferMinor = BigInt(parseMajorToMinor(summary.transfer, code));
       const weeks = [];
       for (let index = 0; index < 13; index += 1) {
         const start = addDays(today, index * 7);
         const end = addDays(start, 6);
         const weekPayEvents = payEvents.filter((event) => event.date >= start && event.date <= end);
-        const income = weekPayEvents.reduce((total, event) => total + event.income, 0);
-        const inflow = weekPayEvents.length * summary.transfer;
-        const scheduledOutflow = dueEvents
+        const incomeMinor = BigInt(sumMinor(weekPayEvents.map((event) => parseMajorToMinor(event.income, code))));
+        const inflowMinor = transferMinor * BigInt(weekPayEvents.length);
+        const scheduledOutflowMinor = BigInt(sumMinor(dueEvents
           .filter((event) => event.date >= start && event.date <= end)
-          .reduce((total, event) => total + event.amount, 0);
-        const averageOutflow = state.expenses
+          .map((event) => event.amountMinor)));
+        const averageOutflowMinor = BigInt(sumMinor(state.expenses
           .filter((expense) => !expense.due)
-          .reduce((total, expense) => total + weeklyAmount(expense.amount, expense.frequency), 0);
-        const outflow = scheduledOutflow + averageOutflow;
-        balance += inflow - outflow;
-        weeks.push({ index, start, end, income, payCount: weekPayEvents.length, inflow, outflow, balance });
+          .map((expense) => exactWeeklyMinor(expense.amount, expense.frequency, code))));
+        const outflowMinor = scheduledOutflowMinor + averageOutflowMinor;
+        balanceMinor += inflowMinor - outflowMinor;
+        weeks.push({
+          index,
+          start,
+          end,
+          income: minorNumber(incomeMinor, code),
+          payCount: weekPayEvents.length,
+          inflow: minorNumber(inflowMinor, code),
+          outflow: minorNumber(outflowMinor, code),
+          balance: minorNumber(balanceMinor, code)
+        });
       }
       return weeks;
     }
@@ -5866,23 +6223,31 @@
     }
 
     function incomeMonthly() {
-      return state.incomes.reduce((total, income) => {
-        return total + monthlyAmount(income.amount, income.frequency);
-      }, 0);
+      const code = state?.currency || DEFAULT_CURRENCY;
+      return minorNumber(sumMinor(state.incomes.map((income) => (
+        exactMonthlyMinor(income.amount, income.frequency, code)
+      ))), code);
     }
 
     function incomeYearly() {
-      return incomeMonthly() * 12;
+      const code = state?.currency || DEFAULT_CURRENCY;
+      return minorNumber(sumMinor(state.incomes.map((income) => (
+        exactAnnualMinor(income.amount, income.frequency, code)
+      ))), code);
     }
 
     function incomeFortnightly() {
-      return incomeYearly() / 26;
+      const code = state?.currency || DEFAULT_CURRENCY;
+      return minorNumber(sumMinor(state.incomes.map((income) => (
+        exactFortnightlyMinor(income.amount, income.frequency, code)
+      ))), code);
     }
 
     function expenseMonthlyTotal() {
-      return state.expenses.reduce((total, expense) => {
-        return total + monthlyAmount(expense.amount, expense.frequency);
-      }, 0);
+      const code = state?.currency || DEFAULT_CURRENCY;
+      return minorNumber(sumMinor(state.expenses.map((expense) => (
+        exactMonthlyMinor(expense.amount, expense.frequency, code)
+      ))), code);
     }
 
     function debtExpenses() {
@@ -5890,80 +6255,100 @@
     }
 
     function configuredDebts() {
+      const code = state?.currency || DEFAULT_CURRENCY;
       return debtExpenses()
-        .map((expense) => ({
-          id: expense.id,
-          name: expense.name,
-          balance: Math.max(Number(expense.debtBalance) || 0, 0),
-          annualRate: Math.max(Number(expense.interestRate) || 0, 0),
-          payment: Math.max(monthlyAmount(expense.amount, expense.frequency), 0)
-        }))
-        .filter((debt) => debt.balance > 0 && debt.payment > 0);
+        .map((expense) => {
+          const balance = Math.max(Number(expense.debtBalance) || 0, 0);
+          const payment = Math.max(monthlyAmount(expense.amount, expense.frequency), 0);
+          return {
+            id: expense.id,
+            name: expense.name,
+            balance,
+            balanceMinor: BigInt(parseMajorToMinor(balance, code)),
+            annualRate: Math.max(Number(expense.interestRate) || 0, 0),
+            payment,
+            paymentMinor: BigInt(parseMajorToMinor(payment, code))
+          };
+        })
+        .filter((debt) => debt.balanceMinor > 0n && debt.paymentMinor > 0n);
     }
 
     function orderedDebts(debts, strategy) {
+      const compareBalance = (left, right) => {
+        if (left.balanceMinor !== undefined && right.balanceMinor !== undefined) {
+          return left.balanceMinor < right.balanceMinor ? -1 : left.balanceMinor > right.balanceMinor ? 1 : 0;
+        }
+        return left.balance - right.balance;
+      };
       return [...debts].sort((a, b) => {
         if (strategy === "snowball") {
-          return a.balance - b.balance || b.annualRate - a.annualRate || a.name.localeCompare(b.name);
+          return compareBalance(a, b) || b.annualRate - a.annualRate || a.name.localeCompare(b.name);
         }
-        return b.annualRate - a.annualRate || a.balance - b.balance || a.name.localeCompare(b.name);
+        return b.annualRate - a.annualRate || compareBalance(a, b) || a.name.localeCompare(b.name);
       });
     }
 
     function simulateDebtPlan(strategy, extraPayment = 0) {
+      const code = state?.currency || DEFAULT_CURRENCY;
       const debts = configuredDebts().map((debt) => ({ ...debt }));
-      const startingBalance = debts.reduce((total, debt) => total + debt.balance, 0);
-      const scheduledPayments = debts.reduce((total, debt) => total + debt.payment, 0);
-      const monthlyBudget = scheduledPayments + Math.max(Number(extraPayment) || 0, 0);
-      const trajectory = startingBalance > 0 ? [{ month: 0, balance: startingBalance }] : [];
-      let totalInterest = 0;
+      const startingBalanceMinor = debts.reduce((total, debt) => total + debt.balanceMinor, 0n);
+      const scheduledPaymentsMinor = debts.reduce((total, debt) => total + debt.paymentMinor, 0n);
+      const extraPaymentMinor = BigInt(parseMajorToMinor(Math.max(Number(extraPayment) || 0, 0), code));
+      const monthlyBudgetMinor = scheduledPaymentsMinor + extraPaymentMinor;
+      const trajectory = startingBalanceMinor > 0n
+        ? [{ month: 0, balance: minorNumber(startingBalanceMinor, code) }]
+        : [];
+      let totalInterestMinor = 0n;
       let months = 0;
 
-      while (debts.some((debt) => debt.balance > 0.005) && months < 600) {
+      while (debts.some((debt) => debt.balanceMinor > 0n) && months < 600) {
         months += 1;
 
         debts.forEach((debt) => {
-          if (debt.balance <= 0.005) return;
-          const interest = debt.balance * (debt.annualRate / 100 / 12);
-          debt.balance += interest;
-          totalInterest += interest;
+          if (debt.balanceMinor <= 0n) return;
+          const interestMinor = BigInt(scaleMinorDecimal(debt.balanceMinor, debt.annualRate, 1200n));
+          debt.balanceMinor += interestMinor;
+          totalInterestMinor += interestMinor;
         });
 
-        let minimumsPaid = 0;
+        let minimumsPaidMinor = 0n;
         debts.forEach((debt) => {
-          if (debt.balance <= 0.005) return;
-          const payment = Math.min(debt.payment, debt.balance);
-          debt.balance -= payment;
-          minimumsPaid += payment;
+          if (debt.balanceMinor <= 0n) return;
+          const paymentMinor = debt.paymentMinor < debt.balanceMinor ? debt.paymentMinor : debt.balanceMinor;
+          debt.balanceMinor -= paymentMinor;
+          minimumsPaidMinor += paymentMinor;
         });
 
-        let rollover = Math.max(monthlyBudget - minimumsPaid, 0);
-        while (rollover > 0.005) {
+        let rolloverMinor = monthlyBudgetMinor - minimumsPaidMinor;
+        if (rolloverMinor < 0n) rolloverMinor = 0n;
+        while (rolloverMinor > 0n) {
           const target = orderedDebts(
-            debts.filter((debt) => debt.balance > 0.005),
+            debts.filter((debt) => debt.balanceMinor > 0n),
             strategy
           )[0];
           if (!target) break;
-          const payment = Math.min(rollover, target.balance);
-          target.balance -= payment;
-          rollover -= payment;
+          const paymentMinor = rolloverMinor < target.balanceMinor ? rolloverMinor : target.balanceMinor;
+          target.balanceMinor -= paymentMinor;
+          rolloverMinor -= paymentMinor;
         }
 
-        const balance = debts.reduce((total, debt) => total + Math.max(debt.balance, 0), 0);
-        if (months % 12 === 0 || balance <= 0.005) {
-          trajectory.push({ month: months, balance });
+        const balanceMinor = debts.reduce(
+          (total, debt) => total + (debt.balanceMinor > 0n ? debt.balanceMinor : 0n),
+          0n
+        );
+        if (months % 12 === 0 || balanceMinor <= 0n) {
+          trajectory.push({ month: months, balance: minorNumber(balanceMinor, code) });
         }
       }
 
-      const resolved = !debts.some((debt) => debt.balance > 0.005);
       return {
         strategy,
-        startingBalance,
-        scheduledPayments,
-        monthlyBudget,
-        totalInterest,
+        startingBalance: minorNumber(startingBalanceMinor, code),
+        scheduledPayments: minorNumber(scheduledPaymentsMinor, code),
+        monthlyBudget: minorNumber(monthlyBudgetMinor, code),
+        totalInterest: minorNumber(totalInterestMinor, code),
         months,
-        resolved,
+        resolved: !debts.some((debt) => debt.balanceMinor > 0n),
         trajectory
       };
     }
@@ -5974,7 +6359,7 @@
       const date = new Date();
       date.setDate(1);
       date.setMonth(date.getMonth() + months);
-      return date.toLocaleDateString("en-AU", { month: "short", year: "numeric" });
+      return date.toLocaleDateString(state?.locale || "en-AU", { month: "short", year: "numeric" });
     }
 
     function durationLabel(months, resolved = true) {
@@ -5995,59 +6380,72 @@
     }
 
     function categoryMonthlyTotals() {
+      const code = state?.currency || DEFAULT_CURRENCY;
       const totals = state.expenses.reduce((items, expense) => {
         const category = expense.category || "Other";
-        items[category] = (items[category] || 0) + monthlyAmount(expense.amount, expense.frequency);
+        const amountMinor = exactMonthlyMinor(expense.amount, expense.frequency, code);
+        items[category] = sumMinor([items[category] || "0", amountMinor]);
         return items;
       }, {});
 
       return Object.entries(totals)
-        .map(([name, value]) => ({ name, value }))
+        .map(([name, valueMinor]) => ({ name, value: minorNumber(valueMinor, code) }))
         .filter((item) => item.value > 0)
         .sort((a, b) => b.value - a.value);
     }
 
     function savingsProjection() {
+      const code = state?.currency || DEFAULT_CURRENCY;
       const monthlyIncome = incomeMonthly();
       const monthlyExpenses = expenseMonthlyTotal();
-      const remaining = monthlyIncome - monthlyExpenses;
+      const monthlyIncomeMinor = BigInt(parseMajorToMinor(monthlyIncome, code));
+      const monthlyExpensesMinor = BigInt(parseMajorToMinor(monthlyExpenses, code));
+      const remainingMinor = monthlyIncomeMinor - monthlyExpensesMinor;
       const plan = state.savingsPlan || DEFAULT_SAVINGS_PLAN;
       const allocationPercent = Number(plan.allocationPercent) || 0;
-      const monthlyContribution = monthlyIncome * (allocationPercent / 100);
-      const startingBalance = Number(plan.startingSavings) || 0;
-      const annualReturn = (Number(plan.annualReturnPercent) || 0) / 100;
+      const monthlyContributionMinor = BigInt(scaleMinorDecimal(monthlyIncomeMinor, allocationPercent, 100n));
+      const startingBalanceMinor = BigInt(parseMajorToMinor(Math.max(Number(plan.startingSavings) || 0, 0), code));
+      const annualReturnPercent = Math.max(Number(plan.annualReturnPercent) || 0, 0);
+      const annualReturn = annualReturnPercent / 100;
       const years = Math.max(Number(plan.years) || 1, 1);
-      const debtExtraPayment = Math.max(Number(state.debtPlan?.extraPayment) || 0, 0);
-      const monthlyReturn = annualReturn / 12;
-      const months = years * 12;
-      let balance = startingBalance;
+      const debtExtraPaymentMinor = BigInt(parseMajorToMinor(Math.max(Number(state.debtPlan?.extraPayment) || 0, 0), code));
+      const months = Math.round(years * 12);
+      let balanceMinor = startingBalanceMinor;
       const yearly = [];
 
       for (let month = 1; month <= months; month += 1) {
-        balance = balance * (1 + monthlyReturn) + monthlyContribution;
+        const interestMinor = BigInt(scaleMinorDecimal(balanceMinor, annualReturnPercent, 1200n));
+        balanceMinor += interestMinor + monthlyContributionMinor;
         if (month % 12 === 0) {
           yearly.push({
             year: month / 12,
-            balance
+            balance: minorNumber(balanceMinor, code)
           });
         }
       }
 
-      const contributions = monthlyContribution * months;
+      const contributionsMinor = monthlyContributionMinor * BigInt(months);
+      const compoundGrowthMinor = balanceMinor - startingBalanceMinor - contributionsMinor;
+      const availableMinor = remainingMinor - debtExtraPaymentMinor > 0n
+        ? remainingMinor - debtExtraPaymentMinor
+        : 0n;
+      const gapMinor = monthlyContributionMinor > availableMinor
+        ? monthlyContributionMinor - availableMinor
+        : 0n;
       return {
-        monthlyIncome,
-        monthlyExpenses,
-        remaining,
-        debtExtraPayment,
+        monthlyIncome: minorNumber(monthlyIncomeMinor, code),
+        monthlyExpenses: minorNumber(monthlyExpensesMinor, code),
+        remaining: minorNumber(remainingMinor, code),
+        debtExtraPayment: minorNumber(debtExtraPaymentMinor, code),
         allocationPercent,
-        monthlyContribution,
-        startingBalance,
+        monthlyContribution: minorNumber(monthlyContributionMinor, code),
+        startingBalance: minorNumber(startingBalanceMinor, code),
         annualReturn,
         years,
-        balance,
-        contributions,
-        compoundGrowth: Math.max(balance - startingBalance - contributions, 0),
-        gap: Math.max(monthlyContribution - Math.max(remaining - debtExtraPayment, 0), 0),
+        balance: minorNumber(balanceMinor, code),
+        contributions: minorNumber(contributionsMinor, code),
+        compoundGrowth: minorNumber(compoundGrowthMinor > 0n ? compoundGrowthMinor : 0n, code),
+        gap: minorNumber(gapMinor, code),
         yearly
       };
     }
@@ -6069,7 +6467,7 @@
     function dueLabel(value) {
       if (!value) return "No due date";
       const date = new Date(`${value}T00:00:00`);
-      return date.toLocaleDateString("en-AU", {
+      return date.toLocaleDateString(state?.locale || "en-AU", {
         day: "numeric",
         month: "short",
         year: "numeric"
@@ -6243,10 +6641,14 @@
     }
 
     function renderSummary() {
+      const code = state?.currency || DEFAULT_CURRENCY;
       const monthlyIncome = incomeMonthly();
       const monthlyExpenses = expenseMonthlyTotal();
-      const remaining = monthlyIncome - monthlyExpenses;
-      const shortfall = Math.max(monthlyExpenses - monthlyIncome, 0);
+      const monthlyIncomeMinor = BigInt(parseMajorToMinor(monthlyIncome, code));
+      const monthlyExpensesMinor = BigInt(parseMajorToMinor(monthlyExpenses, code));
+      const remainingMinor = monthlyIncomeMinor - monthlyExpensesMinor;
+      const remaining = minorNumber(remainingMinor, code);
+      const shortfall = minorNumber(remainingMinor < 0n ? -remainingMinor : 0n, code);
       const ratio = monthlyIncome > 0 ? monthlyExpenses / monthlyIncome : 0;
       const activeIncomeNames = state.incomes
         .filter((income) => (Number(income.amount) || 0) > 0)
@@ -6266,7 +6668,7 @@
       document.querySelector("#weeklyProvisionTotal").textContent = money(expenseWeeklyTotal());
       document.querySelector("#expenseCount").textContent = `${state.expenses.length} expense${state.expenses.length === 1 ? "" : "s"} tracked. Set aside ${money(expenseWeeklyTotal())} each week.`;
       document.querySelector("#remainingNote").textContent = remaining >= 0
-        ? `${money(remaining / 4.345)} left per average week.`
+        ? `${money(minorNumber(scaleMinor(remainingMinor, 1000n, 4345n), code))} left per average week.`
         : `${money(Math.abs(remaining))} over budget each month.`;
       document.querySelector("#shortfallNote").textContent = shortfall > 0
         ? `Earn ${money(shortfall)} more or reduce costs by ${money(shortfall)} per month.`
@@ -6306,10 +6708,13 @@
     }
 
     function renderFlowChart() {
+      const code = state?.currency || DEFAULT_CURRENCY;
       const monthlyIncome = incomeMonthly();
       const monthlyExpenses = expenseMonthlyTotal();
-      const remaining = Math.max(monthlyIncome - monthlyExpenses, 0);
-      const shortfall = Math.max(monthlyExpenses - monthlyIncome, 0);
+      const monthlyIncomeMinor = BigInt(parseMajorToMinor(monthlyIncome, code));
+      const monthlyExpensesMinor = BigInt(parseMajorToMinor(monthlyExpenses, code));
+      const remaining = minorNumber(monthlyIncomeMinor > monthlyExpensesMinor ? monthlyIncomeMinor - monthlyExpensesMinor : 0n, code);
+      const shortfall = minorNumber(monthlyExpensesMinor > monthlyIncomeMinor ? monthlyExpensesMinor - monthlyIncomeMinor : 0n, code);
       const rows = [
         ["Household income", monthlyIncome, "var(--blue)"],
         ["Expenses", monthlyExpenses, "var(--amber)"],
@@ -6322,8 +6727,9 @@
     }
 
     function renderCategoryChart() {
+      const code = state?.currency || DEFAULT_CURRENCY;
       const totals = categoryMonthlyTotals();
-      const total = totals.reduce((sum, item) => sum + item.value, 0);
+      const total = minorNumber(BigInt(sumMinor(totals.map((item) => parseMajorToMinor(item.value, code)))), code);
       const donut = document.querySelector("#categoryDonut");
       const legend = document.querySelector("#categoryLegend");
       legend.innerHTML = "";
@@ -6767,13 +7173,17 @@
         insights.push(["Largest monthly item", `${topExpense.name} contributes ${money(monthlyAmount(topExpense.amount, topExpense.frequency))} per month.`, "var(--blue)"]);
       }
 
+      const code = state?.currency || DEFAULT_CURRENCY;
       const categoryTotals = state.expenses.reduce((totals, expense) => {
-        totals[expense.category] = (totals[expense.category] || 0) + monthlyAmount(expense.amount, expense.frequency);
+        const category = expense.category || "Other";
+        const amountMinor = exactMonthlyMinor(expense.amount, expense.frequency, code);
+        totals[category] = sumMinor([totals[category] || "0", amountMinor]);
         return totals;
       }, {});
-      const topCategory = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0];
+      const topCategory = Object.entries(categoryTotals)
+        .sort((a, b) => BigInt(b[1]) > BigInt(a[1]) ? 1 : BigInt(b[1]) < BigInt(a[1]) ? -1 : 0)[0];
       if (topCategory) {
-        insights.push(["Top category", `${topCategory[0]} is currently ${money(topCategory[1])} per month.`, "var(--mint-dark)"]);
+        insights.push(["Top category", `${topCategory[0]} is currently ${money(minorNumber(topCategory[1], code))} per month.`, "var(--mint-dark)"]);
       }
 
       const container = document.querySelector("#insights");
@@ -6851,10 +7261,15 @@
       document.querySelector("#paydayTransfer").textContent = money(summary.transfer);
       document.querySelector("#paydaySafeSpend").textContent = money(summary.safeSpend);
       document.querySelector("#paydayLowPoint").textContent = money(lowPoint);
+      const code = state?.currency || DEFAULT_CURRENCY;
+      const safeSpendPerDay = minorNumber(
+        scaleMinor(parseMajorToMinor(summary.safeSpend, code), 1, cycleDays()),
+        code
+      );
       document.querySelector("#paydaySafeSpendNote").textContent = summary.safeSpend < 0
         ? "Needs attention before spending"
-        : `About ${money(Math.max(summary.safeSpend / cycleDays(), 0))} per day until next pay`;
-      const nextPayLabel = summary.nextPayday.toLocaleDateString("en-AU", {
+        : `About ${money(Math.max(safeSpendPerDay, 0))} per day until next pay`;
+      const nextPayLabel = summary.nextPayday.toLocaleDateString(state?.locale || "en-AU", {
         weekday: "short",
         day: "numeric",
         month: "short"
@@ -6885,7 +7300,7 @@
         forecast.forEach((week) => {
           const row = document.createElement("div");
           row.className = `forecast-row${week.balance < 0 ? " risk" : ""}`;
-          const label = week.start.toLocaleDateString("en-AU", { day: "numeric", month: "short" });
+          const label = week.start.toLocaleDateString(state?.locale || "en-AU", { day: "numeric", month: "short" });
           const width = Math.max(Math.min(Math.abs(week.balance) / maxMagnitude * 100, 100), 1);
           row.innerHTML = `
             <span></span>
@@ -6967,9 +7382,13 @@
 
       const rows = transactionMonthRows(realityMonth.value);
       const expenseRows = rows.filter((transaction) => transaction.type === "expense");
-      const actual = expenseRows.reduce((total, transaction) => total + Number(transaction.amount || 0), 0);
-      const planned = expenseMonthlyTotal();
-      const variance = actual - planned;
+      const code = state?.currency || DEFAULT_CURRENCY;
+      const actualMinor = sumMinor(expenseRows.map((transaction) => parseMajorToMinor(transaction.amount || 0, code)));
+      const plannedMinor = parseMajorToMinor(expenseMonthlyTotal(), code);
+      const actual = minorNumber(actualMinor, code);
+      const planned = minorNumber(plannedMinor, code);
+      const varianceMinor = (BigInt(actualMinor) - BigInt(plannedMinor)).toString();
+      const variance = minorNumber(varianceMinor, code);
       const unmatched = expenseRows.filter((transaction) => !transaction.matchedExpenseId).length;
       document.querySelector("#realityPlanned").textContent = money(planned);
       document.querySelector("#realityActual").textContent = money(actual);
@@ -6979,23 +7398,41 @@
       document.querySelector("#realityUnmatched").textContent = String(unmatched);
       document.querySelector("#transactionCount").textContent = `${rows.length} entr${rows.length === 1 ? "y" : "ies"}`;
 
-      const plannedByCategory = Object.fromEntries(categoryMonthlyTotals().map((item) => [item.name, item.value]));
-      const actualByCategory = expenseRows.reduce((totals, transaction) => {
+      const plannedByCategoryMinor = Object.fromEntries(categoryMonthlyTotals()
+        .map((item) => [item.name, parseMajorToMinor(item.value, code)]));
+      const actualByCategoryMinor = expenseRows.reduce((totals, transaction) => {
         const category = transaction.category || "Other";
-        totals[category] = (totals[category] || 0) + Number(transaction.amount || 0);
+        totals[category] = sumMinor([
+          totals[category] || "0",
+          parseMajorToMinor(transaction.amount || 0, code)
+        ]);
         return totals;
       }, {});
-      const categories = [...new Set([...Object.keys(plannedByCategory), ...Object.keys(actualByCategory)])]
-        .sort((a, b) => Math.max(actualByCategory[b] || 0, plannedByCategory[b] || 0) - Math.max(actualByCategory[a] || 0, plannedByCategory[a] || 0));
+      const categories = [...new Set([...Object.keys(plannedByCategoryMinor), ...Object.keys(actualByCategoryMinor)])]
+        .sort((a, b) => {
+          const left = BigInt(plannedByCategoryMinor[a] || "0") > BigInt(actualByCategoryMinor[a] || "0")
+            ? BigInt(plannedByCategoryMinor[a] || "0")
+            : BigInt(actualByCategoryMinor[a] || "0");
+          const right = BigInt(plannedByCategoryMinor[b] || "0") > BigInt(actualByCategoryMinor[b] || "0")
+            ? BigInt(plannedByCategoryMinor[b] || "0")
+            : BigInt(actualByCategoryMinor[b] || "0");
+          return right > left ? 1 : right < left ? -1 : a.localeCompare(b);
+        });
       const comparison = document.querySelector("#actualComparison");
       comparison.innerHTML = "";
       if (!categories.length) {
         comparison.innerHTML = '<div class="empty-workspace">Add planned expenses or actual transactions to compare the month.</div>';
       } else {
-        const max = Math.max(...categories.flatMap((category) => [plannedByCategory[category] || 0, actualByCategory[category] || 0]), 1);
+        const maxMinor = categories.reduce((max, category) => {
+          const plannedValue = BigInt(plannedByCategoryMinor[category] || "0");
+          const actualValue = BigInt(actualByCategoryMinor[category] || "0");
+          return plannedValue > max ? (plannedValue > actualValue ? plannedValue : actualValue) : (actualValue > max ? actualValue : max);
+        }, 1n);
         categories.forEach((category) => {
-          const categoryPlanned = plannedByCategory[category] || 0;
-          const categoryActual = actualByCategory[category] || 0;
+          const categoryPlannedMinor = plannedByCategoryMinor[category] || "0";
+          const categoryActualMinor = actualByCategoryMinor[category] || "0";
+          const categoryPlanned = minorNumber(categoryPlannedMinor, code);
+          const categoryActual = minorNumber(categoryActualMinor, code);
           const row = document.createElement("div");
           row.className = "comparison-row";
           row.innerHTML = `
@@ -7006,7 +7443,7 @@
             <span></span>
           `;
           row.querySelector("strong").textContent = category;
-          row.querySelector(".comparison-bar span").style.width = `${Math.min(categoryActual / max * 100, 100)}%`;
+          row.querySelector(".comparison-bar span").style.width = `${Math.min(Number((BigInt(categoryActualMinor) * 100n) / maxMinor), 100)}%`;
           const values = row.querySelectorAll(":scope > span");
           values[1].textContent = `Plan ${money(categoryPlanned)}`;
           values[2].textContent = `Actual ${money(categoryActual)}`;
@@ -7110,21 +7547,32 @@
       const dateIndex = indexOf("date", "transactiondate", "posteddate");
       const descriptionIndex = indexOf("description", "details", "narrative", "merchant", "payee");
       const amountIndex = indexOf("amount", "transactionamount");
+      const amountMinorIndex = indexOf("amountminor", "minoramount");
       const debitIndex = indexOf("debit", "withdrawal");
       const creditIndex = indexOf("credit", "deposit");
+      const currencyIndex = indexOf("currency", "currencycode");
       const categoryIndex = indexOf("category");
-      if (descriptionIndex < 0 || (amountIndex < 0 && debitIndex < 0 && creditIndex < 0)) {
+      if (descriptionIndex < 0 || (amountIndex < 0 && amountMinorIndex < 0 && debitIndex < 0 && creditIndex < 0)) {
         throw new Error("CSV needs description and amount columns");
       }
 
       const imported = [];
       lines.slice(1).forEach((line) => {
         const cells = parseCsvLine(line);
+        const rowCurrency = currencyIndex >= 0 && cells[currencyIndex]
+          ? String(cells[currencyIndex]).trim().toUpperCase()
+          : state.currency;
+        if (rowCurrency !== state.currency) throw new Error("CSV contains a different currency from this budget");
         const cleanNumber = (value) => Number(String(value || "").replace(/[$,\s()]/g, "").replace(/[^\d.-]/g, "")) || 0;
         const debit = debitIndex >= 0 ? Math.abs(cleanNumber(cells[debitIndex])) : 0;
         const credit = creditIndex >= 0 ? Math.abs(cleanNumber(cells[creditIndex])) : 0;
-        const signed = amountIndex >= 0 ? cleanNumber(cells[amountIndex]) : credit - debit;
-        const type = debit > 0 || (amountIndex >= 0 && signed < 0) ? "expense" : "income";
+        const minorAmount = amountMinorIndex >= 0 && cells[amountMinorIndex]
+          ? minorString(cells[amountMinorIndex])
+          : null;
+        const signed = minorAmount !== null
+          ? Number(minorToMajor(minorAmount, state.currency))
+          : amountIndex >= 0 ? cleanNumber(cells[amountIndex]) : credit - debit;
+        const type = debit > 0 || ((minorAmount !== null || amountIndex >= 0) && signed < 0) ? "expense" : "income";
         const amount = debit || credit || Math.abs(signed);
         if (!amount || !cells[descriptionIndex]) return;
         const suppliedCategory = categoryIndex >= 0 ? cells[categoryIndex] : "";
@@ -7146,11 +7594,11 @@
     function exportDataBackup() {
       const backup = {
         format: `${PRODUCT_NAME} Backup`,
-        version: 3,
+        version: 5,
         exportedAt: new Date().toISOString(),
-        locale: "en-AU",
-        currency: "AUD",
-        state
+        locale: state.locale,
+        currency: state.currency,
+        state: serialiseState(state)
       };
       const date = todayValue();
       downloadBlob(new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" }), `${PRODUCT_SLUG}-backup-${date}.json`);
@@ -7218,19 +7666,24 @@
     }
 
     function netWorthTotals() {
-      const assets = (state.netWorthItems || [])
+      const code = state?.currency || DEFAULT_CURRENCY;
+      const assetsMinor = BigInt(sumMinor((state.netWorthItems || [])
         .filter((item) => item.kind === "asset")
-        .reduce((total, item) => total + Number(item.value || 0), 0);
-      const liabilities = (state.netWorthItems || [])
+        .map((item) => parseMajorToMinor(Number(item.value || 0), code))));
+      const liabilitiesMinor = BigInt(sumMinor((state.netWorthItems || [])
         .filter((item) => item.kind === "liability")
-        .reduce((total, item) => total + Number(item.value || 0), 0);
-      return { assets, liabilities, total: assets - liabilities };
+        .map((item) => parseMajorToMinor(Number(item.value || 0), code))));
+      return {
+        assets: minorNumber(assetsMinor, code),
+        liabilities: minorNumber(liabilitiesMinor, code),
+        total: minorNumber(assetsMinor - liabilitiesMinor, code)
+      };
     }
 
     function renderNetWorth() {
       const totals = netWorthTotals();
       const history = state.netWorthHistory || [];
-      const last = history.length ? Number(history[history.length - 1].total) || 0 : totals.total;
+      const last = history.length ? Number(history[history.length - 1].value) || 0 : totals.total;
       const change = totals.total - last;
       document.querySelector("#netWorthAssets").textContent = money(totals.assets);
       document.querySelector("#netWorthLiabilities").textContent = money(totals.liabilities);
@@ -7326,7 +7779,35 @@
       renderScenario();
     }
 
+    function renderCurrencyControls() {
+      const code = state.currency || DEFAULT_CURRENCY;
+      const definition = currencyDefinition(code);
+      document.documentElement.lang = state.locale || definition.locale;
+      if (currencySelector) {
+        currencySelector.replaceChildren(...SUPPORTED_CURRENCY_CODES.map((currencyCode) => {
+          const option = document.createElement("option");
+          option.value = currencyCode;
+          option.textContent = `${currencyCode} (${CURRENCY_DEFINITIONS[currencyCode].locale})`;
+          option.selected = currencyCode === code;
+          return option;
+        }));
+      }
+      document.querySelectorAll("[data-currency-label]").forEach((element) => {
+        const suffix = element.textContent?.endsWith(" timeline") ? " timeline" : "";
+        element.textContent = `${code}${suffix}`;
+      });
+      const symbol = new Intl.NumberFormat(state.locale || definition.locale, {
+        style: "currency",
+        currency: code,
+        currencyDisplay: "narrowSymbol"
+      }).formatToParts(0).find((part) => part.type === "currency")?.value || code;
+      document.querySelectorAll(".input-wrap .prefix").forEach((element) => {
+        element.textContent = symbol;
+      });
+    }
+
     function render() {
+      renderCurrencyControls();
       renderIncomeFields();
       renderSavingsPlanFields();
       renderFilters();
@@ -7455,11 +7936,20 @@
 </worksheet>`;
     }
 
+    function excelCurrencyFormat() {
+      const definition = currencyDefinition(state?.currency || DEFAULT_CURRENCY);
+      const decimals = definition.minorUnit ? `.${"0".repeat(definition.minorUnit)}` : "";
+      const positive = `&quot;${definition.code}&quot; #,##0${decimals}`;
+      const negative = `&quot;${definition.code}&quot; (#,##0${decimals})`;
+      return `${positive};[Red]${negative};-`;
+    }
+
     function xlsxStylesXml() {
+      const currencyFormat = excelCurrencyFormat();
       return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
   <numFmts count="5">
-    <numFmt numFmtId="165" formatCode="$#,##0.00;[Red]($#,##0.00);-"/>
+    <numFmt numFmtId="165" formatCode="${currencyFormat}"/>
     <numFmt numFmtId="166" formatCode="0.0%;[Red](0.0%);-"/>
     <numFmt numFmtId="167" formatCode="dd mmm yyyy"/>
     <numFmt numFmtId="168" formatCode="#,##0;[Red](#,##0);-"/>
@@ -7619,7 +8109,7 @@
       const incomeRows = [
         { cells: [xText(`${PRODUCT_NAME} - Income`, 1)], height: 30 },
         [],
-        [xText("Generated"), xDate(generated), xText("Currency"), xText("AUD")],
+        [xText("Generated"), xDate(generated), xText("Currency"), xText(state.currency)],
         [],
         { cells: [xText("Household income", 2)], height: 23 },
         [
@@ -7647,7 +8137,7 @@
       const expenseRows = [
         { cells: [xText(`${PRODUCT_NAME} - Expenses`, 1)], height: 30 },
         [],
-        [xText("Generated"), xDate(generated), xText("Currency"), xText("AUD")],
+        [xText("Generated"), xDate(generated), xText("Currency"), xText(state.currency)],
         [],
         { cells: [xText("Expenses and bills", 2)], height: 23 },
         [
@@ -7683,7 +8173,7 @@
       const paydayRows = [
         { cells: [xText(`${PRODUCT_NAME} - Payday Plan`, 1)], height: 30 },
         [],
-        [xText("Generated"), xDate(generated), xText("Currency"), xText("AUD")],
+        [xText("Generated"), xDate(generated), xText("Currency"), xText(state.currency)],
         [],
         { cells: [xText("Payday command centre", 2)], height: 23 },
         [
@@ -7740,7 +8230,7 @@
       const savingsRows = [
         { cells: [xText(`${PRODUCT_NAME} - Savings Plan`, 1)], height: 30 },
         [],
-        [xText("Generated"), xDate(generated), xText("Currency"), xText("AUD")],
+        [xText("Generated"), xDate(generated), xText("Currency"), xText(state.currency)],
         [],
         { cells: [xText("Savings assumptions and outputs", 2)], height: 23 },
         [xText("Starting savings", 9), xNumber(projection.startingBalance, 4)],
@@ -7768,7 +8258,7 @@
       const debtRows = [
         { cells: [xText(`${PRODUCT_NAME} - Debt Plan`, 1)], height: 30 },
         [],
-        [xText("Generated"), xDate(generated), xText("Currency"), xText("AUD")],
+        [xText("Generated"), xDate(generated), xText("Currency"), xText(state.currency)],
         [],
         { cells: [xText("Debt strategy and outputs", 2)], height: 23 },
         [xText("Strategy", 9), xText(debtPlan.strategy === "snowball" ? "Smallest balance first" : "Highest interest first", 12)],
@@ -7802,7 +8292,7 @@
       const transactionRows = [
         { cells: [xText(`${PRODUCT_NAME} - Actual Transactions`, 1)], height: 30 },
         [],
-        [xText("Generated"), xDate(generated), xText("Currency"), xText("AUD")],
+        [xText("Generated"), xDate(generated), xText("Currency"), xText(state.currency)],
         [],
         { cells: [xText("Actual income and spending", 2)], height: 23 },
         [xText("Date", 3), xText("Description", 3), xText("Type", 3), xText("Category", 3), xText("Amount", 3), xText("Matched bill", 3), xText("Month", 3)]
@@ -7825,7 +8315,7 @@
       const goalRows = [
         { cells: [xText(`${PRODUCT_NAME} - Savings Goals`, 1)], height: 30 },
         [],
-        [xText("Generated"), xDate(generated), xText("Currency"), xText("AUD")],
+        [xText("Generated"), xDate(generated), xText("Currency"), xText(state.currency)],
         [],
         { cells: [xText("Household goals", 2)], height: 23 },
         [xText("Goal", 3), xText("Target", 3), xText("Saved", 3), xText("Remaining", 3), xText("Target date", 3), xText("Weekly needed", 3), xText("Progress", 3)]
@@ -7849,7 +8339,7 @@
       const netWorthRows = [
         { cells: [xText(`${PRODUCT_NAME} - Net Worth`, 1)], height: 30 },
         [],
-        [xText("Generated"), xDate(generated), xText("Currency"), xText("AUD")],
+        [xText("Generated"), xDate(generated), xText("Currency"), xText(state.currency)],
         [],
         { cells: [xText("Household position", 2)], height: 23 },
         [
@@ -7870,7 +8360,7 @@
       });
       netWorthRows.push([], { cells: [xText("Saved snapshots", 2)], height: 23 }, [xText("Date", 3), xText("Net worth", 3)]);
       (state.netWorthHistory || []).forEach((snapshot) => {
-        netWorthRows.push([xDate(snapshot.date), xNumber(snapshot.total, 5)]);
+        netWorthRows.push([xDate(snapshot.date), xNumber(snapshot.value, 5)]);
       });
 
       const remaining = incomeMonthly() - expenseMonthlyTotal();
@@ -7879,7 +8369,7 @@
       const dashboardRows = [
         { cells: [xText(`${PRODUCT_NAME} - Household Dashboard`, 1)], height: 34 },
         [],
-        [xText("Generated"), xDate(generated), xText("Currency"), xText("AUD"), xText("Local device report", 8)],
+        [xText("Generated"), xDate(generated), xText("Currency"), xText(state.currency), xText("Local device report", 8)],
         [],
         { cells: [xText("Monthly position", 2)], height: 23 },
         [
@@ -8004,14 +8494,17 @@
 
     function exportCsvSummary() {
       const rows = [
-        ["Section", "Name", "Category", "Frequency", "Amount", "Monthly", "Next date"],
+        ["Section", "Name", "Category", "Frequency", "Currency", "Amount", "Amount minor", "Monthly", "Monthly minor", "Next date"],
         ...state.incomes.map((income) => [
           "Income",
           incomeSourceLabel(income),
           "",
           frequencyLabel(income.frequency),
+          state.currency,
           Number(income.amount) || 0,
+          parseMajorToMinor(Number(income.amount) || 0, state.currency),
           monthlyAmount(income.amount, income.frequency),
+          exactMonthlyMinor(income.amount, income.frequency, state.currency),
           income.nextPayDate || ""
         ]),
         ...state.expenses.map((expense) => [
@@ -8019,8 +8512,11 @@
           expense.name,
           expense.category,
           frequencyLabel(expense.frequency),
+          state.currency,
           Number(expense.amount) || 0,
+          parseMajorToMinor(Number(expense.amount) || 0, state.currency),
           monthlyAmount(expense.amount, expense.frequency),
+          exactMonthlyMinor(expense.amount, expense.frequency, state.currency),
           expense.due || ""
         ])
       ];
@@ -8142,7 +8638,7 @@
         page.drawText(pdfSafe(sectionTitle), {
           x: margin + 46, y: pageSize[1] - 62, size: 17, font: bold, color: colours.white
         });
-        page.drawText(reportDate.toLocaleDateString("en-AU", {
+        page.drawText(reportDate.toLocaleDateString(state?.locale || "en-AU", {
           day: "numeric", month: "short", year: "numeric"
         }), {
           x: pageSize[0] - margin - 72, y: pageSize[1] - 58,
@@ -8213,26 +8709,34 @@
         return y - height;
       };
 
+      const code = state?.currency || DEFAULT_CURRENCY;
       const monthlyIncome = incomeMonthly();
       const monthlyExpenses = expenseMonthlyTotal();
-      const remaining = monthlyIncome - monthlyExpenses;
-      const shortfall = Math.max(-remaining, 0);
+      const monthlyIncomeMinor = BigInt(parseMajorToMinor(monthlyIncome, code));
+      const monthlyExpensesMinor = BigInt(parseMajorToMinor(monthlyExpenses, code));
+      const remainingMinor = monthlyIncomeMinor - monthlyExpensesMinor;
+      const remaining = minorNumber(remainingMinor, code);
+      const shortfall = minorNumber(remainingMinor < 0n ? -remainingMinor : 0n, code);
       const projection = savingsProjection();
       const debtPlan = state.debtPlan || DEFAULT_DEBT_PLAN;
       const debtResult = simulateDebtPlan(debtPlan.strategy, debtPlan.extraPayment);
       const debts = configuredDebts();
       const categories = categoryMonthlyTotals();
       const ratio = monthlyIncome > 0 ? monthlyExpenses / monthlyIncome : 0;
-      const afterPlans = remaining - projection.monthlyContribution - Number(debtPlan.extraPayment || 0);
+      const afterPlansMinor = remainingMinor
+        - BigInt(parseMajorToMinor(projection.monthlyContribution, code))
+        - BigInt(parseMajorToMinor(Number(debtPlan.extraPayment || 0), code));
+      const afterPlans = minorNumber(afterPlansMinor, code);
       const paySummary = paydaySummary();
       const payForecast = buildPaydayForecast();
       const payLowPoint = payForecast.length ? Math.min(...payForecast.map((week) => week.balance)) : 0;
       const paySummaryNote = `${
         paySummary.incomeSources.length ? paySummary.incomeSources.join(" + ") : "Household average"
-      } | ${paySummary.nextPayday.toLocaleDateString("en-AU", { day: "numeric", month: "short" })}`;
+      } | ${paySummary.nextPayday.toLocaleDateString(state?.locale || "en-AU", { day: "numeric", month: "short" })}`;
       const reportMonth = todayValue().slice(0, 7);
       const reportTransactions = transactionMonthRows(reportMonth).filter((transaction) => transaction.type === "expense");
-      const actualSpend = reportTransactions.reduce((total, transaction) => total + Number(transaction.amount || 0), 0);
+      const actualSpendMinor = BigInt(sumMinor(reportTransactions.map((transaction) => parseMajorToMinor(Number(transaction.amount || 0), code))));
+      const actualSpend = minorNumber(actualSpendMinor, code);
       const netTotals = netWorthTotals();
 
       let report = addPage(PRODUCT_NAME);
@@ -8395,7 +8899,7 @@
       fundingRows.forEach((funding, index) => {
         report.y = tableRow(report.page, report.y, [
           String(funding.expense.name || "").slice(0, 28),
-          funding.due ? funding.due.toLocaleDateString("en-AU", { day: "numeric", month: "short" }) : "-",
+          funding.due ? funding.due.toLocaleDateString(state?.locale || "en-AU", { day: "numeric", month: "short" }) : "-",
           money(funding.reserved),
           money(funding.requiredPerCycle),
           funding.status.replace("-", " ")
@@ -8414,7 +8918,10 @@
       report.y = sectionHeading(report.page, `Reality check - ${reportMonth}`, report.y);
       const actualByCategory = reportTransactions.reduce((totals, transaction) => {
         const category = transaction.category || "Other";
-        totals[category] = (totals[category] || 0) + Number(transaction.amount || 0);
+        totals[category] = sumMinor([
+          totals[category] || "0",
+          parseMajorToMinor(Number(transaction.amount || 0), code)
+        ]);
         return totals;
       }, {});
       const realityWidths = [170, 112, 112, 117];
@@ -8423,10 +8930,13 @@
       });
       const realityCategories = [...new Set([...categories.map((item) => item.name), ...Object.keys(actualByCategory)])].slice(0, 7);
       realityCategories.forEach((category, index) => {
-        const planned = categories.find((item) => item.name === category)?.value || 0;
-        const actual = actualByCategory[category] || 0;
+        const plannedMinor = BigInt(parseMajorToMinor(categories.find((item) => item.name === category)?.value || 0, code));
+        const actualMinor = BigInt(actualByCategory[category] || "0");
+        const varianceMinor = actualMinor - plannedMinor;
+        const planned = minorNumber(plannedMinor, code);
+        const actual = minorNumber(actualMinor, code);
         report.y = tableRow(report.page, report.y, [
-          category, money(planned), money(actual), `${actual - planned >= 0 ? "+" : "-"}${money(Math.abs(actual - planned))}`
+          category, money(planned), money(actual), `${varianceMinor >= 0n ? "+" : "-"}${money(minorNumber(varianceMinor < 0n ? -varianceMinor : varianceMinor, code))}`
         ], realityWidths, {
           fill: index % 2 ? colours.pale : null,
           right: [1, 2, 3],
@@ -8437,7 +8947,8 @@
       if (!realityCategories.length) {
         report.y = drawWrapped(report.page, "No planned or actual spending is available for this month.", margin, report.y, contentWidth, { size: 8, colour: colours.muted });
       } else {
-        report.y = tableRow(report.page, report.y, ["Total", money(monthlyExpenses), money(actualSpend), `${actualSpend - monthlyExpenses >= 0 ? "+" : "-"}${money(Math.abs(actualSpend - monthlyExpenses))}`], realityWidths, {
+        const totalVarianceMinor = actualSpendMinor - monthlyExpensesMinor;
+        report.y = tableRow(report.page, report.y, ["Total", money(monthlyExpenses), money(actualSpend), `${totalVarianceMinor >= 0n ? "+" : "-"}${money(minorNumber(totalVarianceMinor < 0n ? -totalVarianceMinor : totalVarianceMinor, code))}`], realityWidths, {
           height: 25, fill: colours.pale, bold: true, right: [1, 2, 3]
         });
       }
@@ -8676,6 +9187,37 @@
       renderScenario();
       renderCalendar();
     }
+
+    function stateContainsMoney() {
+      const values = [
+        ...state.incomes.map((item) => item.amount),
+        ...state.expenses.flatMap((item) => [item.amount, item.reservedAmount, item.debtBalance]),
+        ...state.transactions.map((item) => item.amount),
+        ...state.goals.flatMap((item) => [item.target, item.current]),
+        ...state.netWorthItems.map((item) => item.value),
+        ...state.netWorthHistory.map((snapshot) => snapshot.value),
+        state.savingsPlan?.startingSavings,
+        state.debtPlan?.extraPayment,
+        state.paydayPlan?.billsAccountBalance
+      ];
+      return values.some((value) => Number(value) !== 0) || state.expenses.length > 0 || state.transactions.length > 0
+        || state.goals.length > 0 || state.netWorthItems.length > 0 || state.netWorthHistory.length > 0;
+    }
+
+    currencySelector?.addEventListener("change", () => {
+      const nextCurrency = currencySelector.value;
+      if (nextCurrency === state.currency) return;
+      if (stateContainsMoney()) {
+        currencySelector.value = state.currency;
+        showToast("Create a new empty budget before changing currency");
+        return;
+      }
+      state.currency = nextCurrency;
+      state.locale = CURRENCY_DEFINITIONS[nextCurrency].locale;
+      saveState();
+      render();
+      showToast(`Budget currency set to ${nextCurrency}`);
+    });
 
     incomeSourceGrid.addEventListener("input", (event) => {
       const input = event.target;
@@ -8935,6 +9477,7 @@
         const confirmed = window.confirm("Replace the current budget with this backup?");
         if (!confirmed) return;
         state = normaliseState(restored);
+        stateLoadError = null;
         saveState();
         resetExpenseForm();
         render();
@@ -8987,7 +9530,7 @@
 
     document.querySelector("#saveNetWorthSnapshot").addEventListener("click", () => {
       const totals = netWorthTotals();
-      state.netWorthHistory.push({ date: todayValue(), total: totals.total });
+      state.netWorthHistory.push({ date: todayValue(), value: totals.total });
       saveState();
       renderNetWorth();
       showToast("Net worth snapshot saved");
@@ -9076,6 +9619,7 @@
       if (!confirmed) return;
       resetExpenseForm();
       state = createDefaultState();
+      stateLoadError = null;
       state.paydayPlan.nextPayday = todayValue();
       saveState();
       render();
@@ -9114,6 +9658,7 @@
     toggleDebtEntryFields();
     renderExpenseConversionPreview();
     render();
+    if (stateLoadError) showToast(stateLoadError);
   </script>
 </body>
 </html>

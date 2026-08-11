@@ -1,3 +1,10 @@
+import {
+  DEFAULT_CURRENCY_REGISTRY,
+  minorToNumber,
+  parseMajorToMinor,
+  scaleMinorDecimal,
+  type CurrencyRegistry
+} from "./currency.js";
 import { clamp, nonNegative } from "./numbers.js";
 
 export interface SavingsProjectionInput {
@@ -8,6 +15,8 @@ export interface SavingsProjectionInput {
   startingSavings: number;
   annualReturnPercent: number;
   years: number;
+  currency?: string;
+  registry?: CurrencyRegistry;
 }
 
 export interface SavingsYear {
@@ -33,43 +42,55 @@ export interface SavingsProjection {
 }
 
 export function projectSavings(input: SavingsProjectionInput): SavingsProjection {
-  const monthlyIncome = nonNegative(input.monthlyIncome);
-  const monthlyExpenses = nonNegative(input.monthlyExpenses);
-  const remaining = monthlyIncome - monthlyExpenses;
-  const debtExtraPayment = nonNegative(input.debtExtraPayment);
+  const registry = input.registry ?? DEFAULT_CURRENCY_REGISTRY;
+  const currency = input.currency ?? registry.defaultCurrency;
+  const monthlyIncomeMinor = BigInt(parseMajorToMinor(nonNegative(input.monthlyIncome), currency, registry));
+  const monthlyExpensesMinor = BigInt(parseMajorToMinor(nonNegative(input.monthlyExpenses), currency, registry));
+  const debtExtraPaymentMinor = BigInt(parseMajorToMinor(nonNegative(input.debtExtraPayment), currency, registry));
   const allocationPercent = clamp(input.allocationPercent, 0, 100);
-  const monthlyContribution = monthlyIncome * allocationPercent / 100;
-  const startingBalance = nonNegative(input.startingSavings);
+  const monthlyContributionMinor = BigInt(scaleMinorDecimal(monthlyIncomeMinor, allocationPercent, 100n));
+  const startingBalanceMinor = BigInt(parseMajorToMinor(nonNegative(input.startingSavings), currency, registry));
   const annualReturn = nonNegative(input.annualReturnPercent) / 100;
   const years = Math.max(Math.round(nonNegative(input.years, 1)), 1);
-  const monthlyReturn = annualReturn / 12;
   const months = years * 12;
+  const remainingMinor = monthlyIncomeMinor - monthlyExpensesMinor;
   const yearly: SavingsYear[] = [];
-  let balance = startingBalance;
+  let balanceMinor = startingBalanceMinor;
 
   for (let month = 1; month <= months; month += 1) {
-    balance = balance * (1 + monthlyReturn) + monthlyContribution;
+    const interestMinor = BigInt(scaleMinorDecimal(balanceMinor, nonNegative(input.annualReturnPercent), 1200n));
+    balanceMinor += interestMinor + monthlyContributionMinor;
     if (month % 12 === 0) {
-      yearly.push({ year: month / 12, balance });
+      yearly.push({
+        year: month / 12,
+        balance: minorToNumber(balanceMinor, currency, registry)
+      });
     }
   }
 
-  const contributions = monthlyContribution * months;
+  const contributionsMinor = monthlyContributionMinor * BigInt(months);
+  const compoundGrowthMinor = balanceMinor - startingBalanceMinor - contributionsMinor;
+  const availableMinor = remainingMinor - debtExtraPaymentMinor > 0n
+    ? remainingMinor - debtExtraPaymentMinor
+    : 0n;
+  const gapMinor = monthlyContributionMinor > availableMinor
+    ? monthlyContributionMinor - availableMinor
+    : 0n;
 
   return {
-    monthlyIncome,
-    monthlyExpenses,
-    remaining,
-    debtExtraPayment,
+    monthlyIncome: minorToNumber(monthlyIncomeMinor, currency, registry),
+    monthlyExpenses: minorToNumber(monthlyExpensesMinor, currency, registry),
+    remaining: minorToNumber(remainingMinor, currency, registry),
+    debtExtraPayment: minorToNumber(debtExtraPaymentMinor, currency, registry),
     allocationPercent,
-    monthlyContribution,
-    startingBalance,
+    monthlyContribution: minorToNumber(monthlyContributionMinor, currency, registry),
+    startingBalance: minorToNumber(startingBalanceMinor, currency, registry),
     annualReturn,
     years,
-    balance,
-    contributions,
-    compoundGrowth: Math.max(balance - startingBalance - contributions, 0),
-    gap: Math.max(monthlyContribution - Math.max(remaining - debtExtraPayment, 0), 0),
+    balance: minorToNumber(balanceMinor, currency, registry),
+    contributions: minorToNumber(contributionsMinor, currency, registry),
+    compoundGrowth: minorToNumber(compoundGrowthMinor > 0n ? compoundGrowthMinor : 0n, currency, registry),
+    gap: minorToNumber(gapMinor, currency, registry),
     yearly
   };
 }

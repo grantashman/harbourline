@@ -5,6 +5,7 @@ export interface HouseholdSummary {
   id: string;
   name: string;
   role: HouseholdRole;
+  currency?: string;
   revision: number;
   updatedAt: string;
 }
@@ -12,6 +13,7 @@ export interface HouseholdSummary {
 export interface LocalSyncMetadata {
   ownerId: string;
   householdId: string;
+  currency?: string;
   revision: number;
   lastSyncedHash: string;
   lastSyncedAt: string;
@@ -31,6 +33,7 @@ export interface PendingMutation {
 
 export interface RemoteBudgetDocument {
   householdId: string;
+  currency?: string;
   revision: number;
   schemaVersion: number;
   state: unknown;
