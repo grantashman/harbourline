@@ -16,6 +16,12 @@ export interface HarbourlineLocalBridge {
   openWorkspace(tab: "payday"): void;
 }
 
+export interface HarbourlineMobileBridge {
+  isNative: boolean;
+  authRedirectOrigin: string;
+  shareExport(blob: Blob, filename: string): Promise<boolean>;
+}
+
 export interface Release2Status {
   message: string;
   tone: "neutral" | "good" | "warning" | "danger";
@@ -36,6 +42,7 @@ export interface AccountState {
 declare global {
   interface Window {
     HarbourlineLocal?: HarbourlineLocalBridge;
+    HarbourlineMobile?: HarbourlineMobileBridge;
   }
 
   interface WindowEventMap {

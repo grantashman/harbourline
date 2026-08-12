@@ -11,6 +11,7 @@ import {
   shouldNotifySignupForAuthEvent,
   shouldPreserveRecoveryForSession
 } from "./auth-event-policy";
+import { parseApprovedAuthReturn } from "./auth-return-policy";
 import { HarbourlineCloud, type BillingSubscription, type GoogleCalendarStatus } from "./cloud";
 import { GoogleCalendarSync } from "./calendar-sync";
 import {
@@ -64,6 +65,17 @@ function escapeHtml(value: unknown): string {
 
 function downloadJson(value: unknown, filename: string): void {
   const blob = new Blob([JSON.stringify(value, null, 2)], { type: "application/json" });
+  const nativeShare = window.HarbourlineMobile?.shareExport;
+  if (nativeShare) {
+    void nativeShare(blob, filename).then((shared) => {
+      if (!shared) downloadJsonInBrowser(blob, filename);
+    }).catch(() => downloadJsonInBrowser(blob, filename));
+    return;
+  }
+  downloadJsonInBrowser(blob, filename);
+}
+
+function downloadJsonInBrowser(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -308,7 +320,8 @@ export class AccountPanel {
 
   private consumeAccountRedirect(): boolean {
     const url = new URL(location.href);
-    if (url.searchParams.get("account") !== "signin") return false;
+    const callback = parseApprovedAuthReturn(url.searchParams);
+    if (callback?.account !== "signin") return false;
     url.searchParams.delete("account");
     history.replaceState(history.state, "", `${url.pathname}${url.search}${url.hash}`);
     return true;
@@ -316,7 +329,8 @@ export class AccountPanel {
 
   private consumeRecoveryRedirect(): boolean {
     const url = new URL(location.href);
-    if (url.searchParams.get("recovery") !== "1") return false;
+    const callback = parseApprovedAuthReturn(url.searchParams);
+    if (callback?.recovery !== "1") return false;
     url.searchParams.delete("recovery");
     history.replaceState(history.state, "", `${url.pathname}${url.search}${url.hash}`);
     return true;
@@ -324,8 +338,8 @@ export class AccountPanel {
 
   private consumeBillingRedirect(): "success" | "cancelled" | "portal" | null {
     const url = new URL(location.href);
-    const billing = url.searchParams.get("billing");
-    if (billing !== "success" && billing !== "cancelled" && billing !== "portal") return null;
+    const billing = parseApprovedAuthReturn(url.searchParams)?.billing;
+    if (!billing) return null;
     url.searchParams.delete("billing");
     history.replaceState(history.state, "", `${url.pathname}${url.search}${url.hash}`);
     return billing;
@@ -333,8 +347,8 @@ export class AccountPanel {
 
   private consumeCalendarRedirect(): "connected" | "error" | null {
     const url = new URL(location.href);
-    const calendar = url.searchParams.get("calendar");
-    if (calendar !== "connected" && calendar !== "error") return null;
+    const calendar = parseApprovedAuthReturn(url.searchParams)?.calendar;
+    if (!calendar) return null;
     url.searchParams.delete("calendar");
     history.replaceState(history.state, "", `${url.pathname}${url.search}${url.hash}`);
     return calendar;

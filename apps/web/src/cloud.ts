@@ -106,6 +106,18 @@ function requireGoogleAuthorizationUrl(value: unknown): string {
   return url.toString();
 }
 
+function authRedirectUrl(query: string): string {
+  const configuredOrigin = (window as Window & {
+    HarbourlineMobile?: { authRedirectOrigin?: string };
+  }).HarbourlineMobile?.authRedirectOrigin;
+  const isApprovedNativeOrigin = Boolean(
+    configuredOrigin && /^https:\/\/(?:www\.)?harbourline\.app$/i.test(configuredOrigin)
+  );
+  const origin = isApprovedNativeOrigin ? configuredOrigin : location.origin;
+  const path = isApprovedNativeOrigin ? "/" : location.pathname;
+  return `${origin}${path}?${query}`;
+}
+
 export class HarbourlineCloud {
   readonly configured: boolean;
   readonly client: SupabaseClient | null;
@@ -160,7 +172,7 @@ export class HarbourlineCloud {
   }
 
   async signInWithGoogle(): Promise<void> {
-    const redirectTo = `${location.origin}${location.pathname}?account=signin`;
+    const redirectTo = authRedirectUrl("account=signin");
     const { error } = await this.requireClient().auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo }
@@ -169,7 +181,7 @@ export class HarbourlineCloud {
   }
 
   async sendMagicLink(email: string): Promise<void> {
-    const redirectTo = `${location.origin}${location.pathname}?account=signin`;
+    const redirectTo = authRedirectUrl("account=signin");
     const { error } = await this.requireClient().auth.signInWithOtp({
       email,
       options: {
@@ -181,7 +193,7 @@ export class HarbourlineCloud {
   }
 
   async sendPasswordReset(email: string): Promise<void> {
-    const redirectTo = `${location.origin}${location.pathname}?recovery=1`;
+    const redirectTo = authRedirectUrl("recovery=1");
     const { error } = await this.requireClient().auth.resetPasswordForEmail(email, {
       redirectTo
     });

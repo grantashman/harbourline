@@ -5,6 +5,9 @@ import { VitePWA } from "vite-plugin-pwa";
 
 const repositoryRoot = fileURLToPath(new URL("../..", import.meta.url));
 const outputRoot = fileURLToPath(new URL("./dist", import.meta.url));
+const mobileBuild = process.env.HARBOURLINE_MOBILE === "1";
+const release2Entry = fileURLToPath(new URL("./src/release2.ts", import.meta.url));
+const mobileBootstrapEntry = fileURLToPath(new URL("../mobile/src/native-bootstrap.ts", import.meta.url));
 const runtimeThemeAssets = [
   "assets/favicon-deep-ocean.svg",
   "assets/favicon-sunset-ledger.svg",
@@ -55,16 +58,17 @@ export default defineConfig({
     {
       name: "harbourline-release-2-entry",
       transformIndexHtml: {
-        order: "pre",
+        order: "post",
         handler(html) {
-          return html.replace(
-            "</body>",
-            '  <script type="module" src="/apps/web/src/release2.ts"></script>\n</body>'
-          );
+          const scripts = [
+            mobileBuild ? '  <script type="module" src="./assets/mobile-bootstrap.js"></script>' : "",
+            '  <script type="module" src="./assets/release2.js"></script>'
+          ].filter(Boolean).join("\n");
+          return html.replace("</body>", `${scripts}\n</body>`);
         }
       }
     },
-    VitePWA({
+    ...(mobileBuild ? [] : [VitePWA({
       // Financial edits must not be interrupted by an automatic reload. The
       // client presents an explicit update action after the user saves.
       injectRegister: false,
@@ -99,11 +103,25 @@ export default defineConfig({
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,png,jpg,webp}"]
       }
-    })
+    })])
   ],
   build: {
     outDir: outputRoot,
-    emptyOutDir: true
+    emptyOutDir: true,
+    rollupOptions: {
+      input: {
+        index: fileURLToPath(new URL("../../index.html", import.meta.url)),
+        release2: release2Entry,
+        ...(mobileBuild ? { mobileBootstrap: mobileBootstrapEntry } : {})
+      },
+      output: {
+        entryFileNames: (chunk) => {
+          if (chunk.name === "mobileBootstrap") return "assets/mobile-bootstrap.js";
+          if (chunk.name === "release2") return "assets/release2.js";
+          return "assets/[name]-[hash].js";
+        }
+      }
+    }
   },
   server: {
     fs: {
