@@ -65,7 +65,10 @@ export default defineConfig({
       }
     },
     VitePWA({
-      registerType: "autoUpdate",
+      // Financial edits must not be interrupted by an automatic reload. The
+      // client presents an explicit update action after the user saves.
+      injectRegister: false,
+      registerType: "prompt",
       includeAssets: [
         "favicon.ico",
         "favicon.svg",

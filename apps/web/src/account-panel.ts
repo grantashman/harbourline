@@ -131,6 +131,8 @@ export class AccountPanel {
   private recoveryFlowUserId: string | null = null;
   private pendingRecoveryRedirect = false;
   private pendingRecoveryUserId: string | null = null;
+  private dialogReturnFocus: HTMLElement | null = null;
+  private dialogHistoryActive = false;
   private inviteToken = "";
   private mfa: {
     verifiedCount: number;
@@ -227,19 +229,33 @@ export class AccountPanel {
     this.bindCalendarControls();
     this.accountButton.addEventListener("click", () => {
       this.render();
-      this.dialog.showModal();
+      this.openAccountDialog();
     });
     this.dialog.addEventListener("click", (event) => this.handleClick(event));
     this.dialog.addEventListener("change", (event) => void this.handleCalendarPreferenceChange(event));
     this.dialog.addEventListener("submit", (event) => void this.handleSubmit(event));
     this.dialog.addEventListener("click", (event) => {
-      if (event.target === this.dialog) this.dialog.close();
+      if (event.target === this.dialog) this.closeAccountDialog();
+    });
+    this.dialog.addEventListener("close", () => {
+      if (this.dialogHistoryActive) {
+        this.dialogHistoryActive = false;
+        history.back();
+      }
+      const returnFocus = this.dialogReturnFocus;
+      this.dialogReturnFocus = null;
+      if (returnFocus?.isConnected) returnFocus.focus();
+    });
+    window.addEventListener("popstate", () => {
+      if (!this.dialog.open) return;
+      this.dialogHistoryActive = false;
+      this.dialog.close();
     });
     this.newsDialog.addEventListener("click", (event) => this.handleNewsClick(event));
 
     if (!this.cloud.configured) {
       this.render();
-      if (shouldOpenAccount) this.dialog.showModal();
+      if (shouldOpenAccount) this.openAccountDialog(false);
       return;
     }
 
@@ -266,7 +282,7 @@ export class AccountPanel {
         }
         void this.refreshAccount();
         if (event === "PASSWORD_RECOVERY" && !this.dialog.open) {
-          this.dialog.showModal();
+          this.openAccountDialog(false);
         }
       });
     });
@@ -282,11 +298,11 @@ export class AccountPanel {
     this.handleBillingRedirect(billingRedirect);
     this.handleCalendarRedirect(calendarRedirect);
     if (billingRedirect || calendarRedirect) {
-      if (!this.dialog.open) this.dialog.showModal();
+      if (!this.dialog.open) this.openAccountDialog(false);
     } else if (shouldOpenAccount && this.state.session) {
-      this.dialog.showModal();
+      this.openAccountDialog(false);
     } else if (shouldOpenAccount && !this.dialog.open) {
-      this.dialog.showModal();
+      this.openAccountDialog(false);
     }
   }
 
@@ -406,6 +422,26 @@ export class AccountPanel {
     button.textContent = "Account";
     actions.prepend(button);
     return button;
+  }
+
+  private openAccountDialog(trackHistory = true): void {
+    if (this.dialog.open) return;
+    this.dialogReturnFocus = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : this.accountButton;
+    this.dialogHistoryActive = trackHistory;
+    if (trackHistory) {
+      history.pushState({ ...(history.state ?? {}), harbourlineDialog: "account" }, "", location.href);
+    }
+    this.dialog.showModal();
+    const firstFocusable = this.dialog.querySelector<HTMLElement>(
+      "input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), a[href]"
+    );
+    firstFocusable?.focus();
+  }
+
+  private closeAccountDialog(): void {
+    if (this.dialog.open) this.dialog.close();
   }
 
   private createDialog(): HTMLDialogElement {
@@ -669,7 +705,7 @@ export class AccountPanel {
         ? "Google Calendar sync is available after your Harbourline plan is active."
         : "Sign in and subscribe to connect Google Calendar.";
       this.render();
-      if (!this.dialog.open) this.dialog.showModal();
+      if (!this.dialog.open) this.openAccountDialog();
       return;
     }
     const sessionGeneration = this.sessionGeneration;
@@ -1028,7 +1064,7 @@ export class AccountPanel {
           if (!(target instanceof Element) || !target.closest("[data-action='open-account']")) return;
           track("auth_gate_sign_in_clicked");
           this.render();
-          if (!this.dialog.open) this.dialog.showModal();
+          if (!this.dialog.open) this.openAccountDialog();
         });
         document.body.append(accessGate);
       }
@@ -1068,7 +1104,7 @@ export class AccountPanel {
         if (!(target instanceof Element) || !target.closest("[data-action='open-account']")) return;
         track("free_starter_upgrade_clicked");
         this.render();
-        if (!this.dialog.open) this.dialog.showModal();
+        if (!this.dialog.open) this.openAccountDialog();
       });
       document.body.prepend(banner);
     }
@@ -1602,7 +1638,7 @@ export class AccountPanel {
     if (action === "account") {
       this.newsDialog.close();
       this.render();
-      if (!this.dialog.open) this.dialog.showModal();
+      if (!this.dialog.open) this.openAccountDialog();
     }
   }
 
@@ -1618,7 +1654,7 @@ export class AccountPanel {
     if (action === "calendar-title-preference") return;
 
     if (action === "close") {
-      this.dialog.close();
+      this.closeAccountDialog();
       return;
     }
     if (action === "support") {
