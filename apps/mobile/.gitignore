@@ -1,0 +1,6 @@
+ios/App/App/public/
+android/app/src/main/assets/public/
+android/.gradle/
+android/build/
+ios/App/Pods/
+node_modules/

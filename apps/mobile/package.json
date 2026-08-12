@@ -1,0 +1,29 @@
+{
+  "name": "@harbourline/mobile",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:web": "HARBOURLINE_MOBILE=1 pnpm --filter @harbourline/web build && node scripts/verify-mobile-web-build.mjs",
+    "sync": "pnpm build:web && cap sync",
+    "open:ios": "cap open ios",
+    "open:android": "cap open android",
+    "test": "node --experimental-strip-types --test src/mobile-platform.test.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/core": "^8.5.0",
+    "@capacitor/filesystem": "^8.1.0",
+    "@capacitor/ios": "^8.5.0",
+    "@capacitor/local-notifications": "^8.1.2",
+    "@capacitor/share": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.0",
+    "@types/node": "^26.1.2",
+    "typescript": "7.0.2"
+  }
+}

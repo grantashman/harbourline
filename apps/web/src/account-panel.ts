@@ -11,6 +11,13 @@ import {
   shouldNotifySignupForAuthEvent,
   shouldPreserveRecoveryForSession
 } from "./auth-event-policy";
+import { parseApprovedAuthReturn } from "./auth-return-policy";
+import {
+  consumeInvalidAuthCallback,
+  consumePendingAuthCallback,
+  consumeValidatedNativeAuthCallback,
+  recordInvalidAuthCallback,
+} from "./auth-callback-state.ts";
 import { HarbourlineCloud, type BillingSubscription, type GoogleCalendarStatus } from "./cloud";
 import { GoogleCalendarSync } from "./calendar-sync";
 import {
@@ -64,6 +71,17 @@ function escapeHtml(value: unknown): string {
 
 function downloadJson(value: unknown, filename: string): void {
   const blob = new Blob([JSON.stringify(value, null, 2)], { type: "application/json" });
+  const nativeShare = window.HarbourlineMobile?.shareExport;
+  if (nativeShare) {
+    void nativeShare(blob, filename).then((shared) => {
+      if (!shared) downloadJsonInBrowser(blob, filename);
+    }).catch(() => downloadJsonInBrowser(blob, filename));
+    return;
+  }
+  downloadJsonInBrowser(blob, filename);
+}
+
+function downloadJsonInBrowser(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -131,6 +149,10 @@ export class AccountPanel {
   private recoveryFlowUserId: string | null = null;
   private pendingRecoveryRedirect = false;
   private pendingRecoveryUserId: string | null = null;
+  private pendingAuthExpectedEmail: string | null = null;
+  private authCallbackRejected = false;
+  private dialogReturnFocus: HTMLElement | null = null;
+  private dialogHistoryActive = false;
   private inviteToken = "";
   private mfa: {
     verifiedCount: number;
@@ -224,27 +246,58 @@ export class AccountPanel {
     const shouldOpenAccount = this.consumeAccountRedirect();
     const billingRedirect = this.consumeBillingRedirect();
     const calendarRedirect = this.consumeCalendarRedirect();
+    this.authCallbackRejected = this.authCallbackRejected || consumeInvalidAuthCallback();
+    if (this.authCallbackRejected) {
+      this.notice = "That sign-in link is invalid or has expired. Request a new link and try again.";
+    }
     this.bindCalendarControls();
     this.accountButton.addEventListener("click", () => {
       this.render();
-      this.dialog.showModal();
+      this.openAccountDialog();
     });
     this.dialog.addEventListener("click", (event) => this.handleClick(event));
     this.dialog.addEventListener("change", (event) => void this.handleCalendarPreferenceChange(event));
     this.dialog.addEventListener("submit", (event) => void this.handleSubmit(event));
     this.dialog.addEventListener("click", (event) => {
-      if (event.target === this.dialog) this.dialog.close();
+      if (event.target === this.dialog) this.closeAccountDialog();
+    });
+    this.dialog.addEventListener("close", () => {
+      if (this.dialogHistoryActive) {
+        this.dialogHistoryActive = false;
+        history.back();
+      }
+      const returnFocus = this.dialogReturnFocus;
+      this.dialogReturnFocus = null;
+      if (returnFocus?.isConnected) returnFocus.focus();
+    });
+    window.addEventListener("popstate", () => {
+      if (!this.dialog.open) return;
+      this.dialogHistoryActive = false;
+      this.dialog.close();
     });
     this.newsDialog.addEventListener("click", (event) => this.handleNewsClick(event));
+    window.addEventListener("harbourline:app-lifecycle", (event) => {
+      if (!event.detail.active || !this.state.session || this.busy) return;
+      void this.refreshAccount();
+    });
 
     if (!this.cloud.configured) {
       this.render();
-      if (shouldOpenAccount) this.dialog.showModal();
+      if (shouldOpenAccount || this.authCallbackRejected) this.openAccountDialog(false);
       return;
     }
 
     const recoveryRedirect = this.consumeRecoveryRedirect();
     this.pendingRecoveryRedirect = recoveryRedirect;
+    const authCallbackRedirect = shouldOpenAccount || recoveryRedirect;
+    if (authCallbackRedirect) {
+      const callbackAccepted = await this.cloud.consumeAuthCallbackFragment();
+      if (!callbackAccepted) {
+        recordInvalidAuthCallback();
+        this.authCallbackRejected = true;
+        this.notice = "That sign-in link could not be used. Request a new link and try again.";
+      }
+    }
     this.cloud.onAuthChange((event, session) => {
       const adoptedSession = verifiedSession(session);
       if (session && !adoptedSession) {
@@ -266,7 +319,7 @@ export class AccountPanel {
         }
         void this.refreshAccount();
         if (event === "PASSWORD_RECOVERY" && !this.dialog.open) {
-          this.dialog.showModal();
+          this.openAccountDialog(false);
         }
       });
     });
@@ -278,38 +331,119 @@ export class AccountPanel {
     const initialSessionAccepted = await this.handleSessionChange(adoptedInitialSession);
     if (initialSessionAccepted && adoptedInitialSession) {
       await this.refreshAccount();
+      if (recoveryRedirect) this.openRecoveryMode();
     }
     this.handleBillingRedirect(billingRedirect);
     this.handleCalendarRedirect(calendarRedirect);
     if (billingRedirect || calendarRedirect) {
-      if (!this.dialog.open) this.dialog.showModal();
-    } else if (shouldOpenAccount && this.state.session) {
-      this.dialog.showModal();
-    } else if (shouldOpenAccount && !this.dialog.open) {
-      this.dialog.showModal();
+      if (!this.dialog.open) this.openAccountDialog(false);
+    } else if ((shouldOpenAccount || this.authCallbackRejected) && this.state.session) {
+      this.openAccountDialog(false);
+    } else if ((shouldOpenAccount || this.authCallbackRejected) && !this.dialog.open) {
+      this.openAccountDialog(false);
     }
   }
 
   private consumeAccountRedirect(): boolean {
     const url = new URL(location.href);
-    if (url.searchParams.get("account") !== "signin") return false;
+    const callback = parseApprovedAuthReturn(url.searchParams);
+    if (callback?.account !== "signin") {
+      if (url.searchParams.has("account")) {
+        recordInvalidAuthCallback();
+        this.authCallbackRejected = true;
+        url.searchParams.delete("account");
+        url.searchParams.delete("state");
+        url.hash = "";
+        history.replaceState(history.state, "", `${url.pathname}${url.search}`);
+      }
+      return false;
+    }
+    if (callback.state && !url.hash) {
+      recordInvalidAuthCallback();
+      this.authCallbackRejected = true;
+      url.searchParams.delete("account");
+      url.searchParams.delete("state");
+      history.replaceState(history.state, "", `${url.pathname}${url.search}`);
+      return false;
+    }
+    if (!callback.state && url.hash) {
+      recordInvalidAuthCallback();
+      this.authCallbackRejected = true;
+      url.searchParams.delete("account");
+      url.searchParams.delete("state");
+      url.hash = "";
+      history.replaceState(history.state, "", `${url.pathname}${url.search}`);
+      return false;
+    }
+    if (callback.state) {
+      const nativePending = consumeValidatedNativeAuthCallback("signin", callback.state);
+      const validation = nativePending
+        ? { accepted: true, pending: nativePending }
+        : consumePendingAuthCallback("signin", callback.state);
+      if (!validation.accepted || !validation.pending) {
+        recordInvalidAuthCallback();
+        this.authCallbackRejected = true;
+        url.searchParams.delete("account");
+        url.searchParams.delete("state");
+        url.hash = "";
+        history.replaceState(history.state, "", `${url.pathname}${url.search}`);
+        return false;
+      }
+      this.pendingAuthExpectedEmail = validation.pending.expectedEmail;
+    }
     url.searchParams.delete("account");
+    url.searchParams.delete("state");
     history.replaceState(history.state, "", `${url.pathname}${url.search}${url.hash}`);
     return true;
   }
 
   private consumeRecoveryRedirect(): boolean {
     const url = new URL(location.href);
-    if (url.searchParams.get("recovery") !== "1") return false;
+    const callback = parseApprovedAuthReturn(url.searchParams);
+    if (callback?.recovery !== "1") {
+      if (url.searchParams.has("recovery")) {
+        recordInvalidAuthCallback();
+        this.authCallbackRejected = true;
+        url.searchParams.delete("recovery");
+        url.searchParams.delete("state");
+        url.hash = "";
+        history.replaceState(history.state, "", `${url.pathname}${url.search}`);
+      }
+      return false;
+    }
+    if (!callback.state || !url.hash) {
+      recordInvalidAuthCallback();
+      this.authCallbackRejected = true;
+      url.searchParams.delete("recovery");
+      url.searchParams.delete("state");
+      url.hash = "";
+      history.replaceState(history.state, "", `${url.pathname}${url.search}`);
+      return false;
+    }
+    const nativePending = consumeValidatedNativeAuthCallback("recovery", callback.state);
+    const validation = nativePending
+      ? { accepted: true, pending: nativePending }
+      : consumePendingAuthCallback("recovery", callback.state);
+    if (!validation.accepted || !validation.pending) {
+      recordInvalidAuthCallback();
+      this.authCallbackRejected = true;
+      url.searchParams.delete("recovery");
+      url.searchParams.delete("state");
+      url.hash = "";
+      history.replaceState(history.state, "", `${url.pathname}${url.search}`);
+      return false;
+    }
+    this.pendingAuthExpectedEmail = validation.pending.expectedEmail;
     url.searchParams.delete("recovery");
+    url.searchParams.delete("state");
     history.replaceState(history.state, "", `${url.pathname}${url.search}${url.hash}`);
     return true;
   }
 
   private consumeBillingRedirect(): "success" | "cancelled" | "portal" | null {
     const url = new URL(location.href);
-    const billing = url.searchParams.get("billing");
-    if (billing !== "success" && billing !== "cancelled" && billing !== "portal") return null;
+    const billing = parseApprovedAuthReturn(url.searchParams)?.billing;
+    if (!billing) return null;
     url.searchParams.delete("billing");
     history.replaceState(history.state, "", `${url.pathname}${url.search}${url.hash}`);
     return billing;
@@ -317,8 +451,8 @@ export class AccountPanel {
 
   private consumeCalendarRedirect(): "connected" | "error" | null {
     const url = new URL(location.href);
-    const calendar = url.searchParams.get("calendar");
-    if (calendar !== "connected" && calendar !== "error") return null;
+    const calendar = parseApprovedAuthReturn(url.searchParams)?.calendar;
+    if (!calendar) return null;
     url.searchParams.delete("calendar");
     history.replaceState(history.state, "", `${url.pathname}${url.search}${url.hash}`);
     return calendar;
@@ -408,6 +542,26 @@ export class AccountPanel {
     return button;
   }
 
+  private openAccountDialog(trackHistory = true): void {
+    if (this.dialog.open) return;
+    this.dialogReturnFocus = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : this.accountButton;
+    this.dialogHistoryActive = trackHistory;
+    if (trackHistory) {
+      history.pushState({ ...(history.state ?? {}), harbourlineDialog: "account" }, "", location.href);
+    }
+    this.dialog.showModal();
+    const firstFocusable = this.dialog.querySelector<HTMLElement>(
+      "input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), a[href]"
+    );
+    firstFocusable?.focus();
+  }
+
+  private closeAccountDialog(): void {
+    if (this.dialog.open) this.dialog.close();
+  }
+
   private createDialog(): HTMLDialogElement {
     const dialog = document.createElement("dialog");
     dialog.className = "release2-dialog";
@@ -491,6 +645,16 @@ export class AccountPanel {
     authEvent: AuthChangeEvent | null = null
   ): Promise<boolean> {
     const adoptedSession = verifiedSession(session);
+    if (adoptedSession && this.pendingAuthExpectedEmail) {
+      const expectedEmail = this.pendingAuthExpectedEmail.trim().toLowerCase();
+      const actualEmail = adoptedSession.user.email?.trim().toLowerCase() ?? "";
+      this.pendingAuthExpectedEmail = null;
+      if (!actualEmail || actualEmail !== expectedEmail) {
+        this.notice = "This sign-in link belongs to a different account. Request a new link for this account.";
+        void this.cloud.signOut().catch(reportError);
+        return false;
+      }
+    }
     const previousUserId = this.state.user?.id ?? null;
     const nextUserId = adoptedSession?.user.id ?? null;
     if (previousUserId !== nextUserId) {
@@ -669,7 +833,7 @@ export class AccountPanel {
         ? "Google Calendar sync is available after your Harbourline plan is active."
         : "Sign in and subscribe to connect Google Calendar.";
       this.render();
-      if (!this.dialog.open) this.dialog.showModal();
+      if (!this.dialog.open) this.openAccountDialog();
       return;
     }
     const sessionGeneration = this.sessionGeneration;
@@ -1028,7 +1192,7 @@ export class AccountPanel {
           if (!(target instanceof Element) || !target.closest("[data-action='open-account']")) return;
           track("auth_gate_sign_in_clicked");
           this.render();
-          if (!this.dialog.open) this.dialog.showModal();
+          if (!this.dialog.open) this.openAccountDialog();
         });
         document.body.append(accessGate);
       }
@@ -1068,7 +1232,7 @@ export class AccountPanel {
         if (!(target instanceof Element) || !target.closest("[data-action='open-account']")) return;
         track("free_starter_upgrade_clicked");
         this.render();
-        if (!this.dialog.open) this.dialog.showModal();
+        if (!this.dialog.open) this.openAccountDialog();
       });
       document.body.prepend(banner);
     }
@@ -1077,14 +1241,16 @@ export class AccountPanel {
       track("free_starter_viewed");
     }
     banner.innerHTML = `
-      <div class="release2-free-starter-copy">
-        <span class="eyebrow">Free Starter</span>
-        <strong>Your local planner is ready.</strong>
-        <span>Account required. Plan and export on this device. Secure cloud sync, household sharing and Calendar sync are included with the paid plan.</span>
-      </div>
-      ${this.cloud.configured
-        ? `<button class="btn secondary" type="button" data-action="open-account">Explore cloud sync</button>`
-        : ""}
+    <div class="release2-free-starter-copy">
+      <span class="eyebrow">Free Starter</span>
+      <strong>Your local planner is ready.</strong>
+      <span>${window.HarbourlineMobile?.isNative === true
+        ? "Plan and export on this device. Cloud access and billing are managed through your Harbourline web account."
+        : "Account required. Plan and export on this device. Secure cloud sync, household sharing and Calendar sync are included with the paid plan."}</span>
+    </div>
+    ${this.cloud.configured && window.HarbourlineMobile?.isNative !== true
+      ? `<button class="btn secondary" type="button" data-action="open-account">Explore cloud sync</button>`
+      : ""}
     `;
   }
 
@@ -1104,6 +1270,24 @@ export class AccountPanel {
     return this.notice
       ? `<div class="release2-notice" role="status">${escapeHtml(this.notice)}</div>`
       : "";
+  }
+
+  private renderReminderControls(): string {
+    const mobile = window.HarbourlineMobile;
+    if (mobile?.isNative !== true || !mobile.requestReminderNotifications || !mobile.cancelGenericReminder) return "";
+    return `
+      <section class="release2-section">
+        <div class="release2-section-heading">
+          <div><span>Optional reminders</span><h3>Planning reminders</h3></div>
+          <span class="badge">Privacy-safe</span>
+        </div>
+        <p>Receive one generic weekly reminder to review your plan. Amounts, expense names, household names and account details never appear in notifications.</p>
+        <div class="release2-button-row">
+          <button class="btn secondary" type="button" data-action="enable-reminders" ${this.busy ? "disabled" : ""}>Enable reminders</button>
+          <button class="btn secondary" type="button" data-action="disable-reminders" ${this.busy ? "disabled" : ""}>Disable reminders</button>
+        </div>
+      </section>
+    `;
   }
 
   private renderUnconfigured(): string {
@@ -1128,13 +1312,16 @@ export class AccountPanel {
   }
 
   private renderSignedOut(): string {
+    const nativeCompanion = window.HarbourlineMobile?.isNative === true;
     return `
       ${this.renderNotice()}
       <section class="release2-section release2-intro">
         <span class="release2-status-dot"></span>
         <div>
           <h3>Sign in to Harbourline</h3>
-          <p>Returning to Harbourline? Sign in below. New accounts start on the public homepage, where you can review the plan and early-access price first.</p>
+          <p>${nativeCompanion
+            ? "Sign in with your Harbourline account to use the free companion. Billing and cloud access are managed on the Harbourline website."
+            : "Returning to Harbourline? Sign in below. New accounts start on the public homepage, where you can review the plan and early-access price first."}</p>
         </div>
       </section>
       <div class="release2-auth-grid">
@@ -1142,8 +1329,10 @@ export class AccountPanel {
           <div class="release2-section-heading">
             <div><span>New here?</span><h3>Create your account first</h3></div>
           </div>
-          <p class="release2-empty">Create your account on the homepage, confirm your email, then return here to sign in and continue to secure payment.</p>
-          <a class="btn secondary release2-homepage-button" href="https://www.harbourline.app/#early-access" target="_blank" rel="noreferrer">Create account on homepage</a>
+          <p class="release2-empty">${nativeCompanion
+            ? "Create your account on the Harbourline website, confirm your email, then return here to use the companion."
+            : "Create your account on the homepage, confirm your email, then return here to sign in and continue to secure payment."}</p>
+          <a class="btn secondary release2-homepage-button" href="https://www.harbourline.app/#early-access" target="_blank" rel="noreferrer">${nativeCompanion ? "Create account on website" : "Create account on homepage"}</a>
         </section>
         <form class="release2-section" data-form="sign-in">
           <div class="release2-section-heading">
@@ -1173,6 +1362,7 @@ export class AccountPanel {
     planState: "active" | "pending" | "checking" | "attention" | "not-started",
     periodEnd: string | null
   ): string {
+    const nativeCompanion = window.HarbourlineMobile?.isNative === true;
     const summary = {
       active: {
         eyebrow: "Account status",
@@ -1199,9 +1389,9 @@ export class AccountPanel {
         icon: "!"
       },
       "not-started": {
-        eyebrow: "Account status",
-        title: "Ready to unlock cloud continuity",
-        message: "Complete secure payment to unlock cloud sync, household sharing and multi-device access.",
+        eyebrow: nativeCompanion ? "Web account access" : "Account status",
+        title: nativeCompanion ? "Cloud access is managed on the web" : "Ready to unlock cloud continuity",
+        message: nativeCompanion ? "This free companion does not process payments. Manage cloud access through your Harbourline web account." : "Complete secure payment to unlock cloud sync, household sharing and multi-device access.",
         icon: "→"
       }
     }[planState];
@@ -1264,7 +1454,12 @@ export class AccountPanel {
       : paymentNeedsAttention
         ? "A payment needs attention. Update your payment method or manage your subscription to restore cloud continuity."
         : "Secure payment is handled by our payment provider. Your local starter plan remains available on this device.";
-    const planAction = confirmedSubscriptionActive
+    const nativeCompanion = window.HarbourlineMobile?.isNative === true;
+    const planAction = nativeCompanion
+      ? hasBillingPortal
+        ? `<div class="release2-plan-management"><div><strong>Billing is managed on the web</strong><p>This companion does not process payments.</p></div><button class="btn secondary" type="button" data-action="open-billing-portal" ${this.busy ? "disabled" : ""}>Manage on web</button></div>`
+        : `<span class="badge release2-plan-badge">Web billing only</span>`
+      : confirmedSubscriptionActive
       ? hasBillingPortal
         ? `<div class="release2-plan-management"><div><strong>Manage your subscription</strong><p>Payment method, invoices and cancellation are handled securely by Stripe.</p></div><button class="btn secondary" type="button" data-action="open-billing-portal" ${this.busy ? "disabled" : ""}>Manage subscription</button></div>`
         : `<span class="badge release2-plan-badge is-active"><span class="release2-badge-dot" aria-hidden="true"></span>Subscribed</span>`
@@ -1281,7 +1476,9 @@ export class AccountPanel {
         : "Plan active. Create or join a household to sync this device."
       : !this.billingReconciled || this.subscriptionActive === null
         ? "Checking your Harbourline plan…"
-        : "Local starter ready. Subscribe to enable cloud sync.";
+        : nativeCompanion
+          ? "Local starter ready. Cloud access is managed through your web account."
+          : "Local starter ready. Subscribe to enable cloud sync.";
     const accountStatusDetail = confirmedSubscriptionActive
       ? linkedHousehold
         ? `${status.online ? "Online" : "Offline"}${status.queued ? ` · ${status.queued} queued` : ""} · ${linkedHousehold.name}`
@@ -1306,11 +1503,11 @@ export class AccountPanel {
       </section>
       <section class="release2-section release2-plan-card release2-plan-${planState}">
         <div class="release2-section-heading">
-          <div><span>Harbourline plan</span><h3>${escapeHtml(BILLING_PRICE_LABEL)} introductory early access</h3></div>
-          <span class="badge release2-plan-badge ${planState === "active" ? "is-active" : planState === "attention" ? "is-attention" : planState === "pending" || planState === "checking" ? "is-pending" : ""}">${planState === "active" ? "Subscribed" : planState === "pending" ? "Confirming" : planState === "checking" ? "Checking" : planState === "attention" ? "Payment needed" : "One plan"}</span>
+          <div><span>Harbourline plan</span><h3>${nativeCompanion ? "Existing web account access" : `${escapeHtml(BILLING_PRICE_LABEL)} introductory early access`}</h3></div>
+          <span class="badge release2-plan-badge ${planState === "active" ? "is-active" : planState === "attention" ? "is-attention" : planState === "pending" || planState === "checking" ? "is-pending" : ""}">${nativeCompanion ? (confirmedSubscriptionActive ? "Active" : "Web only") : planState === "active" ? "Subscribed" : planState === "pending" ? "Confirming" : planState === "checking" ? "Checking" : planState === "attention" ? "Payment needed" : "One plan"}</span>
         </div>
         ${confirmedSubscriptionActive ? `<div class="release2-plan-confirmation" role="status"><span class="release2-plan-check" aria-hidden="true">✓</span><div><strong>Subscription active</strong><p>Payment confirmed. Harbourline is ready for household planning and sync.</p></div></div>` : ""}
-        <p class="release2-empty">${planMessage}</p>
+        <p class="release2-empty">${nativeCompanion && !confirmedSubscriptionActive ? "Manage Harbourline billing on the web. This companion does not process payments." : planMessage}</p>
         <div class="release2-plan-actions">${planAction}</div>
       </section>
       ${confirmedSubscriptionActive
@@ -1384,6 +1581,7 @@ export class AccountPanel {
           <button class="btn danger" type="button" data-action="delete-account">Delete account</button>
         </div>
       </section>
+      ${this.renderReminderControls()}
     `;
   }
 
@@ -1431,11 +1629,12 @@ export class AccountPanel {
   }
 
   private renderLockedFeature(title: string, description: string): string {
+    const nativeCompanion = window.HarbourlineMobile?.isNative === true;
     return `
       <section class="release2-section release2-locked-feature">
         <div class="release2-section-heading">
-          <div><span>Paid household plan</span><h3>${escapeHtml(title)}</h3></div>
-          <span class="badge">Unlock</span>
+          <div><span>${nativeCompanion ? "Cloud account feature" : "Paid household plan"}</span><h3>${escapeHtml(title)}</h3></div>
+          ${nativeCompanion ? "" : "<span class=\"badge\">Unlock</span>"}
         </div>
         <p>${escapeHtml(description)}</p>
         ${this.renderCloudUnlockAction()}
@@ -1444,6 +1643,7 @@ export class AccountPanel {
   }
 
   private renderCloudUnlockAction(): string {
+    if (window.HarbourlineMobile?.isNative === true) return `<p class="release2-empty">Cloud access is managed by your Harbourline web account.</p>`;
     if (!this.cloud.configured) return `<p class="release2-empty">Online account services are not connected in this build.</p>`;
     if (!this.billingReconciled || this.subscriptionActive === null || this.billingConfirmationPending) {
       return `<button class="btn secondary" type="button" data-action="refresh-subscription" ${this.busy ? "disabled" : ""}>Check plan status</button>`;
@@ -1602,7 +1802,7 @@ export class AccountPanel {
     if (action === "account") {
       this.newsDialog.close();
       this.render();
-      if (!this.dialog.open) this.dialog.showModal();
+      if (!this.dialog.open) this.openAccountDialog();
     }
   }
 
@@ -1618,7 +1818,7 @@ export class AccountPanel {
     if (action === "calendar-title-preference") return;
 
     if (action === "close") {
-      this.dialog.close();
+      this.closeAccountDialog();
       return;
     }
     if (action === "support") {
@@ -1670,7 +1870,8 @@ export class AccountPanel {
         }
       }
       if (action === "google-sign-in") {
-        await this.cloud.signInWithGoogle();
+        const form = button.closest("form");
+        await this.cloud.signInWithGoogle(form instanceof HTMLFormElement ? formValue(form, "email") || null : null);
       } else if (action === "magic-link") {
         const form = button.closest("form");
         if (!(form instanceof HTMLFormElement)) return;
@@ -1691,7 +1892,28 @@ export class AccountPanel {
         await this.cloud.signOut();
         if (operationSessionGeneration !== this.sessionGeneration || operationActionGeneration !== this.actionGeneration) return;
         this.notice = "Signed out. This device is ready for another account.";
+      } else if (action === "enable-reminders") {
+        const mobile = window.HarbourlineMobile;
+        const permission = await mobile?.requestReminderNotifications?.();
+        if (permission !== "granted") {
+          this.notice = permission === "denied"
+            ? "Reminders are disabled. You can enable them later in device settings."
+            : "Reminders are not available on this device.";
+        } else if (await mobile?.scheduleGenericReminder?.()) {
+          this.notice = "Generic planning reminders are enabled.";
+        } else {
+          this.notice = "Reminders could not be enabled. Your plan is unchanged.";
+        }
+      } else if (action === "disable-reminders") {
+        const mobile = window.HarbourlineMobile;
+        this.notice = await mobile?.cancelGenericReminder?.()
+          ? "Generic planning reminders are disabled."
+          : "Reminders could not be disabled. You can manage them in device settings.";
       } else if (action === "start-checkout") {
+        if (window.HarbourlineMobile?.isNative === true) {
+          this.notice = "Billing is managed on the Harbourline website. This companion does not process payments.";
+          return;
+        }
         const paymentNeedsAttention = Boolean(
           this.billingSubscription && ["incomplete", "past_due", "unpaid"].includes(this.billingSubscription.status)
         );
