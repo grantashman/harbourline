@@ -24,6 +24,18 @@ payment, tax, reporting, precision, support and recovery gates are approved.
 Keep the currency promise consistent across the homepage, pricing, onboarding,
 help replies and campaign landing pages.
 
+Approved public wording for the current release:
+
+> Harbourline currently supports AUD for budgeting and the introductory
+> subscription. Additional currencies may appear only in an approved pilot.
+> Harbourline does not convert budgets or exchange money for you.
+
+Do not publish the eleven-code source catalog as a supported-currency list. Do
+not imply that a budget currency changes the A$2.50/week subscription, that a
+customer can receive an FX-converted refund, or that a browser selector alone
+enables a currency. When a pilot is approved, update the homepage, pricing
+copy, account help and this plan in one reviewed change.
+
 ### Beta exit criteria
 
 - 70% or more of paid customers complete onboarding.

@@ -187,6 +187,14 @@ International cards cost more. Keep the initial market and settlement currency
 Australian where practical, and monitor the domestic/international mix rather
 than assuming every payment will use the lowest rate.
 
+The current public billing contract is AUD-only. A customer's budget currency is
+not a billing or settlement instruction, and Harbourline does not apply foreign
+exchange. Any future non-AUD price must be modelled as a separate Stripe Price
+with its own tax, refund, accounting and support approval; reconcile charges and
+refunds in their original currency before comparing provider payouts. See
+[`MULTI_CURRENCY_RELEASE.md`](MULTI_CURRENCY_RELEASE.md) for the enablement and
+rollback gates.
+
 ### Core software cost
 
 Supplier prices below are published in US dollars unless stated otherwise.

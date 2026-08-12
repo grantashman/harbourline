@@ -42,21 +42,28 @@ Resend DNS records were added in Cloudflare for `auth.harbourline.app`:
 
 Resend still reports the domain as pending while DNS verification propagates.
 
-## Multi-currency release status — 11 August 2026
+## Multi-currency release status — 12 August 2026
 
-The controlled multi-currency release is **NO-GO**. Production remains AUD-only:
-keep the browser allowlist at `AUD`, keep the database `currency_catalog.enabled`
-flag true only for AUD, and keep the reviewed Stripe billing contract in AUD.
-Do not start the production workflow for the multi-currency migration until the
-exact-money, database, payment, backup/restore, tax/legal and support gates are
-evidenced.
+The controlled multi-currency release is **NO-GO for additional currencies**.
+Production remains AUD-only: keep the browser allowlist at `AUD`, keep the
+database `currency_catalog.enabled` flag true only for AUD, and keep the reviewed
+Stripe billing contract in AUD.
+
+The current `main` head `2abc42b` passed the required CI, security and dependency
+checks. The protected [production workflow run](https://github.com/grantashman/harbourline/actions/runs/31546954989)
+completed successfully and verified that the remote database was up to date,
+the reviewed AUD billing contract was configured, the Edge Functions were
+deployed, and the production schema remained AUD-only. This is an AUD-compatible
+infrastructure deployment, not approval to enable a pilot currency.
+
+Do not enable an additional currency until the exact-money browser/export matrix,
+staging and hosted payment/refund/reconciliation tests, backup/restore evidence,
+and product, tax/legal, accounting and support approvals are recorded.
 
 The release runbook, staged activation procedure, monitoring fields, support
 responses and rollback constraints are in
 [`MULTI_CURRENCY_RELEASE.md`](MULTI_CURRENCY_RELEASE.md). It records the
-validation finding that major-unit runtime arithmetic still needs a precision
-fix and that database, Edge Function and hosted payment gates were unavailable
-in the validation environment.
+verified AUD-only deployment and the remaining gates for a non-AUD pilot.
 
 ## 1. Confirm the beta project
 
@@ -111,6 +118,25 @@ row must include its ISO code, minor-unit precision, locale, verification
 identity and timestamp before it can be enabled. Do not put secrets in this
 object or in any `VITE_*` variable.
 
+Use this safe production bootstrap and keep it paired with the database state:
+
+```html
+<script>
+  globalThis.HarbourlineCurrencyConfig = {
+    enabledCurrencies: ["AUD"],
+    defaultCurrency: "AUD",
+    currencies: { AUD: { minorUnit: 2, locale: "en-AU" } }
+  };
+</script>
+```
+
+The browser bridge calls the locale field `locale`; the domain package calls
+the equivalent field `defaultLocale`. The eleven built-in definitions are
+metadata only. Enabling a code requires a reviewed migration, a matching
+catalog row, exact-money and hosted payment evidence, and an approved canary.
+Removing a code from the browser allowlist pauses new selection but must not
+make existing documents unreadable.
+
 Edge Function secrets:
 
 ```text
@@ -128,6 +154,8 @@ GOOGLE_CALENDAR_CLIENT_SECRET
 GOOGLE_OAUTH_REDIRECT_URI
 GOOGLE_CALENDAR_TOKEN_ENCRYPTION_KEY
 STRIPE_BILLING_CURRENCY (AUD until a reviewed non-AUD Stripe price is approved)
+STRIPE_PRODUCT_ID (reviewed Stripe product identity)
+STRIPE_LIVE_MODE (true for live, false for test mode)
 ```
 
 The Edge Function runtime also receives the public `STRIPE_PRICE_ID` from the
@@ -156,6 +184,15 @@ recorded. Keep the production allowlist and database catalog at AUD-only until
 that release is approved.
 The repository CI still runs application, domain, sync, schema and production
 build checks independently.
+
+For a currency pilot, deploy the reviewed migration and Edge Functions before
+changing the browser allowlist. Verify the catalog row, the active Stripe Price
+and function health, then enable exactly one code for the named cohort. To pause
+or roll back, stop new selection and checkout first, preserve `AUD`, keep any
+existing pilot-currency read path available, reconcile open provider events and
+use a reviewed forward migration or provider restore. This workflow has no
+tested destructive down migration; never improvise `DROP` statements in the
+production SQL editor.
 
 The current beta project is also linked to `grantashman/harbourline` through
 Supabase. The dashboard currently reports the calendar migration and functions

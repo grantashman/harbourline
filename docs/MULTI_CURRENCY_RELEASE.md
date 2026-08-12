@@ -1,6 +1,6 @@
 # Multi-currency release, operations and support
 
-Last reviewed: 11 August 2026
+Last reviewed: 12 August 2026
 
 ## Release decision
 
@@ -9,9 +9,14 @@ AUD-first product and the production currency allowlist must remain `AUD` until
 the financial-integrity, database, payment, tax, support and recovery gates in
 this document are evidenced and approved.
 
-This is a release runbook, not a deployment authorization. No production
-migration, Edge Function deployment, Vercel deployment or additional-currency
-cohort was executed for this release attempt.
+This is a release runbook, not an authorization to enable additional currencies.
+The protected production workflow for current main head
+[`2abc42b`](https://github.com/grantashman/harbourline/commit/2abc42bd7beb8b81bd784ff3f542ce9644024a90)
+completed successfully in the [Deploy Supabase production run](https://github.com/grantashman/harbourline/actions/runs/31546954989).
+It verified that the remote database was up to date, configured the reviewed AUD
+Stripe contract, deployed the Edge Functions and passed the AUD-only schema
+invariant. No additional-currency activation, canary cohort or currency-specific
+billing change was executed.
 
 ### Current contract
 
@@ -27,14 +32,64 @@ cohort was executed for this release attempt.
 - Existing AUD records must remain readable through the compatibility path.
   Records must never be silently converted when a currency setting changes.
 
-The local validation handoff recorded passing application, domain, sync, build,
-PDF and schema checks and an AUD browser persistence smoke. It also recorded a
-financial-integrity blocker: runtime calculations still use major-unit
-JavaScript numbers in places, and a probe produced
-`0.11999999999999998` for twelve `0.01` contributions. Supabase database tests,
-Deno Edge Function tests and hosted payment/auth/reconciliation E2E were not
-available in the validation environment. These are release blockers, not
-successful production evidence.
+The current implementation routes the covered summary, recurring-conversion,
+savings and debt calculations through integer minor-unit operations and adds
+cent-boundary, zero-decimal, safe-range and persistence regression coverage.
+The current main CI run passed Deno checks, local Supabase database tests and
+the full `pnpm check`; the protected production run verified the deployed
+AUD-only schema and active functions. Alternate-currency hosted behavior,
+test-mode checkout/webhook/refund/reconciliation E2E, backup/restore evidence,
+and commercial or compliance approvals are still not evidenced. Those remain
+release blockers for enabling a non-AUD currency.
+
+### Currency states: metadata is not availability
+
+The application and database carry reviewed metadata for these eleven codes:
+
+| Code | Minor-unit precision | Default locale | Current production state |
+| --- | ---: | --- | --- |
+| `AUD` | 2 | `en-AU` | **Enabled** for budgeting and billing |
+| `BHD` | 3 | `en-BH` | Catalog row present; disabled |
+| `CAD` | 2 | `en-CA` | Catalog row present; disabled |
+| `EUR` | 2 | `en-IE` | Catalog row present; disabled |
+| `GBP` | 2 | `en-GB` | Catalog row present; disabled |
+| `INR` | 2 | `en-IN` | Catalog row present; disabled |
+| `JPY` | 0 | `ja-JP` | Catalog row present; disabled |
+| `MXN` | 2 | `es-MX` | Catalog row present; disabled |
+| `NZD` | 2 | `en-NZ` | Catalog row present; disabled |
+| `SGD` | 2 | `en-SG` | Catalog row present; disabled |
+| `USD` | 2 | `en-US` | Catalog row present; disabled |
+
+“Supported” in source code means that a reviewed definition exists. A code is
+available to a customer only when it is present in the deployed browser
+allowlist, enabled in `public.currency_catalog`, and covered by the release
+record. The default registry and the current production deployment therefore
+support only `AUD`, even though the other definitions are visible to tests and
+future configuration. Custom browser metadata does not bypass the database
+catalog or the release gates.
+
+### Display, calculation and settlement behavior
+
+- Inputs are plain decimal amounts. They are rounded half-up at the selected
+  currency's minor-unit boundary (`JPY` has zero minor units; `BHD` has three).
+- Schema-version-4 documents persist monetary fields as signed integer
+  minor-unit strings. Runtime calculations aggregate and scale those integers;
+  recurring conversions round once at the target currency's minor-unit
+  boundary. A display with two decimals is not evidence that a value was stored
+  with two decimals.
+- The configured locale controls display and export formatting. It does not
+  change the stored amount or the selected currency. Values from different
+  currencies must never be added together.
+- Harbourline does not provide foreign exchange, convert existing budgets, or
+  choose a settlement rate. Budget currency is household metadata and planning
+  arithmetic only. Subscription billing is an independent provider Price.
+- The provider Price currency is the customer billing and refund currency. A
+  refund or credit must be recorded against the original provider currency and
+  integer minor-unit amount; support must not calculate an exchange-rate refund.
+- Revenue reconciliation compares provider charges, refunds, credits and
+  subscription-ledger amounts by currency. Payout or bank settlement FX is a
+  separate accounting difference and must not be used to rewrite the customer
+  charge or budget amount.
 
 ## Required release gates
 
@@ -43,14 +98,22 @@ build or a green AUD smoke test is not a substitute for a hosted gate.
 
 | Gate | Evidence required | Current state |
 | --- | --- | --- |
-| Exact money calculations | Runtime aggregation, recurring conversions, reports and exports remain cent/minor-unit exact without major-unit float drift; include cent-boundary and zero-decimal tests | **Blocked** by the validation finding above |
+| Exact money calculations | Runtime aggregation, recurring conversions, reports and exports remain cent/minor-unit exact without major-unit float drift; include cent-boundary and zero-decimal tests | **Partial**: covered domain paths and local regressions pass; independent full browser/export matrix remains open |
 | Domain and browser matrix | Legacy AUD restore, new empty-budget currency selection, non-empty-budget rejection, import/export, sync and report checks for every proposed currency | AUD-only local smoke passed; alternate-currency hosted behavior not verified |
-| Database migration | Staging `supabase db push --linked`, `supabase test db`, policy/invariant checks and a documented forward-only rollback or restore procedure | **Not run**; Supabase CLI, local Postgres/pgtap and Docker were unavailable |
-| Edge Functions and payment contract | Deno checks plus test-mode Stripe price/catalog, checkout, webhook, refund and reconciliation tests for each billing currency | **Not run**; Deno and hosted provider access were unavailable |
-| Backup and restore | Provider backup retention confirmed, disposable restore completed, backup identifier recorded outside customer data, and migration compatibility checked | **Not evidenced**; the documented beta project previously reported Free/NANO with no scheduled backups |
-| CI and review | Pull request, required CI/security checks, reviewed migration and protected production workflow run | No release PR or production workflow run exists for this attempt |
+| Database migration | Staging `supabase db push --linked`, `supabase test db`, policy/invariant checks and a documented forward-only rollback or restore procedure | **Partial/pass**: current CI database tests passed; production run verified the migration state and AUD-only invariant; no staging canary evidence |
+| Edge Functions and payment contract | Deno checks plus test-mode Stripe price/catalog, checkout, webhook, refund and reconciliation tests for each billing currency | **Partial**: CI Deno/contract checks and production function deployment passed; hosted payment/refund/reconciliation E2E for a pilot currency remains open |
+| Backup and restore | Provider backup retention confirmed, disposable restore completed, backup identifier recorded outside customer data, and migration compatibility checked | **Blocked**: no current backup/restore record is attached to this release; the last documented beta checkpoint reported Free/NANO with no scheduled backups |
+| CI and review | Pull request, required CI/security checks, reviewed migration and protected production workflow run | **Partial/pass**: PR #51, validate, CodeQL, dependency review and the protected production run passed; the PR remains open with no recorded independent review |
 | Commercial and legal approval | Settlement, tax, refund, pricing, customer-location and support wording approved for each currency | Not approved |
 | Staged cohort | One currency enabled for a small, named cohort with a control comparison and a pause owner | Not started |
+
+### Verified current deployment record
+
+- Repository head: `2abc42bd7beb8b81bd784ff3f542ce9644024a90` on `main`.
+- CI: [Harbourline CI run](https://github.com/grantashman/harbourline/actions/runs/31546954886), [security run](https://github.com/grantashman/harbourline/actions/runs/31546954995) and the merged PR's dependency-review check all passed for the reviewed head.
+- Production infrastructure: [run 31546954989](https://github.com/grantashman/harbourline/actions/runs/31546954989) completed successfully; the deployed verification reported AUD enabled, every non-AUD catalog row disabled, the sync function present and the Edge Functions active.
+- Recovery rehearsal: the prior rollback-only SQL rehearsal applied the pending invariants inside a transaction, passed its assertions, and rolled back without changing production state; this does not substitute for a disposable backup restore.
+- Production enablement: `AUD` only. No pilot currency, non-AUD Stripe Price, or staged customer cohort is enabled by this record.
 
 Do not weaken a gate because the first pilot is small. A small cohort can still
 create irreversible payment, accounting or customer-data problems.
@@ -65,12 +128,61 @@ Use the following boundaries and keep credentials out of browser configuration:
 | Database | `public.currency_catalog` (`code`, `minor_unit`, `default_locale`, `enabled`, `verified_at`, `verified_by`) | Enable one reviewed currency at a time; record who verified the row and when |
 | Browser billing display | `VITE_HARBOURLINE_BILLING_CURRENCY` and `VITE_HARBOURLINE_BILLING_LOCALE` | Public display values only; they do not authorize a Stripe price or a budget currency |
 | Edge Function billing authority | `STRIPE_BILLING_CURRENCY` and protected `STRIPE_PRICE_ID` | Checkout fetches and verifies the active recurring Stripe Price; no FX conversion is performed |
+| Provider Price identity | `STRIPE_PRODUCT_ID` and `STRIPE_LIVE_MODE` | Checkout, webhook and reconciliation must agree on product, mode, currency, amount, interval and Price ID |
 | Provider secrets | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` and Supabase runtime secrets | Keep server-side; never place them in `VITE_*` variables or support tickets |
 
 The browser allowlist, database catalog and user-facing copy must agree. A
 currency appearing in built-in metadata is not evidence that it is enabled or
 that a matching Stripe price exists. The Stripe price currency is also not
 proof that budget calculations, refunds or reconciliation are correct.
+
+Safe production bootstrap configuration remains:
+
+```html
+<script>
+  globalThis.HarbourlineCurrencyConfig = {
+    enabledCurrencies: ["AUD"],
+    defaultCurrency: "AUD",
+    currencies: { AUD: { minorUnit: 2, locale: "en-AU" } }
+  };
+</script>
+```
+
+The browser bridge uses `locale`; the TypeScript domain registry uses
+`defaultLocale`. Keep those adapters explicit rather than copying one config
+object into the other. `VITE_HARBOURLINE_BILLING_CURRENCY` and
+`VITE_HARBOURLINE_BILLING_LOCALE` are public display values only. The server
+billing contract is controlled by `STRIPE_BILLING_CURRENCY`,
+`STRIPE_PRODUCT_ID`, `STRIPE_PRICE_ID` and `STRIPE_LIVE_MODE`, and each billing
+function verifies the provider Price before creating or reconciling access.
+
+### Enablement and disablement controls
+
+Treat the browser allowlist and the database catalog as a paired feature flag;
+changing only one creates a partial rollout. For a reviewed pilot:
+
+1. Open a reviewed pull request with the browser allowlist, copy, tests and a
+   forward-only migration that updates exactly one catalog row. Include the
+   code, minor-unit precision, locale, `verified_at` and approving operator in
+   the release record.
+2. Rehearse the migration and the exact configuration in staging. Keep `AUD`
+   enabled and add only the proposed code. Verify empty-budget creation,
+   legacy-AUD reads, non-empty currency-change rejection, sync, imports,
+   exports, checkout, refunds and reconciliation before promotion.
+3. Deploy the reviewed migration and functions first. Confirm the catalog row,
+   function health and Price contract. Change the browser allowlist only after
+   those checks pass, then expose the code to the named canary cohort.
+4. Keep the billing currency unchanged unless a separate provider Price and
+   commercial approval are part of the same release. Enabling a budget currency
+   must not silently change the A$2.50/week subscription.
+
+To disable a pilot, stop new selection and checkout first, then remove the code
+from the browser allowlist in a reviewed deployment. Keep the catalog row and
+read path intact while existing documents are assessed; do not disable or drop
+the row merely because acquisition is paused. Reconcile open provider events,
+refunds and entitlements before changing billing configuration. A destructive
+catalog rollback or `DROP` is not supported; use a reviewed forward migration or
+the approved provider restore procedure if a data migration is required.
 
 ## Controlled rollout procedure
 
@@ -153,6 +265,29 @@ refund/reconciliation discrepancy or unexplained precision error. Escalate to
 the incident owner; do not repair customer financial records manually from a
 support ticket.
 
+### Revenue and support review cadence
+
+During a pilot, the release owner must review the following at least daily and
+record the result by currency without customer financial data:
+
+1. Match successful charges and refunds from the provider to the internal
+   subscription ledger using provider IDs, currency and minor-unit amounts.
+2. Separate pending, failed and replayed webhooks from reconciled events; do
+   not grant or remove access from an unverified event.
+3. Compare provider totals with the ledger before and after credits, refunds,
+   fees and timing differences. Escalate any unexplained difference before
+   expanding the cohort.
+4. Review support tickets for display, rounding, sync/import, payment, refund
+   and “please convert this budget” requests. Record only safe identifiers and
+   route financial decisions to accounting or the payment owner.
+
+Use this escalation order: support owner for copy or setup questions; release
+owner for configuration, conversion or export failures; payment owner and
+accounting for charges, refunds or reconciliation; security/incident owner for
+cross-household exposure or an entitlement/data-integrity concern. A suspected
+cross-currency exposure, wrong entitlement, Price mismatch or unexplained
+rounding error is a stop condition, not a normal support workaround.
+
 ## Rollback and recovery
 
 Rollback is deliberately conservative because the migration introduces durable
@@ -215,6 +350,10 @@ screenshots containing account balances.
   in support.
 - **Suspected data loss or cross-household exposure:** stop the pilot, preserve
   evidence, notify the incident owner and follow the security response process.
+
+Support must not ask for passwords, payment secrets, full exports, raw budget
+values or screenshots containing balances. Capture the currency code, affected
+flow, approximate timestamp, deployment/version and safe error identifier only.
 
 ## Release record
 

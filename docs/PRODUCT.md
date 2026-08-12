@@ -48,6 +48,12 @@ precision, support and recovery gates are approved. Budget currency is metadata
 for a household plan, not a foreign-exchange service, and Harbourline never
 moves or converts customer money.
 
+The product contains reviewed definitions for `AUD`, `BHD`, `CAD`, `EUR`, `GBP`,
+`INR`, `JPY`, `MXN`, `NZD`, `SGD` and `USD`, but those definitions are not a
+customer availability promise. The current public account experience and
+database enable `AUD` only. A future pilot will name its enabled code, locale
+and minor-unit precision in the account experience and release record.
+
 A currency change never converts a non-empty budget. Users who need another
 currency should keep an export and start a new empty budget only when that
 currency appears in their approved account experience.
@@ -90,14 +96,26 @@ required for the paid Household plan.
 ### Currency and pricing help
 
 - **Which currencies are supported?** The current public release supports AUD.
-  Future pilot currencies will be named explicitly in the account experience.
+  The source catalog has additional reviewed metadata, but a currency is not
+  available until it is listed in your account and enabled in the release.
 - **Will Harbourline convert my existing budget?** No. A non-empty budget is not
   silently converted; start a new empty budget and retain the original export.
 - **Is the subscription charged in my budget currency?** Not necessarily. The
   subscription uses the reviewed Stripe price configured for the release, and
   Harbourline does not perform foreign exchange.
+- **How are amounts rounded?** Input and recurring calculations use the selected
+  currency's minor-unit precision. Values are rounded half-up at that boundary;
+  zero-decimal currencies such as JPY do not inherit AUD's two-decimal rule.
+- **What currency is displayed and settled?** The selected budget locale formats
+  the planning display. Subscription charges and refunds use the original
+  provider Price currency. Harbourline does not choose an FX rate or rewrite a
+  budget for a settlement conversion.
 - **How are refunds handled?** Refunds use the original provider billing
-  currency and the approved Stripe/support process.
+  currency and integer amount through the approved Stripe/support process.
+  Support cannot promise an exchange-rate equivalent.
+- **How is revenue checked?** Charges, refunds, credits and subscription access
+  are reconciled by currency and provider ID. Provider payout conversion is an
+  accounting concern and does not change the customer charge or budget.
 
 ### Bank connectivity
 
