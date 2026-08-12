@@ -41,10 +41,11 @@ On payday, a household should be able to answer:
 
 ### Currency availability
 
-Harbourline is AUD-first. The current public release enables AUD, NZD and USD for
-budgeting, while the introductory subscription remains an AUD billing contract.
-Additional currencies are pilot-only and must not be promised until their
-payment, tax, reporting, precision, support and recovery gates are approved.
+Harbourline is AUD-first in product positioning. The current public release
+enables AUD, NZD and USD for budgeting, while the introductory subscription
+remains an AUD billing contract. Further currencies are pilot-only and must
+not be promised until their payment, tax, reporting, precision, support and
+recovery gates are approved.
 Budget currency is metadata for a household plan, not a foreign-exchange service,
 and Harbourline never moves or converts customer money.
 
@@ -95,9 +96,10 @@ required for the paid Household plan.
 
 ### Currency and pricing help
 
-- **Which currencies are supported?** The current public release supports AUD.
-  The source catalog has additional reviewed metadata, but a currency is not
-  available until it is listed in your account and enabled in the release.
+- **Which currencies are supported?** The current public release supports AUD,
+  NZD and USD for budgeting. The source catalog has additional reviewed
+  metadata, but a currency is not available until it is listed in your account
+  and enabled in the release.
 - **Will Harbourline convert my existing budget?** No. A non-empty budget is not
   silently converted; start a new empty budget and retain the original export.
 - **Is the subscription charged in my budget currency?** Not necessarily. The

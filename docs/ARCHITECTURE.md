@@ -105,9 +105,9 @@ Release 2 does not use silent last-write-wins for financial records.
 
 ## Currency and money representation
 
-- AUD (`en-AU`) is the default and the only enabled currency in the default registry.
+- AUD (`en-AU`) is the default and remains available for legacy compatibility; the current production budgeting allowlist is AUD, NZD and USD.
 - Currency definitions include an ISO code, native minor-unit precision, and default locale; deployments may opt additional definitions into the registry explicitly.
-- The hosted app accepts an optional pre-bootstrap `globalThis.HarbourlineCurrencyConfig` object with `enabledCurrencies`, `defaultCurrency`, and `currencies` entries (`{ minorUnit, locale }`). AUD is always retained as a compatibility currency, and the default production configuration must remain `enabledCurrencies: ["AUD"]` until the currency, tax, payment, and reporting gates are signed off.
+- The hosted app accepts an optional pre-bootstrap `globalThis.HarbourlineCurrencyConfig` object with `enabledCurrencies`, `defaultCurrency`, and `currencies` entries (`{ minorUnit, locale }`). AUD is always retained as a compatibility currency, and the current production budgeting configuration is `enabledCurrencies: ["AUD", "NZD", "USD"]`; further currencies remain gated by currency, tax, payment, reporting, support and recovery evidence.
 - Covered summary, recurring-conversion, savings and debt calculations operate
   through integer minor-unit values and convert to range-checked runtime numbers
   only at rendering/API boundaries. Persistence and cloud mutation boundaries

@@ -11,6 +11,8 @@ const migrationPath = path.join(repoRoot, "supabase/migrations/20260812000000_en
 const migration = fs.existsSync(migrationPath) ? fs.readFileSync(migrationPath, "utf8") : "";
 const workflow = read(".github/workflows/supabase-production.yml");
 const release = read("docs/MULTI_CURRENCY_RELEASE.md");
+const marketing = read("marketing/index.html");
+const marketingBlog = read("marketing/blog/index.html");
 
 assert.match(index, /globalThis\.HarbourlineCurrencyConfig\s*\?\?=\s*\{[\s\S]*?enabledCurrencies:\s*\["AUD",\s*"NZD",\s*"USD"\]/,
   "browser production allowlist must enable AUD, NZD, and USD");
@@ -30,5 +32,12 @@ assert.doesNotMatch(workflow, /aud_only_ok|every non-AUD|only AUD/i, "production
 
 assert.match(release, /AUD[\s\S]*NZD[\s\S]*USD[\s\S]*budget/i, "release record must name the enabled budget currencies");
 assert.match(release, /subscription billing remains AUD/i, "release record must distinguish budget and billing currencies");
+
+for (const [name, page] of [["marketing homepage", marketing], ["marketing blog", marketingBlog]]) {
+  assert.match(page, /AUD,\s*NZD\s*(?:or|and)\s*USD/i, `${name} must name the supported budget currencies`);
+  assert.match(page, /(?:subscription|subscriptions)[^\n.]*billed in AUD/i, `${name} must distinguish AUD subscription billing`);
+}
+
+assert.doesNotMatch(marketing, /Australian dollars/i, "marketing homepage must not describe budgeting as Australian-dollars-only");
 
 console.log("multi-currency production guard passed");
