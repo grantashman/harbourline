@@ -10,20 +10,21 @@ budget-currency enablement only; it does not create non-AUD Stripe Prices or
 change the existing subscription contract. Further currencies and any
 non-AUD billing require a separate reviewed release.
 
-This is the release runbook and evidence record for the pilot. The prior
-AUD-only production workflow completed successfully in
-[run 31546954989](https://github.com/grantashman/harbourline/actions/runs/31546954989).
-The current release adds a forward-only catalog enablement migration and a
-paired browser allowlist for `AUD,NZD,USD`; the protected workflow verifies that
-allowlist while continuing to configure and verify the reviewed AUD Stripe
-contract.
+This is the release runbook and evidence record for the pilot. The reviewed
+change was merged in [PR #52](https://github.com/grantashman/harbourline/pull/52)
+as main commit `922507e47d41dfd9ca26bbdfd7d6d8c3b94ee2f3`. The protected
+[production workflow run 31552755896](https://github.com/grantashman/harbourline/actions/runs/31552755896)
+completed successfully: it applied the forward-only catalog enablement
+migration, verified the paired `AUD,NZD,USD` allowlist, kept the reviewed AUD
+Stripe contract, deployed the Edge Functions and passed the final production
+schema/function invariant.
 
 ### Current contract
 
 - The production browser and domain configuration enables `AUD`, `NZD` and `USD`
   for budgeting, with `AUD` as the default.
-- The database currency catalog enables `AUD`, `NZD` and `USD`; the additional
-  catalog rows remain disabled.
+- The database currency catalog enables `AUD`, `NZD` and `USD`; all other catalog
+  rows remain disabled.
 - Budget currency and subscription billing currency are separate. Budget
   currency does not trigger foreign-exchange conversion and does not change the
   reviewed introductory Stripe price.
@@ -104,17 +105,18 @@ green AUD smoke test is not a substitute for a hosted gate.
 | Database migration | Staging `supabase db push --linked`, `supabase test db`, policy/invariant checks and a documented forward-only rollback or restore procedure | **Partial/pass**: current CI database tests passed; the production workflow verifies the `AUD,NZD,USD` budget allowlist; no disposable restore evidence |
 | Edge Functions and payment contract | Deno checks plus test-mode Stripe price/catalog, checkout, webhook, refund and reconciliation tests for each billing currency | **Partial**: CI Deno/contract checks and production function deployment passed; hosted payment/refund/reconciliation E2E for a pilot currency remains open |
 | Backup and restore | Provider backup retention confirmed, disposable restore completed, backup identifier recorded outside customer data, and migration compatibility checked | **Blocked**: no current backup/restore record is attached to this release; the last documented beta checkpoint reported Free/NANO with no scheduled backups |
-| CI and review | Pull request, required CI/security checks, reviewed migration and protected production workflow run | Pending on the pilot PR and exact-head checks |
+| CI and review | Pull request, required CI/security checks, reviewed migration and protected production workflow run | **Pass**: PR #52 exact-head checks and protected production run passed |
 | Commercial and legal approval | Settlement, tax, refund, pricing, customer-location and support wording approved for each currency | Not approved |
-| Staged cohort | One currency enabled for a small, named cohort with a control comparison and a pause owner | NZD/USD budgeting pilot authorized; cohort owner/window still to be recorded |
+| Staged cohort | One currency enabled for a small, named cohort with a control comparison and a pause owner | **Open**: NZD/USD budgeting pilot is live; named cohort/window, control comparison and pause owner still to be recorded |
 
 ### Verified current deployment record
 
-- Repository head: pending pilot merge on `main`.
-- CI: [Harbourline CI run](https://github.com/grantashman/harbourline/actions/runs/31546954886), [security run](https://github.com/grantashman/harbourline/actions/runs/31546954995) and the merged PR's dependency-review check all passed for the reviewed head.
-- Production infrastructure: prior AUD-only run [31546954989](https://github.com/grantashman/harbourline/actions/runs/31546954989) passed; the pilot workflow must verify `AUD,NZD,USD` enabled, all other catalog rows disabled, the sync function present and the Edge Functions active.
+- Repository head: `922507e47d41dfd9ca26bbdfd7d6d8c3b94ee2f3` on `main`.
+- CI and review: [PR #52](https://github.com/grantashman/harbourline/pull/52) merged after exact-head `validate`, CodeQL, dependency-review and Vercel checks passed. The merged-head [Harbourline CI run](https://github.com/grantashman/harbourline/actions/runs/31552755886), [security run](https://github.com/grantashman/harbourline/actions/runs/31552755888) and [homepage deployment](https://github.com/grantashman/harbourline/actions/runs/31552755881) also passed.
+- Production infrastructure: [run 31552755896](https://github.com/grantashman/harbourline/actions/runs/31552755896) passed exact-main verification, configuration checks, migration application, unchanged AUD Stripe contract configuration, Edge Function deployment and the final schema/function invariant. Its database query verified `AUD`, `NZD` and `USD` enabled, no other enabled catalog code, and the sync function present.
+- Public surface: `https://harbourline.app` served the production browser bootstrap with `enabledCurrencies: ["AUD", "NZD", "USD"]`, `defaultCurrency: "AUD"`, and NZD/USD metadata.
 - Recovery rehearsal: the prior rollback-only SQL rehearsal applied the pending invariants inside a transaction, passed its assertions, and rolled back without changing production state; this does not substitute for a disposable backup restore.
-- Production enablement target: `AUD,NZD,USD` for budgeting only. No non-AUD Stripe Price is part of this release.
+- Production enablement result: `AUD,NZD,USD` for budgeting only. No non-AUD Stripe Price is part of this release; subscription billing remains AUD.
 
 Do not weaken a gate because the first pilot is small. A small cohort can still
 create irreversible payment, accounting or customer-data problems.
