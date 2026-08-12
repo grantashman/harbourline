@@ -484,31 +484,6 @@
       opacity: 0.72;
     }
 
-    .account-status {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      min-height: 38px;
-      padding: 0 11px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      color: var(--muted);
-      background: color-mix(in srgb, var(--panel) 82%, transparent);
-      box-shadow: 0 1px 0 color-mix(in srgb, var(--ink) 10%, transparent) inset;
-      font-size: 0.8rem;
-      font-weight: 800;
-      white-space: nowrap;
-    }
-
-    .account-status::before {
-      content: "";
-      width: 7px;
-      height: 7px;
-      flex: 0 0 auto;
-      border-radius: 50%;
-      background: var(--mint);
-      box-shadow: 0 0 0 3px color-mix(in srgb, var(--mint) 18%, transparent);
-    }
 
     .topbar-menu {
       position: absolute;
@@ -3508,13 +3483,11 @@
       }
 
       .menu-wrap,
-      .actions .btn,
-      .account-status {
+      .actions .btn {
         width: 100%;
       }
 
-      .actions .btn,
-      .account-status {
+      .actions .btn {
         justify-content: center;
       }
 
@@ -3976,7 +3949,6 @@
             <button class="menu-item danger" id="resetButton" type="button" role="menuitem">Reset budget</button>
           </div>
         </div>
-        <span class="account-status" aria-label="Account status: local plan active">Account · On</span>
       </div>
     </header>
 
