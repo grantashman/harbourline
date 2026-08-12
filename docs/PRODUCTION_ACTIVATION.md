@@ -48,13 +48,14 @@ The owner-authorized budgeting pilot enables `AUD`, `NZD` and `USD` in the
 browser allowlist and database catalog. Subscription billing remains the reviewed
 AUD Stripe contract; no non-AUD Stripe Price is enabled by this release.
 
-The current `main` head `2abc42b` passed the required CI, security and dependency
-checks. The protected [production workflow run](https://github.com/grantashman/harbourline/actions/runs/31546954989)
+The current `main` head `922507e47d41dfd9ca26bbdfd7d6d8c3b94ee2f3` passed the
+required exact-head CI, security, dependency-review and preview checks. The
+protected [production workflow run](https://github.com/grantashman/harbourline/actions/runs/31552755896)
 completed successfully and verified that the remote database was up to date,
 the reviewed AUD billing contract was configured, the Edge Functions were
-deployed, and the production schema remained AUD-only. The superseding pilot
-workflow must verify the paired `AUD,NZD,USD` budget configuration before the
-product surface is treated as enabled.
+deployed, and the production schema enabled exactly `AUD`, `NZD` and `USD` for
+budgeting. The live browser surface also serves the paired `AUD,NZD,USD`
+configuration with AUD as the default.
 
 Do not expand beyond NZD/USD budgeting or change subscription billing until the
 exact-money browser/export matrix, staging and hosted payment/refund/reconciliation
@@ -64,7 +65,8 @@ approvals are recorded.
 The release runbook, staged activation procedure, monitoring fields, support
 responses and rollback constraints are in
 [`MULTI_CURRENCY_RELEASE.md`](MULTI_CURRENCY_RELEASE.md). It records the
-verified AUD-only deployment and the remaining gates for a non-AUD pilot.
+verified NZD/USD budgeting pilot and the remaining gates for any further
+currency expansion or billing-currency change.
 
 ## 1. Confirm the beta project
 
