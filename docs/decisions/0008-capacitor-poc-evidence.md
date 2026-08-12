@@ -11,17 +11,17 @@ approval evidence.
 | Packaged assets | `apps/mobile/capacitor.config.ts` points `webDir` to `../web/dist` and does not configure `server.url`. | `pnpm --filter @harbourline/mobile build:web` passed; `apps/web/dist/index.html` references the generated `assets/mobile-bootstrap.js` and `assets/release2.js` entries. |
 | Native adapter | `apps/mobile/src/mobile-platform.ts` uses App lifecycle/deep-link/back events, StatusBar styling, Filesystem cache, and Share. | `pnpm --filter @harbourline/mobile typecheck` passed. |
 | Browser fallback | The adapter no-ops outside a native Capacitor platform. Account JSON export uses the native share path when present and falls back to the existing browser download. | `apps/web/src/account-panel.ts`, `apps/web/src/release2-types.ts`. |
-| Deep-link boundary | HTTPS host/path/query allowlist; malformed, unsupported, remote, duplicate, and extra query values fail closed. Existing billing return combinations are accepted. Auth fragments are not included in parsed output and are validated before handoff. | 6 focused adapter tests plus 2 browser callback-policy tests pass, including the billing/account callback combination. |
+| Deep-link boundary | HTTPS host/path/query allowlist; malformed, unsupported, remote, duplicate, and extra query values fail closed. Existing billing return combinations are accepted. Auth fragments are not included in parsed output, short-lived callback state is consumed once, and the local Supabase session handoff is disabled until the account panel validates the callback. | 8 focused adapter tests plus callback-state and browser callback-policy tests pass, including expiry, mismatch, replay, and billing/account combinations. |
 | Back navigation | Native dialog close precedes history back; only an empty history requests app exit. | Focused adapter test passes. |
 | Storage boundary | No browser storage or token migration code exists in `apps/mobile`; web/domain/sync code remains the authority. | Repository inspection; no changes under `packages/domain` or `packages/sync`. |
-| Product boundary | No billing or financial calculation code, native billing plugin, or store project is added. Only the network permission required by the packaged web app and link/share declarations are present. | `apps/mobile/package.json`, Android manifest, and iOS project inspection. |
+| Product boundary | No native billing or financial calculation code is added. Billing UI in the companion is web-only and does not expose checkout; the native shell includes only lifecycle, local export/share, status-bar, and opt-in local notifications. | `apps/mobile/package.json`, Android manifest, iOS project, and account-panel inspection. |
 
 ## Commands run
 
 - `pnpm install --lockfile-only` — passed; lockfile updated for the new mobile workspace dependencies.
 - `pnpm install` — passed; Capacitor packages installed.
 - `pnpm --filter @harbourline/mobile typecheck` — passed.
-- `pnpm --filter @harbourline/mobile test` — passed: 6 tests.
+- `pnpm --filter @harbourline/mobile test` — passed: 8 tests.
 - `pnpm --filter @harbourline/mobile build:web` — passed: Vite production build, native bootstrap bundle, and mobile web-build guard.
 - `pnpm --filter @harbourline/web build` — passed: browser production build, PWA generation, and browser web-build guard; the native bootstrap is absent.
 - `pnpm --filter @harbourline/mobile exec cap doctor` — Android checks passed; the command exits non-zero because Xcode is not installed on this Linux host.
@@ -43,6 +43,6 @@ iOS associated-domain path scoping still requires hosted AASA components for the
 same paths. The native callback forwards only a validated Supabase auth/error
 fragment; token values are never parsed into diagnostics.
 
-The downstream shell-hardening task must connect the allowlisted callback to a
-reviewed auth session handoff and universal/app-link configuration. A later E2E
-card must run the device matrix before any pilot or store claim.
+Hosted association files, platform builds, and device verification remain
+release gates. A later E2E card must run the device matrix before any pilot or
+store claim.

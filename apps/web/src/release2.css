@@ -1208,7 +1208,7 @@
 @media (max-width: 720px) {
   .release2-dialog {
     width: calc(100vw - 16px);
-    max-height: calc(100dvh - 16px);
+    max-height: min(calc(100dvh - 16px), calc(var(--harbourline-viewport-height, 100dvh) - 16px));
     margin-block: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-bottom));
   }
 
