@@ -26,6 +26,19 @@
       document.documentElement.dataset.theme = ["sea-glass", "sunset-ledger"].includes(palette) ? "light" : "dark";
     } catch {}
   </script>
+  <script>
+    // Production budget configuration: AUD compatibility plus the owner-authorized
+    // NZD/USD pilot. Subscription billing remains a separate AUD contract.
+    globalThis.HarbourlineCurrencyConfig ??= {
+      enabledCurrencies: ["AUD", "NZD", "USD"],
+      defaultCurrency: "AUD",
+      currencies: {
+        AUD: { minorUnit: 2, locale: "en-AU" },
+        NZD: { minorUnit: 2, locale: "en-NZ" },
+        USD: { minorUnit: 2, locale: "en-US" }
+      }
+    };
+  </script>
   <style>
     :root {
       color-scheme: light;

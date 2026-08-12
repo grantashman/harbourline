@@ -41,12 +41,12 @@ The paid Household plan is currently **A$2.50 per week** during introductory ear
 access. It adds secure cloud sync, multi-device synchronisation, household
 member invitations, and optional Google Calendar sync.
 
-The current public release supports **AUD only** for budgeting and the
-introductory subscription. Harbourline does not perform foreign exchange, and
-changing a budget currency never silently converts an existing non-empty budget;
-keep an export and start a new empty budget only when another currency appears in
-an approved account experience. The source catalog contains future pilot
-metadata, but metadata is not availability; see
+The current public release supports **AUD, NZD and USD** for budgeting. The
+introductory subscription remains **A$2.50 per week** and is billed separately in
+AUD. Harbourline does not perform foreign exchange, and changing a budget
+currency never silently converts an existing non-empty budget; keep an export
+and start a new empty budget when changing currency. The source catalog contains
+additional future-pilot metadata, but metadata is not availability; see
 [`docs/MULTI_CURRENCY_RELEASE.md`](docs/MULTI_CURRENCY_RELEASE.md) for the
 enabled-currency contract, billing separation, support guidance and rollback
 procedure.

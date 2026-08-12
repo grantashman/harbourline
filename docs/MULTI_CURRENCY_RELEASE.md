@@ -4,25 +4,26 @@ Last reviewed: 12 August 2026
 
 ## Release decision
 
-**NO-GO for enabling additional currencies in production.** Harbourline remains an
-AUD-first product and the production currency allowlist must remain `AUD` until
-the financial-integrity, database, payment, tax, support and recovery gates in
-this document are evidenced and approved.
+**GO for the owner-authorized budgeting pilot:** production enables `AUD`, `NZD`
+and `USD` for budgeting while subscription billing remains AUD. This is a
+budget-currency enablement only; it does not create non-AUD Stripe Prices or
+change the existing subscription contract. Further currencies and any
+non-AUD billing require a separate reviewed release.
 
-This is a release runbook, not an authorization to enable additional currencies.
-The protected production workflow for current main head
-[`2abc42b`](https://github.com/grantashman/harbourline/commit/2abc42bd7beb8b81bd784ff3f542ce9644024a90)
-completed successfully in the [Deploy Supabase production run](https://github.com/grantashman/harbourline/actions/runs/31546954989).
-It verified that the remote database was up to date, configured the reviewed AUD
-Stripe contract, deployed the Edge Functions and passed the AUD-only schema
-invariant. No additional-currency activation, canary cohort or currency-specific
-billing change was executed.
+This is the release runbook and evidence record for the pilot. The prior
+AUD-only production workflow completed successfully in
+[run 31546954989](https://github.com/grantashman/harbourline/actions/runs/31546954989).
+The current release adds a forward-only catalog enablement migration and a
+paired browser allowlist for `AUD,NZD,USD`; the protected workflow verifies that
+allowlist while continuing to configure and verify the reviewed AUD Stripe
+contract.
 
 ### Current contract
 
-- The safe browser and domain defaults enable `AUD` only.
-- The database currency catalog seeds `AUD` as enabled and the additional catalog
-  rows as disabled.
+- The production browser and domain configuration enables `AUD`, `NZD` and `USD`
+  for budgeting, with `AUD` as the default.
+- The database currency catalog enables `AUD`, `NZD` and `USD`; the additional
+  catalog rows remain disabled.
 - Budget currency and subscription billing currency are separate. Budget
   currency does not trigger foreign-exchange conversion and does not change the
   reviewed introductory Stripe price.
@@ -36,11 +37,11 @@ The current implementation routes the covered summary, recurring-conversion,
 savings and debt calculations through integer minor-unit operations and adds
 cent-boundary, zero-decimal, safe-range and persistence regression coverage.
 The current main CI run passed Deno checks, local Supabase database tests and
-the full `pnpm check`; the protected production run verified the deployed
-AUD-only schema and active functions. Alternate-currency hosted behavior,
-test-mode checkout/webhook/refund/reconciliation E2E, backup/restore evidence,
-and commercial or compliance approvals are still not evidenced. Those remain
-release blockers for enabling a non-AUD currency.
+the full `pnpm check`; the protected production run verifies the deployed
+`AUD,NZD,USD` budget allowlist and active functions. Alternate-currency hosted
+payment/refund/reconciliation E2E, backup/restore evidence, and commercial or
+compliance approvals remain external gates for expanding beyond this budgeting
+pilot or changing billing currency.
 
 ### Currency states: metadata is not availability
 
@@ -56,17 +57,16 @@ The application and database carry reviewed metadata for these eleven codes:
 | `INR` | 2 | `en-IN` | Catalog row present; disabled |
 | `JPY` | 0 | `ja-JP` | Catalog row present; disabled |
 | `MXN` | 2 | `es-MX` | Catalog row present; disabled |
-| `NZD` | 2 | `en-NZ` | Catalog row present; disabled |
+| `NZD` | 2 | `en-NZ` | **Enabled** for budgeting; billing remains AUD |
 | `SGD` | 2 | `en-SG` | Catalog row present; disabled |
-| `USD` | 2 | `en-US` | Catalog row present; disabled |
+| `USD` | 2 | `en-US` | **Enabled** for budgeting; billing remains AUD |
 
 “Supported” in source code means that a reviewed definition exists. A code is
 available to a customer only when it is present in the deployed browser
 allowlist, enabled in `public.currency_catalog`, and covered by the release
-record. The default registry and the current production deployment therefore
-support only `AUD`, even though the other definitions are visible to tests and
-future configuration. Custom browser metadata does not bypass the database
-catalog or the release gates.
+record. The current production budget allowlist supports `AUD`, `NZD` and `USD`;
+the other definitions remain disabled. Custom browser metadata does not bypass
+the database catalog or the release gates.
 
 ### Display, calculation and settlement behavior
 
@@ -93,27 +93,28 @@ catalog or the release gates.
 
 ## Required release gates
 
-All gates below are required before changing the production allowlist. A local
-build or a green AUD smoke test is not a substitute for a hosted gate.
+The following gates remain required before expanding the production allowlist,
+enabling another currency, or changing subscription billing. A local build or a
+green AUD smoke test is not a substitute for a hosted gate.
 
 | Gate | Evidence required | Current state |
 | --- | --- | --- |
 | Exact money calculations | Runtime aggregation, recurring conversions, reports and exports remain cent/minor-unit exact without major-unit float drift; include cent-boundary and zero-decimal tests | **Partial**: covered domain paths and local regressions pass; independent full browser/export matrix remains open |
 | Domain and browser matrix | Legacy AUD restore, new empty-budget currency selection, non-empty-budget rejection, import/export, sync and report checks for every proposed currency | AUD-only local smoke passed; alternate-currency hosted behavior not verified |
-| Database migration | Staging `supabase db push --linked`, `supabase test db`, policy/invariant checks and a documented forward-only rollback or restore procedure | **Partial/pass**: current CI database tests passed; production run verified the migration state and AUD-only invariant; no staging canary evidence |
+| Database migration | Staging `supabase db push --linked`, `supabase test db`, policy/invariant checks and a documented forward-only rollback or restore procedure | **Partial/pass**: current CI database tests passed; the production workflow verifies the `AUD,NZD,USD` budget allowlist; no disposable restore evidence |
 | Edge Functions and payment contract | Deno checks plus test-mode Stripe price/catalog, checkout, webhook, refund and reconciliation tests for each billing currency | **Partial**: CI Deno/contract checks and production function deployment passed; hosted payment/refund/reconciliation E2E for a pilot currency remains open |
 | Backup and restore | Provider backup retention confirmed, disposable restore completed, backup identifier recorded outside customer data, and migration compatibility checked | **Blocked**: no current backup/restore record is attached to this release; the last documented beta checkpoint reported Free/NANO with no scheduled backups |
-| CI and review | Pull request, required CI/security checks, reviewed migration and protected production workflow run | **Partial/pass**: PR #51, validate, CodeQL, dependency review and the protected production run passed; the PR remains open with no recorded independent review |
+| CI and review | Pull request, required CI/security checks, reviewed migration and protected production workflow run | Pending on the pilot PR and exact-head checks |
 | Commercial and legal approval | Settlement, tax, refund, pricing, customer-location and support wording approved for each currency | Not approved |
-| Staged cohort | One currency enabled for a small, named cohort with a control comparison and a pause owner | Not started |
+| Staged cohort | One currency enabled for a small, named cohort with a control comparison and a pause owner | NZD/USD budgeting pilot authorized; cohort owner/window still to be recorded |
 
 ### Verified current deployment record
 
-- Repository head: `2abc42bd7beb8b81bd784ff3f542ce9644024a90` on `main`.
+- Repository head: pending pilot merge on `main`.
 - CI: [Harbourline CI run](https://github.com/grantashman/harbourline/actions/runs/31546954886), [security run](https://github.com/grantashman/harbourline/actions/runs/31546954995) and the merged PR's dependency-review check all passed for the reviewed head.
-- Production infrastructure: [run 31546954989](https://github.com/grantashman/harbourline/actions/runs/31546954989) completed successfully; the deployed verification reported AUD enabled, every non-AUD catalog row disabled, the sync function present and the Edge Functions active.
+- Production infrastructure: prior AUD-only run [31546954989](https://github.com/grantashman/harbourline/actions/runs/31546954989) passed; the pilot workflow must verify `AUD,NZD,USD` enabled, all other catalog rows disabled, the sync function present and the Edge Functions active.
 - Recovery rehearsal: the prior rollback-only SQL rehearsal applied the pending invariants inside a transaction, passed its assertions, and rolled back without changing production state; this does not substitute for a disposable backup restore.
-- Production enablement: `AUD` only. No pilot currency, non-AUD Stripe Price, or staged customer cohort is enabled by this record.
+- Production enablement target: `AUD,NZD,USD` for budgeting only. No non-AUD Stripe Price is part of this release.
 
 Do not weaken a gate because the first pilot is small. A small cohort can still
 create irreversible payment, accounting or customer-data problems.
@@ -124,8 +125,8 @@ Use the following boundaries and keep credentials out of browser configuration:
 
 | Surface | Configuration | Rule |
 | --- | --- | --- |
-| Browser bootstrap | `globalThis.HarbourlineCurrencyConfig` with `enabledCurrencies`, `defaultCurrency` and `currencies` definitions | Defaults to `AUD`; always retain AUD for compatibility; do not inject a new production allowlist before approval |
-| Database | `public.currency_catalog` (`code`, `minor_unit`, `default_locale`, `enabled`, `verified_at`, `verified_by`) | Enable one reviewed currency at a time; record who verified the row and when |
+| Browser bootstrap | `globalThis.HarbourlineCurrencyConfig` with `enabledCurrencies`, `defaultCurrency` and `currencies` definitions | Production pilot is `AUD,NZD,USD`; default remains `AUD`; retain AUD for compatibility |
+| Database | `public.currency_catalog` (`code`, `minor_unit`, `default_locale`, `enabled`, `verified_at`, `verified_by`) | Pilot migration enables exactly NZD and USD in addition to AUD; record the owner decision and timestamp |
 | Browser billing display | `VITE_HARBOURLINE_BILLING_CURRENCY` and `VITE_HARBOURLINE_BILLING_LOCALE` | Public display values only; they do not authorize a Stripe price or a budget currency |
 | Edge Function billing authority | `STRIPE_BILLING_CURRENCY` and protected `STRIPE_PRICE_ID` | Checkout fetches and verifies the active recurring Stripe Price; no FX conversion is performed |
 | Provider Price identity | `STRIPE_PRODUCT_ID` and `STRIPE_LIVE_MODE` | Checkout, webhook and reconciliation must agree on product, mode, currency, amount, interval and Price ID |
@@ -136,14 +137,18 @@ currency appearing in built-in metadata is not evidence that it is enabled or
 that a matching Stripe price exists. The Stripe price currency is also not
 proof that budget calculations, refunds or reconciliation are correct.
 
-Safe production bootstrap configuration remains:
+Production pilot bootstrap configuration:
 
 ```html
 <script>
   globalThis.HarbourlineCurrencyConfig = {
-    enabledCurrencies: ["AUD"],
+    enabledCurrencies: ["AUD", "NZD", "USD"],
     defaultCurrency: "AUD",
-    currencies: { AUD: { minorUnit: 2, locale: "en-AU" } }
+    currencies: {
+      AUD: { minorUnit: 2, locale: "en-AU" },
+      NZD: { minorUnit: 2, locale: "en-NZ" },
+      USD: { minorUnit: 2, locale: "en-US" }
+    }
   };
 </script>
 ```
@@ -162,11 +167,11 @@ Treat the browser allowlist and the database catalog as a paired feature flag;
 changing only one creates a partial rollout. For a reviewed pilot:
 
 1. Open a reviewed pull request with the browser allowlist, copy, tests and a
-   forward-only migration that updates exactly one catalog row. Include the
+   forward-only migration that updates the approved catalog rows. Include each
    code, minor-unit precision, locale, `verified_at` and approving operator in
    the release record.
 2. Rehearse the migration and the exact configuration in staging. Keep `AUD`
-   enabled and add only the proposed code. Verify empty-budget creation,
+   enabled and add only the approved pilot codes. Verify empty-budget creation,
    legacy-AUD reads, non-empty currency-change rejection, sync, imports,
    exports, checkout, refunds and reconciliation before promotion.
 3. Deploy the reviewed migration and functions first. Confirm the catalog row,
@@ -370,5 +375,5 @@ data:
 - payment, conversion, refund, reconciliation and support metrics;
 - decision to expand, pause or roll back.
 
-Until that record exists and all gates pass, the only production enablement
-recommendation is AUD-only.
+Until the pilot evidence and owner record are complete, do not expand beyond
+`AUD,NZD,USD` or change subscription billing from AUD.
