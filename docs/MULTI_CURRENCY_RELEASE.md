@@ -1,6 +1,6 @@
 # Multi-currency release, operations and support
 
-Last reviewed: 11 August 2026
+Last reviewed: 12 August 2026
 
 ## Release decision
 
@@ -9,9 +9,14 @@ AUD-first product and the production currency allowlist must remain `AUD` until
 the financial-integrity, database, payment, tax, support and recovery gates in
 this document are evidenced and approved.
 
-This is a release runbook, not a deployment authorization. No production
-migration, Edge Function deployment, Vercel deployment or additional-currency
-cohort was executed for this release attempt.
+This is a release runbook, not an authorization to enable additional currencies.
+The protected production workflow for current main head
+[`2abc42b`](https://github.com/grantashman/harbourline/commit/2abc42bd7beb8b81bd784ff3f542ce9644024a90)
+completed successfully in the [Deploy Supabase production run](https://github.com/grantashman/harbourline/actions/runs/31546954989).
+It verified that the remote database was up to date, configured the reviewed AUD
+Stripe contract, deployed the Edge Functions and passed the AUD-only schema
+invariant. No additional-currency activation, canary cohort or currency-specific
+billing change was executed.
 
 ### Current contract
 
@@ -27,14 +32,15 @@ cohort was executed for this release attempt.
 - Existing AUD records must remain readable through the compatibility path.
   Records must never be silently converted when a currency setting changes.
 
-The local validation handoff recorded passing application, domain, sync, build,
-PDF and schema checks and an AUD browser persistence smoke. It also recorded a
-financial-integrity blocker: runtime calculations still use major-unit
-JavaScript numbers in places, and a probe produced
-`0.11999999999999998` for twelve `0.01` contributions. Supabase database tests,
-Deno Edge Function tests and hosted payment/auth/reconciliation E2E were not
-available in the validation environment. These are release blockers, not
-successful production evidence.
+The current implementation routes the covered summary, recurring-conversion,
+savings and debt calculations through integer minor-unit operations and adds
+cent-boundary, zero-decimal, safe-range and persistence regression coverage.
+The current main CI run passed Deno checks, local Supabase database tests and
+the full `pnpm check`; the protected production run verified the deployed
+AUD-only schema and active functions. Alternate-currency hosted behavior,
+test-mode checkout/webhook/refund/reconciliation E2E, backup/restore evidence,
+and commercial or compliance approvals are still not evidenced. Those remain
+release blockers for enabling a non-AUD currency.
 
 ## Required release gates
 
@@ -43,14 +49,22 @@ build or a green AUD smoke test is not a substitute for a hosted gate.
 
 | Gate | Evidence required | Current state |
 | --- | --- | --- |
-| Exact money calculations | Runtime aggregation, recurring conversions, reports and exports remain cent/minor-unit exact without major-unit float drift; include cent-boundary and zero-decimal tests | **Blocked** by the validation finding above |
+| Exact money calculations | Runtime aggregation, recurring conversions, reports and exports remain cent/minor-unit exact without major-unit float drift; include cent-boundary and zero-decimal tests | **Partial**: covered domain paths and local regressions pass; independent full browser/export matrix remains open |
 | Domain and browser matrix | Legacy AUD restore, new empty-budget currency selection, non-empty-budget rejection, import/export, sync and report checks for every proposed currency | AUD-only local smoke passed; alternate-currency hosted behavior not verified |
-| Database migration | Staging `supabase db push --linked`, `supabase test db`, policy/invariant checks and a documented forward-only rollback or restore procedure | **Not run**; Supabase CLI, local Postgres/pgtap and Docker were unavailable |
-| Edge Functions and payment contract | Deno checks plus test-mode Stripe price/catalog, checkout, webhook, refund and reconciliation tests for each billing currency | **Not run**; Deno and hosted provider access were unavailable |
-| Backup and restore | Provider backup retention confirmed, disposable restore completed, backup identifier recorded outside customer data, and migration compatibility checked | **Not evidenced**; the documented beta project previously reported Free/NANO with no scheduled backups |
-| CI and review | Pull request, required CI/security checks, reviewed migration and protected production workflow run | No release PR or production workflow run exists for this attempt |
+| Database migration | Staging `supabase db push --linked`, `supabase test db`, policy/invariant checks and a documented forward-only rollback or restore procedure | **Partial/pass**: current CI database tests passed; production run verified the migration state and AUD-only invariant; no staging canary evidence |
+| Edge Functions and payment contract | Deno checks plus test-mode Stripe price/catalog, checkout, webhook, refund and reconciliation tests for each billing currency | **Partial**: CI Deno/contract checks and production function deployment passed; hosted payment/refund/reconciliation E2E for a pilot currency remains open |
+| Backup and restore | Provider backup retention confirmed, disposable restore completed, backup identifier recorded outside customer data, and migration compatibility checked | **Blocked**: no current backup/restore record is attached to this release; the last documented beta checkpoint reported Free/NANO with no scheduled backups |
+| CI and review | Pull request, required CI/security checks, reviewed migration and protected production workflow run | **Partial/pass**: PR #50, validate, CodeQL, dependency review and the protected production run passed; no independent GitHub review is recorded |
 | Commercial and legal approval | Settlement, tax, refund, pricing, customer-location and support wording approved for each currency | Not approved |
 | Staged cohort | One currency enabled for a small, named cohort with a control comparison and a pause owner | Not started |
+
+### Verified current deployment record
+
+- Repository head: `2abc42bd7beb8b81bd784ff3f542ce9644024a90` on `main`.
+- CI: [Harbourline CI run](https://github.com/grantashman/harbourline/actions/runs/31546954886), [security run](https://github.com/grantashman/harbourline/actions/runs/31546954995) and the merged PR's dependency-review check all passed for the reviewed head.
+- Production infrastructure: [run 31546954989](https://github.com/grantashman/harbourline/actions/runs/31546954989) completed successfully; the deployed verification reported AUD enabled, every non-AUD catalog row disabled, the sync function present and the Edge Functions active.
+- Recovery rehearsal: the prior rollback-only SQL rehearsal applied the pending invariants inside a transaction, passed its assertions, and rolled back without changing production state; this does not substitute for a disposable backup restore.
+- Production enablement: `AUD` only. No pilot currency, non-AUD Stripe Price, or staged customer cohort is enabled by this record.
 
 Do not weaken a gate because the first pilot is small. A small cohort can still
 create irreversible payment, accounting or customer-data problems.

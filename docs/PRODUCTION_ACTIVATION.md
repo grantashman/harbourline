@@ -42,21 +42,28 @@ Resend DNS records were added in Cloudflare for `auth.harbourline.app`:
 
 Resend still reports the domain as pending while DNS verification propagates.
 
-## Multi-currency release status — 11 August 2026
+## Multi-currency release status — 12 August 2026
 
-The controlled multi-currency release is **NO-GO**. Production remains AUD-only:
-keep the browser allowlist at `AUD`, keep the database `currency_catalog.enabled`
-flag true only for AUD, and keep the reviewed Stripe billing contract in AUD.
-Do not start the production workflow for the multi-currency migration until the
-exact-money, database, payment, backup/restore, tax/legal and support gates are
-evidenced.
+The controlled multi-currency release is **NO-GO for additional currencies**.
+Production remains AUD-only: keep the browser allowlist at `AUD`, keep the
+database `currency_catalog.enabled` flag true only for AUD, and keep the reviewed
+Stripe billing contract in AUD.
+
+The current `main` head `2abc42b` passed the required CI, security and dependency
+checks. The protected [production workflow run](https://github.com/grantashman/harbourline/actions/runs/31546954989)
+completed successfully and verified that the remote database was up to date,
+the reviewed AUD billing contract was configured, the Edge Functions were
+deployed, and the production schema remained AUD-only. This is an AUD-compatible
+infrastructure deployment, not approval to enable a pilot currency.
+
+Do not enable an additional currency until the exact-money browser/export matrix,
+staging and hosted payment/refund/reconciliation tests, backup/restore evidence,
+and product, tax/legal, accounting and support approvals are recorded.
 
 The release runbook, staged activation procedure, monitoring fields, support
 responses and rollback constraints are in
 [`MULTI_CURRENCY_RELEASE.md`](MULTI_CURRENCY_RELEASE.md). It records the
-validation finding that major-unit runtime arithmetic still needs a precision
-fix and that database, Edge Function and hosted payment gates were unavailable
-in the validation environment.
+verified AUD-only deployment and the remaining gates for a non-AUD pilot.
 
 ## 1. Confirm the beta project
 

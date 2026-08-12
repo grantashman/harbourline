@@ -108,11 +108,15 @@ Release 2 does not use silent last-write-wins for financial records.
 - AUD (`en-AU`) is the default and the only enabled currency in the default registry.
 - Currency definitions include an ISO code, native minor-unit precision, and default locale; deployments may opt additional definitions into the registry explicitly.
 - The hosted app accepts an optional pre-bootstrap `globalThis.HarbourlineCurrencyConfig` object with `enabledCurrencies`, `defaultCurrency`, and `currencies` entries (`{ minorUnit, locale }`). AUD is always retained as a compatibility currency, and the default production configuration must remain `enabledCurrencies: ["AUD"]` until the currency, tax, payment, and reporting gates are signed off.
-- Runtime calculations currently retain major-unit numbers for compatibility
-  with the existing planning UI. This is a known release blocker until the
-  aggregate, recurring-conversion, report and export paths are proven
-  minor-unit exact; persistence and cloud mutation boundaries use integer
-  minor-unit strings.
+- Covered summary, recurring-conversion, savings and debt calculations operate
+  through integer minor-unit values and convert to range-checked runtime numbers
+  only at rendering/API boundaries. Persistence and cloud mutation boundaries
+  use integer minor-unit strings. Generic legacy numeric helpers remain for
+  compatibility and must not be used for new exact-money paths.
+- The current regression suite covers cent boundaries, zero-decimal currencies,
+  safe numeric range rejection, recurring conversion and portable persistence.
+  The full alternate-currency browser/export and hosted payment matrix remains a
+  release gate, not an assumption from the presence of built-in metadata.
 - Recurring conversions round once at the currency's minor-unit boundary, so zero-decimal currencies do not inherit an AUD/two-decimal assumption.
 - A household has one currency. Currency changes are available only for an empty local budget; existing records are never silently converted. PostgreSQL rejects a non-empty document whose declared currency differs from its household, and release-2 legacy documents remain readable through the AUD compatibility path.
 - Stripe subscription prices are independently configured. Checkout verifies the Stripe Price currency against `STRIPE_BILLING_CURRENCY` (AUD by default) and never performs foreign-exchange conversion for budgeting or billing. The hosted account panel may expose the matching public `VITE_HARBOURLINE_BILLING_CURRENCY`/`VITE_HARBOURLINE_BILLING_LOCALE` display values; these are informational and must not contain secrets. Additional currencies must not be enabled in production without a verified provider price/catalog entry and tax/legal approval.
