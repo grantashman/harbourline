@@ -3,9 +3,16 @@ import { App, type AppState, type BackButtonListenerEvent } from "@capacitor/app
 import { Filesystem, Directory } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
 import { StatusBar, Style } from "@capacitor/status-bar";
+import { LocalNotifications, type PermissionStatus } from "@capacitor/local-notifications";
+import { genericReminderNotification } from "./mobile-notification-copy.ts";
 
 export type MobileAppUrlKind = "auth" | "recovery" | "calendar" | "billing" | "support" | "export";
 export type BackAction = "close-dialog" | "history-back" | "exit";
+export type ReminderPermission = "granted" | "denied" | "prompt" | "unsupported";
+
+function normaliseReminderPermission(value: PermissionStatus["display"]): ReminderPermission {
+  return value === "granted" || value === "denied" || value === "prompt" ? value : "prompt";
+}
 
 export interface ParsedMobileAppUrl {
   kind: MobileAppUrlKind;
@@ -24,8 +31,10 @@ const APPROVED_QUERY_VALUES = new Map([
   ["account", new Set(["signin"])],
   ["recovery", new Set(["1"])],
   ["calendar", new Set(["connected", "error"])],
-  ["billing", new Set(["success", "cancelled", "portal"])]
+  ["billing", new Set(["success", "cancelled", "portal"])],
+  ["state", new Set<string>()]
 ]);
+const AUTH_STATE_PATTERN = /^[A-Za-z0-9_-]{24,128}$/;
 const APPROVED_AUTH_FRAGMENT_KEYS = new Set([
   "access_token",
   "error",
@@ -43,12 +52,22 @@ function classifyQuery(query: URLSearchParams): MobileAppUrlKind | null {
   if (keys.length === 0 || keys.some((key) => !APPROVED_QUERY_VALUES.has(key))) return null;
   const keySet = new Set(keys);
   const isBillingReturn = keySet.size === 2 && keySet.has("billing") && keySet.has("account");
-  if (keySet.size !== 1 && !isBillingReturn) return null;
+  const isAuthNavigation = keySet.size === 1 && keySet.has("account");
+  const isAuthReturn = keySet.size === 2 &&
+    (keySet.has("account") || keySet.has("recovery")) && keySet.has("state") &&
+    !(keySet.has("account") && keySet.has("recovery"));
+  if (!isAuthNavigation && keySet.size !== 1 && !isBillingReturn && !isAuthReturn) return null;
   for (const key of new Set(keys)) {
     const values = query.getAll(key);
     const allowed = APPROVED_QUERY_VALUES.get(key);
-    if (values.length !== 1 || !allowed?.has(values[0] ?? "")) return null;
+    if (values.length !== 1) return null;
+    if (key === "state") {
+      if (!AUTH_STATE_PATTERN.test(values[0] ?? "")) return null;
+    } else if (!allowed?.has(values[0] ?? "")) return null;
   }
+  if (query.has("recovery") && !query.has("state")) return null;
+  if (query.has("account") && !query.has("state") && !isBillingReturn && !isAuthNavigation) return null;
+  if (query.has("state") && !query.has("account") && !query.has("recovery")) return null;
   if (query.has("billing")) return "billing";
   if (query.has("account")) return "auth";
   if (query.has("recovery")) return "recovery";
@@ -90,6 +109,7 @@ export function parseMobileAppUrl(rawUrl: string): ParsedMobileAppUrl | null {
 
   const kind = classifyQuery(url.searchParams);
   if (!kind) return null;
+  if ((kind === "auth" || kind === "recovery") && url.searchParams.has("state") && !url.hash) return null;
   return {
     kind,
     path,
@@ -112,7 +132,11 @@ export function hasApprovedAuthFragment(rawUrl: string, kind: MobileAppUrlKind):
   } catch {
     return false;
   }
-  if (!url.hash) return true;
+  // A plain account=signin link is navigation into the sign-in screen, not an
+  // auth result. It is safe to hand back without a fragment. Recovery never
+  // has a navigation-only form.
+  if (!url.searchParams.has("state")) return kind === "auth" && !url.hash;
+  if (!url.hash) return false;
   const fragment = new URLSearchParams(url.hash.slice(1));
   const keys = [...fragment.keys()];
   if (keys.length === 0 || new Set(keys).size !== keys.length) return false;
@@ -140,6 +164,7 @@ export class MobilePlatformAdapter {
   private listeners: Array<{ remove: () => Promise<void> }> = [];
   private lastHandledUrl: string | null = null;
   private pendingExportPaths = new Set<string>();
+  private notificationChannelCreated = false;
 
   private handleAppUrl(rawUrl: string, callback?: MobilePlatformCallbacks["onAppUrlOpen"]): void {
     if (rawUrl === this.lastHandledUrl) return;
@@ -209,6 +234,64 @@ export class MobilePlatformAdapter {
       }
     });
     this.listeners.push(backListener);
+  }
+
+  async getReminderPermission(): Promise<ReminderPermission> {
+    if (!this.isNative) return "unsupported";
+    try {
+      return normaliseReminderPermission((await LocalNotifications.checkPermissions()).display);
+    } catch {
+      return "unsupported";
+    }
+  }
+
+  async requestReminderNotifications(): Promise<ReminderPermission> {
+    if (!this.isNative) return "unsupported";
+    const current = await this.getReminderPermission();
+    if (current !== "prompt") return current;
+    try {
+      return normaliseReminderPermission((await LocalNotifications.requestPermissions()).display);
+    } catch {
+      return "denied";
+    }
+  }
+
+  async scheduleGenericReminder(): Promise<boolean> {
+    if (!this.isNative || (await this.requestReminderNotifications()) !== "granted") return false;
+    try {
+      if (!this.notificationChannelCreated) {
+        await LocalNotifications.createChannel({
+          id: "harbourline-reminders",
+          name: "Harbourline reminders",
+          description: "Optional generic planning reminders.",
+          importance: 2,
+          visibility: 0
+        });
+        this.notificationChannelCreated = true;
+      }
+      await LocalNotifications.schedule({
+        notifications: [{
+          id: 731,
+          title: genericReminderNotification.title,
+          body: genericReminderNotification.body,
+          channelId: "harbourline-reminders",
+          schedule: { every: "week", on: { weekday: 2, hour: 9, minute: 0 } }
+        }]
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async cancelGenericReminder(): Promise<boolean> {
+    if (!this.isNative) return false;
+    try {
+      await LocalNotifications.cancel({ notifications: [{ id: 731 }] });
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   async shareExport(blob: Blob, filename: string): Promise<boolean> {
