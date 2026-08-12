@@ -326,7 +326,8 @@ the first-member billing rehearsal. Keep immediate cancellation and plan
 switching disabled for the single-plan launch.
 
 Budget currency is independent from the subscription price. The current public
-release is AUD-only and performs no foreign exchange. Do not display or enable a
+release supports AUD, NZD and USD for budgeting and performs no foreign exchange;
+the introductory subscription remains billed in AUD. Do not display or enable a
 non-AUD subscription price until a matching Stripe Price, tax/legal treatment,
 refund wording, reconciliation check and support response have been approved;
 follow [`MULTI_CURRENCY_RELEASE.md`](MULTI_CURRENCY_RELEASE.md) for the staged

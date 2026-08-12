@@ -16,18 +16,20 @@ the funnel loses them.
 
 ### Currency availability
 
-The public launch is AUD-first. Do not claim that Harbourline supports every
-currency, localises subscription pricing globally, or converts budgets. The
-current release supports AUD for budgeting and the introductory subscription.
-Additional currencies may be described only as a controlled pilot after the
+The public launch is AUD-first in positioning. Do not claim that Harbourline
+supports every currency, localises subscription pricing globally, or converts
+budgets. The current release supports AUD, NZD and USD for budgeting; the
+introductory subscription remains billed in AUD. Further currencies may be
+described only as a controlled pilot after the
 payment, tax, reporting, precision, support and recovery gates are approved.
 Keep the currency promise consistent across the homepage, pricing, onboarding,
 help replies and campaign landing pages.
 
 Approved public wording for the current release:
 
-> Harbourline currently supports AUD for budgeting and the introductory
-> subscription. Additional currencies may appear only in an approved pilot.
+> Harbourline currently supports AUD, NZD and USD for budgeting. The
+> introductory subscription remains billed in AUD. Additional currencies may
+> appear only in an approved pilot.
 > Harbourline does not convert budgets or exchange money for you.
 
 Do not publish the eleven-code source catalog as a supported-currency list. Do
@@ -73,7 +75,7 @@ plan the household can review each payday.
 | Problem | The household knows its bills, but the timing of money still creates surprises. |
 | Product | Harbourline shows what to set aside, what is safe to spend and what needs attention. |
 | Proof | 13-week bills forecast, payday planning, shared household sync, savings and debt scenarios, exports. |
-| Trust | AUD-first, account-protected, no bank credentials, no advertising or sale of financial data. |
+| Trust | AUD-first, budget in AUD/NZD/USD, account-protected, no bank credentials, no advertising or sale of financial data. |
 | Offer | Build the first plan free; pay A$2.50 per week during early access for cloud continuity. |
 | CTA | Try the payday plan free. |
 
