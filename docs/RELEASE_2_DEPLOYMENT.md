@@ -102,6 +102,14 @@ Verify at desktop and mobile widths:
 - owner, member and unrelated accounts remain isolated
 - account export and deletion work end to end
 
+On narrow screens, also verify that the software keyboard does not hide the
+focused field, account/onboarding dialogs scroll within the dynamic viewport,
+safe-area insets leave controls clear of device cut-outs, and every primary or
+destructive control remains at least 44px tall. Opening Account creates a
+history entry so the browser Back button closes the panel before leaving the
+planner. Service-worker updates are presented explicitly rather than reloading
+over an unsaved local edit.
+
 Realtime uses Postgres change notifications to prompt an authorised document
 read. Reassess Supabase Broadcast before higher customer scale.
 
