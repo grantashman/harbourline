@@ -120,3 +120,7 @@ Release 2 does not use silent last-write-wins for financial records.
 - Recurring conversions round once at the currency's minor-unit boundary, so zero-decimal currencies do not inherit an AUD/two-decimal assumption.
 - A household has one currency. Currency changes are available only for an empty local budget; existing records are never silently converted. PostgreSQL rejects a non-empty document whose declared currency differs from its household, and release-2 legacy documents remain readable through the AUD compatibility path.
 - Stripe subscription prices are independently configured. Checkout verifies the Stripe Price currency against `STRIPE_BILLING_CURRENCY` (AUD by default) and never performs foreign-exchange conversion for budgeting or billing. The hosted account panel may expose the matching public `VITE_HARBOURLINE_BILLING_CURRENCY`/`VITE_HARBOURLINE_BILLING_LOCALE` display values; these are informational and must not contain secrets. Additional currencies must not be enabled in production without a verified provider price/catalog entry and tax/legal approval.
+
+The source definitions and current enabled-currency contract, including the
+browser/domain configuration adapters and operational rollback procedure, are
+maintained in [`MULTI_CURRENCY_RELEASE.md`](MULTI_CURRENCY_RELEASE.md).

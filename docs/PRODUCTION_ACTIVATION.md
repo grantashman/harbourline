@@ -118,6 +118,25 @@ row must include its ISO code, minor-unit precision, locale, verification
 identity and timestamp before it can be enabled. Do not put secrets in this
 object or in any `VITE_*` variable.
 
+Use this safe production bootstrap and keep it paired with the database state:
+
+```html
+<script>
+  globalThis.HarbourlineCurrencyConfig = {
+    enabledCurrencies: ["AUD"],
+    defaultCurrency: "AUD",
+    currencies: { AUD: { minorUnit: 2, locale: "en-AU" } }
+  };
+</script>
+```
+
+The browser bridge calls the locale field `locale`; the domain package calls
+the equivalent field `defaultLocale`. The eleven built-in definitions are
+metadata only. Enabling a code requires a reviewed migration, a matching
+catalog row, exact-money and hosted payment evidence, and an approved canary.
+Removing a code from the browser allowlist pauses new selection but must not
+make existing documents unreadable.
+
 Edge Function secrets:
 
 ```text
@@ -135,6 +154,8 @@ GOOGLE_CALENDAR_CLIENT_SECRET
 GOOGLE_OAUTH_REDIRECT_URI
 GOOGLE_CALENDAR_TOKEN_ENCRYPTION_KEY
 STRIPE_BILLING_CURRENCY (AUD until a reviewed non-AUD Stripe price is approved)
+STRIPE_PRODUCT_ID (reviewed Stripe product identity)
+STRIPE_LIVE_MODE (true for live, false for test mode)
 ```
 
 The Edge Function runtime also receives the public `STRIPE_PRICE_ID` from the
@@ -163,6 +184,15 @@ recorded. Keep the production allowlist and database catalog at AUD-only until
 that release is approved.
 The repository CI still runs application, domain, sync, schema and production
 build checks independently.
+
+For a currency pilot, deploy the reviewed migration and Edge Functions before
+changing the browser allowlist. Verify the catalog row, the active Stripe Price
+and function health, then enable exactly one code for the named cohort. To pause
+or roll back, stop new selection and checkout first, preserve `AUD`, keep any
+existing pilot-currency read path available, reconcile open provider events and
+use a reviewed forward migration or provider restore. This workflow has no
+tested destructive down migration; never improvise `DROP` statements in the
+production SQL editor.
 
 The current beta project is also linked to `grantashman/harbourline` through
 Supabase. The dashboard currently reports the calendar migration and functions

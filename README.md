@@ -45,7 +45,11 @@ The current public release supports **AUD only** for budgeting and the
 introductory subscription. Harbourline does not perform foreign exchange, and
 changing a budget currency never silently converts an existing non-empty budget;
 keep an export and start a new empty budget only when another currency appears in
-an approved account experience.
+an approved account experience. The source catalog contains future pilot
+metadata, but metadata is not availability; see
+[`docs/MULTI_CURRENCY_RELEASE.md`](docs/MULTI_CURRENCY_RELEASE.md) for the
+enabled-currency contract, billing separation, support guidance and rollback
+procedure.
 
 The hosted product uses secure Supabase accounts for all application access. New
 accounts are created from the public homepage, then confirmed by email before
