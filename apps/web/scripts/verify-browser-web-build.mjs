@@ -11,8 +11,8 @@ const index = await readFile(resolve(dist, "index.html"), "utf8");
 const assets = await readdir(resolve(dist, "assets"));
 
 if (!assets.includes("release2.js")) throw new Error("Browser web build is missing release2.js.");
-if (!index.includes("manifest.webmanifest") || !index.includes("registerSW.js")) {
-  throw new Error("Browser web build is missing the PWA entry.");
+if (!index.includes("manifest.webmanifest") || !assets.includes("sw.js")) {
+  throw new Error("Browser web build is missing the PWA service worker entry.");
 }
 if (assets.includes("mobile-bootstrap.js")) {
   throw new Error("Browser web build must not include the native bootstrap.");
