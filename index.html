@@ -7849,6 +7849,19 @@
     }
 
     function downloadBlob(blob, filename) {
+      const nativeShare = window.HarbourlineMobile?.shareExport;
+      if (typeof nativeShare === "function") {
+        Promise.resolve(nativeShare(blob, filename))
+          .then((shared) => {
+            if (!shared) downloadBlobInBrowser(blob, filename);
+          })
+          .catch(() => downloadBlobInBrowser(blob, filename));
+        return;
+      }
+      downloadBlobInBrowser(blob, filename);
+    }
+
+    function downloadBlobInBrowser(blob, filename) {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
