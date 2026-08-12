@@ -44,21 +44,22 @@ Resend still reports the domain as pending while DNS verification propagates.
 
 ## Multi-currency release status — 12 August 2026
 
-The controlled multi-currency release is **NO-GO for additional currencies**.
-Production remains AUD-only: keep the browser allowlist at `AUD`, keep the
-database `currency_catalog.enabled` flag true only for AUD, and keep the reviewed
-Stripe billing contract in AUD.
+The owner-authorized budgeting pilot enables `AUD`, `NZD` and `USD` in the
+browser allowlist and database catalog. Subscription billing remains the reviewed
+AUD Stripe contract; no non-AUD Stripe Price is enabled by this release.
 
 The current `main` head `2abc42b` passed the required CI, security and dependency
 checks. The protected [production workflow run](https://github.com/grantashman/harbourline/actions/runs/31546954989)
 completed successfully and verified that the remote database was up to date,
 the reviewed AUD billing contract was configured, the Edge Functions were
-deployed, and the production schema remained AUD-only. This is an AUD-compatible
-infrastructure deployment, not approval to enable a pilot currency.
+deployed, and the production schema remained AUD-only. The superseding pilot
+workflow must verify the paired `AUD,NZD,USD` budget configuration before the
+product surface is treated as enabled.
 
-Do not enable an additional currency until the exact-money browser/export matrix,
-staging and hosted payment/refund/reconciliation tests, backup/restore evidence,
-and product, tax/legal, accounting and support approvals are recorded.
+Do not expand beyond NZD/USD budgeting or change subscription billing until the
+exact-money browser/export matrix, staging and hosted payment/refund/reconciliation
+tests, backup/restore evidence, and product, tax/legal, accounting and support
+approvals are recorded.
 
 The release runbook, staged activation procedure, monitoring fields, support
 responses and rollback constraints are in
@@ -112,8 +113,8 @@ Currency rollout configuration is separate from billing configuration. The
 hosted document bridge may receive a pre-bootstrap
 `globalThis.HarbourlineCurrencyConfig` object with `enabledCurrencies`,
 `defaultCurrency` and `currencies` definitions. The safe production value is
-`enabledCurrencies: ["AUD"]`; AUD must always remain available for legacy
-records. The matching database control is `public.currency_catalog`, where a
+`enabledCurrencies: ["AUD", "NZD", "USD"]`; AUD must always remain available for
+legacy records. The matching database control is `public.currency_catalog`, where a
 row must include its ISO code, minor-unit precision, locale, verification
 identity and timestamp before it can be enabled. Do not put secrets in this
 object or in any `VITE_*` variable.
@@ -123,9 +124,13 @@ Use this safe production bootstrap and keep it paired with the database state:
 ```html
 <script>
   globalThis.HarbourlineCurrencyConfig = {
-    enabledCurrencies: ["AUD"],
+    enabledCurrencies: ["AUD", "NZD", "USD"],
     defaultCurrency: "AUD",
-    currencies: { AUD: { minorUnit: 2, locale: "en-AU" } }
+    currencies: {
+      AUD: { minorUnit: 2, locale: "en-AU" },
+      NZD: { minorUnit: 2, locale: "en-NZ" },
+      USD: { minorUnit: 2, locale: "en-US" }
+    }
   };
 </script>
 ```
@@ -133,7 +138,8 @@ Use this safe production bootstrap and keep it paired with the database state:
 The browser bridge calls the locale field `locale`; the domain package calls
 the equivalent field `defaultLocale`. The eleven built-in definitions are
 metadata only. Enabling a code requires a reviewed migration, a matching
-catalog row, exact-money and hosted payment evidence, and an approved canary.
+catalog row, exact-money evidence, and an approved pilot record. Budget
+enablement does not authorize a non-AUD subscription price.
 Removing a code from the browser allowlist pauses new selection but must not
 make existing documents unreadable.
 
@@ -180,8 +186,8 @@ For the multi-currency migration, the workflow is not a rollback mechanism. It
 has no tested destructive down migration. Run it only after the disposable
 backup restore, staging migration, database tests and forward-only recovery
 procedure in [`MULTI_CURRENCY_RELEASE.md`](MULTI_CURRENCY_RELEASE.md) are
-recorded. Keep the production allowlist and database catalog at AUD-only until
-that release is approved.
+recorded. Keep the production allowlist and database catalog paired; the current pilot is
+`AUD,NZD,USD`, while subscription billing remains AUD.
 The repository CI still runs application, domain, sync, schema and production
 build checks independently.
 

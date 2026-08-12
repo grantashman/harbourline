@@ -41,18 +41,18 @@ On payday, a household should be able to answer:
 
 ### Currency availability
 
-Harbourline is AUD-first. The current public release enables Australian dollars
-(AUD) for budgeting and the introductory subscription; additional currencies are
-pilot-only and must not be promised until their payment, tax, reporting,
-precision, support and recovery gates are approved. Budget currency is metadata
-for a household plan, not a foreign-exchange service, and Harbourline never
-moves or converts customer money.
+Harbourline is AUD-first. The current public release enables AUD, NZD and USD for
+budgeting, while the introductory subscription remains an AUD billing contract.
+Additional currencies are pilot-only and must not be promised until their
+payment, tax, reporting, precision, support and recovery gates are approved.
+Budget currency is metadata for a household plan, not a foreign-exchange service,
+and Harbourline never moves or converts customer money.
 
 The product contains reviewed definitions for `AUD`, `BHD`, `CAD`, `EUR`, `GBP`,
-`INR`, `JPY`, `MXN`, `NZD`, `SGD` and `USD`, but those definitions are not a
-customer availability promise. The current public account experience and
-database enable `AUD` only. A future pilot will name its enabled code, locale
-and minor-unit precision in the account experience and release record.
+`INR`, `JPY`, `MXN`, `NZD`, `SGD` and `USD`. The current public account
+experience and database enable `AUD`, `NZD` and `USD` for budgeting; the other
+definitions remain disabled future-pilot metadata. Enabled codes, locales and
+minor-unit precision are recorded in the release record.
 
 A currency change never converts a non-empty budget. Users who need another
 currency should keep an export and start a new empty budget only when that

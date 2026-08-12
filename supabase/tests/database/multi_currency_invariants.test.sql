@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(14);
+select plan(15);
 
 insert into auth.users (
   id,
@@ -52,8 +52,12 @@ select ok(
   'AUD is enabled by the migration'
 );
 select ok(
-  (select enabled from public.currency_catalog where code = 'USD') is false,
-  'USD remains gated until explicitly verified'
+  (select enabled from public.currency_catalog where code = 'NZD') is true,
+  'NZD is enabled by the budgeting pilot migration'
+);
+select ok(
+  (select enabled from public.currency_catalog where code = 'USD') is true,
+  'USD is enabled by the budgeting pilot migration'
 );
 select ok(
   (select relrowsecurity from pg_class where oid = 'public.currency_catalog'::regclass),
