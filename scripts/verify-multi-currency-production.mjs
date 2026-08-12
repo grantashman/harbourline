@@ -40,4 +40,9 @@ for (const [name, page] of [["marketing homepage", marketing], ["marketing blog"
 
 assert.doesNotMatch(marketing, /Australian dollars/i, "marketing homepage must not describe budgeting as Australian-dollars-only");
 
+assert.match(index, /id="toolsMenuButton"[^>]*>Tools<\/button>/, "top bar must expose one combined Tools menu");
+assert.match(index, /id="toolsMenu"[^>]*>[\s\S]*?Budget currency[\s\S]*?Download report[\s\S]*?Colour scheme/i, "Tools menu must group currency, exports, and appearance");
+assert.match(index, /class="account-status"[^>]*>Account · On<\/span>/, "Account status must remain separate from Tools");
+assert.doesNotMatch(index, /id="exportMenuButton"|id="settingsMenuButton"|id="exportMenu"|id="settingsMenu"/, "old separate top-bar menus must be removed");
+
 console.log("multi-currency production guard passed");
