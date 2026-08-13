@@ -1,4 +1,3 @@
-import "./release2.css";
 import { AccountPanel } from "./account-panel";
 import { initialiseMonitoring } from "./monitoring";
 import { inject } from "@vercel/analytics";
