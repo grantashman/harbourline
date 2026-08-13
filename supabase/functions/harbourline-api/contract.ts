@@ -61,19 +61,25 @@ function requireIsoDate(value: string, field: string): string {
 
 export function parseApiRoute(input: string): ApiRoute {
   const url = new URL(input);
-  const fullPrefix = "/functions/v1/harbourline-api/v1";
-  const runtimePrefix = "/v1";
   const path = url.pathname.replace(/\/+$/, "") || "/";
-  const prefix = path === fullPrefix || path.startsWith(`${fullPrefix}/`)
-    ? fullPrefix
-    : path === runtimePrefix || path.startsWith(`${runtimePrefix}/`)
-    ? runtimePrefix
-    : null;
-  if (!prefix) {
-    throw new Error("Unknown Harbourline API route");
+  const functionPrefix = "/functions/v1/harbourline-api";
+  let routePath = path;
+  if (
+    routePath === functionPrefix || routePath.startsWith(`${functionPrefix}/`)
+  ) {
+    routePath = routePath.slice(functionPrefix.length) || "/";
+  }
+  if (routePath === "/v1" || routePath.startsWith("/v1/")) {
+    routePath = routePath.slice(3) || "/";
   }
 
-  const segments = path.slice(prefix.length).split("/").filter(Boolean);
+  const allSegments = routePath.split("/").filter(Boolean);
+  const routeStart = allSegments.findIndex((segment) =>
+    segment === "households" || segment === "tokens"
+  );
+  const segments = routeStart >= 0
+    ? allSegments.slice(routeStart)
+    : allSegments;
   if (
     segments.length === 0 ||
     (segments.length === 1 && segments[0] === "households")
