@@ -29,6 +29,8 @@ jobs:
           deno-version: v2.x
       - run: deno check --node-modules-dir=auto supabase/functions/record-beta-progress/index.ts
       - run: deno check --node-modules-dir=auto supabase/functions/get-beta-operations/index.ts
+      - run: deno check --node-modules-dir=auto supabase/functions/harbourline-api/index.ts
+      - run: deno test --node-modules-dir=auto supabase/functions/harbourline-api/contract.test.ts
       - run: deno check --node-modules-dir=auto supabase/functions/google-calendar-start/index.ts
       - run: deno check --node-modules-dir=auto supabase/functions/google-calendar-callback/index.ts
       - run: deno check --node-modules-dir=auto supabase/functions/google-calendar-status/index.ts
