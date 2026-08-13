@@ -22,6 +22,17 @@ test("parses the versioned household bills route", () => {
   );
 });
 
+test("parses the runtime-relative household bills route", () => {
+  assert.deepEqual(
+    parseApiRoute(
+      "https://harbourline.app/v1/households/20000000-0000-0000-0000-000000000001/bills",
+    ),
+    {
+      resource: "bills",
+      householdId: "20000000-0000-0000-0000-000000000001",
+    },
+  );
+});
 test("rejects an unknown API route", () => {
   assert.throws(
     () =>
