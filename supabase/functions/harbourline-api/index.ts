@@ -292,10 +292,17 @@ async function authenticateApiKey(
   ) {
     throw new HttpError(401, "This Harbourline API key is invalid or expired");
   }
-  void client.from("api_tokens").update({ last_used_at: isoNow() }).eq(
-    "id",
-    token.id,
-  );
+  void (async () => {
+    try {
+      const { error: lastUsedError } = await client
+        .from("api_tokens")
+        .update({ last_used_at: isoNow() })
+        .eq("id", token.id);
+      if (lastUsedError) console.warn("Unable to record API token usage");
+    } catch {
+      console.warn("Unable to record API token usage");
+    }
+  })();
   return { token, scopes: new Set(token.scopes) };
 }
 
