@@ -100,7 +100,8 @@
 
     body {
       margin: 0;
-      min-height: 100vh;
+      min-height: 100dvh;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
       background:
         radial-gradient(circle at 14% 18%, color-mix(in srgb, var(--mint) 14%, transparent), transparent 30rem),
         linear-gradient(135deg, #f9fbfa 0%, #eef4f0 46%, #f7faf8 100%);
@@ -122,6 +123,7 @@
     button {
       border: 0;
       cursor: pointer;
+      touch-action: manipulation;
     }
 
     [hidden] {
@@ -267,7 +269,7 @@
     }
 
     .btn {
-      min-height: 42px;
+      min-height: 44px;
       padding: 0 16px;
       border-radius: 8px;
       background: var(--button);
@@ -428,8 +430,8 @@
     }
 
     .income-remove {
-      width: 34px;
-      height: 34px;
+      width: 44px;
+      height: 44px;
       border-radius: 7px;
       color: var(--muted);
       background: var(--field);
@@ -459,7 +461,7 @@
     }
 
     .btn.compact {
-      min-height: 36px;
+      min-height: 44px;
       padding: 9px 12px;
       font-size: 0.8rem;
     }
@@ -508,7 +510,7 @@
       align-items: center;
       justify-content: space-between;
       gap: 12px;
-      min-height: 38px;
+      min-height: 44px;
       padding: 9px 10px;
       border-radius: 7px;
       color: var(--ink);
@@ -1854,8 +1856,8 @@
 
     .calendar-nav-button {
       display: grid;
-      width: 38px;
-      height: 38px;
+      width: 44px;
+      height: 44px;
       padding: 0;
       place-items: center;
       border: 1px solid var(--line);
@@ -2212,7 +2214,7 @@
     }
 
     .upcoming-item-actions .btn {
-      min-height: 32px;
+      min-height: 44px;
       padding: 0 9px;
       font-size: 0.7rem;
     }
@@ -2286,7 +2288,7 @@
 
     .compact-label input,
     .compact-label select {
-      min-height: 38px;
+      min-height: 44px;
       margin-top: 4px;
       padding: 7px 9px;
     }
@@ -2299,7 +2301,7 @@
     }
 
     .workspace-actions .btn {
-      min-height: 38px;
+      min-height: 44px;
     }
 
     .comparison-row {
@@ -2410,8 +2412,8 @@
     }
 
     .mini-delete {
-      width: 30px;
-      height: 30px;
+      width: 44px;
+      height: 44px;
       display: grid;
       place-items: center;
       border-radius: 6px;
@@ -2433,7 +2435,7 @@
     }
 
     .edit-btn {
-      min-height: 38px;
+      min-height: 44px;
       padding: 0 12px;
       border-radius: 8px;
       display: inline-flex;
@@ -2454,8 +2456,8 @@
     }
 
     .icon-btn {
-      width: 38px;
-      height: 38px;
+      width: 44px;
+      height: 44px;
       border-radius: 8px;
       display: grid;
       place-items: center;
@@ -2910,7 +2912,7 @@
 
     .topbar .theme-toggle,
     .topbar .btn.secondary {
-      min-height: 38px;
+      min-height: 44px;
       color: var(--ink);
       background: color-mix(in srgb, var(--panel) 82%, transparent);
       border-color: var(--line);
@@ -2920,7 +2922,7 @@
 
     .topbar .btn.danger,
     :root[data-theme="dark"] .topbar .btn.danger {
-      min-height: 38px;
+      min-height: 44px;
       color: var(--rose);
       background: color-mix(in srgb, var(--rose) 12%, transparent);
       border-color: color-mix(in srgb, var(--rose) 28%, var(--line));
@@ -3097,7 +3099,7 @@
     }
 
     .btn {
-      min-height: 40px;
+      min-height: 44px;
       border-radius: 6px;
       font-size: 0.84rem;
     }
@@ -3389,14 +3391,14 @@
 
     .edit-btn,
     .icon-btn {
-      min-height: 36px;
-      height: 36px;
+      min-height: 44px;
+      height: 44px;
       border-radius: 6px;
       background: var(--panel);
     }
 
     .icon-btn {
-      width: 36px;
+      width: 44px;
     }
 
     .empty-state,
@@ -3464,7 +3466,7 @@
     @media (max-width: 680px) {
       .app {
         width: calc(100% - 20px);
-        padding-top: 0;
+        padding-top: 8px;
       }
 
       .topbar {
@@ -4267,8 +4269,8 @@
           <div class="workspace-section-head"><h3>Savings goals</h3><span class="badge" id="goalsFundedBadge">No goals yet</span></div>
           <form class="goal-form" id="goalForm">
             <label class="compact-label">Goal<input id="goalName" type="text" maxlength="60" placeholder="Emergency fund" required /></label>
-            <label class="compact-label">Target<input id="goalTarget" type="number" min="0" step="0.01" required /></label>
-            <label class="compact-label">Saved<input id="goalCurrent" type="number" min="0" step="0.01" /></label>
+            <label class="compact-label">Target<input id="goalTarget" type="number" min="0" step="0.01" inputmode="decimal" required /></label>
+            <label class="compact-label">Saved<input id="goalCurrent" type="number" min="0" step="0.01" inputmode="decimal" /></label>
             <label class="compact-label">Target date<input id="goalDate" type="date" /></label>
             <button class="btn" type="submit">Add goal</button>
           </form>
@@ -4285,7 +4287,7 @@
               <label class="compact-label">Owner<select id="netWorthOwner"><option>Household</option><option>Person 1</option><option>Person 2</option></select></label>
               <label class="compact-label">Type<select id="netWorthType"><option>Savings</option><option>Super</option><option>Property</option><option>Vehicle</option><option>Investment</option><option>Mortgage</option><option>HECS/HELP</option><option>Loan</option><option>Credit card</option><option>Other</option></select></label>
               <label class="compact-label">Name<input id="netWorthName" type="text" maxlength="60" required /></label>
-              <label class="compact-label">Value<input id="netWorthValue" type="number" min="0" step="0.01" required /></label>
+              <label class="compact-label">Value<input id="netWorthValue" type="number" min="0" step="0.01" inputmode="decimal" required /></label>
               <button class="btn" type="submit">Add</button>
             </form>
             <div class="workspace-metrics">
@@ -4299,10 +4301,10 @@
           <section class="workspace-section">
             <div class="workspace-section-head"><h3>What-if lab</h3><span class="badge">Does not change budget</span></div>
             <div class="scenario-inputs">
-              <label class="compact-label">Income change %<input id="scenarioIncomeChange" type="number" step="1" value="0" /></label>
-              <label class="compact-label">Expense change %<input id="scenarioExpenseChange" type="number" step="1" value="0" /></label>
-              <label class="compact-label">One-off cost<input id="scenarioOneOff" type="number" min="0" step="0.01" value="0" /></label>
-              <label class="compact-label">Extra debt / week<input id="scenarioDebtWeekly" type="number" min="0" step="0.01" value="0" /></label>
+              <label class="compact-label">Income change %<input id="scenarioIncomeChange" type="number" step="1" inputmode="decimal" value="0" /></label>
+              <label class="compact-label">Expense change %<input id="scenarioExpenseChange" type="number" step="1" inputmode="decimal" value="0" /></label>
+              <label class="compact-label">One-off cost<input id="scenarioOneOff" type="number" min="0" step="0.01" inputmode="decimal" value="0" /></label>
+              <label class="compact-label">Extra debt / week<input id="scenarioDebtWeekly" type="number" min="0" step="0.01" inputmode="decimal" value="0" /></label>
             </div>
             <div class="workspace-metrics">
               <div class="workspace-metric"><span>Adjusted position</span><strong id="scenarioPosition">$0.00</strong><small>Next month</small></div>
@@ -7653,7 +7655,7 @@
         item.innerHTML = `
           <div><strong></strong><div class="item-meta"></div></div>
           <div class="goal-progress"><span></span></div>
-          <label class="inline-value-label">Saved<input class="inline-value-input" type="number" min="0" step="0.01" /></label>
+          <label class="inline-value-label">Saved<input class="inline-value-input" type="number" min="0" step="0.01" inputmode="decimal" /></label>
           <div class="item-value"></div>
           <button class="mini-delete" type="button" aria-label="Delete goal">x</button>
         `;
@@ -7722,7 +7724,7 @@
           <span class="funding-status"></span>
           <span class="item-meta"></span>
           <div><strong></strong><div class="item-meta"></div></div>
-          <input class="inline-value-input" type="number" min="0" step="0.01" />
+          <input class="inline-value-input" type="number" min="0" step="0.01" inputmode="decimal" />
           <button class="mini-delete" type="button" aria-label="Delete net worth item">x</button>
         `;
         const badge = item.querySelector(".funding-status");
@@ -7849,6 +7851,19 @@
     }
 
     function downloadBlob(blob, filename) {
+      const nativeShare = window.HarbourlineMobile?.shareExport;
+      if (typeof nativeShare === "function") {
+        Promise.resolve(nativeShare(blob, filename))
+          .then((shared) => {
+            if (!shared) downloadBlobInBrowser(blob, filename);
+          })
+          .catch(() => downloadBlobInBrowser(blob, filename));
+        return;
+      }
+      downloadBlobInBrowser(blob, filename);
+    }
+
+    function downloadBlobInBrowser(blob, filename) {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;

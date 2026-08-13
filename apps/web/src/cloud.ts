@@ -20,6 +20,7 @@ import type {
   BetaOperationsSnapshot
 } from "./beta-types";
 import { addRealtimeLease, isRealtimeFailureStatus, releaseRealtimeLease } from "./realtime-lease";
+import { createAuthCallbackState } from "./auth-callback-state.ts";
 
 interface HouseholdMemberRow {
   household_id: string;
@@ -106,6 +107,20 @@ function requireGoogleAuthorizationUrl(value: unknown): string {
   return url.toString();
 }
 
+function authRedirectUrl(query: string, intent: "signin" | "recovery", expectedEmail: string | null = null): string {
+  const configuredOrigin = (window as Window & {
+    HarbourlineMobile?: { authRedirectOrigin?: string };
+  }).HarbourlineMobile?.authRedirectOrigin;
+  const isApprovedNativeOrigin = Boolean(
+    configuredOrigin && /^https:\/\/(?:www\.)?harbourline\.app$/i.test(configuredOrigin)
+  );
+  const origin = isApprovedNativeOrigin ? configuredOrigin : location.origin;
+  const path = isApprovedNativeOrigin ? "/" : location.pathname;
+  const params = new URLSearchParams(query);
+  params.set("state", createAuthCallbackState(intent, null, expectedEmail));
+  return `${origin}${path}?${params.toString()}`;
+}
+
 export class HarbourlineCloud {
   readonly configured: boolean;
   readonly client: SupabaseClient | null;
@@ -127,8 +142,11 @@ export class HarbourlineCloud {
           // can consume them after the redirect.
           flowType: "implicit",
           persistSession: true,
-            autoRefreshToken: true,
-            detectSessionInUrl: true
+          autoRefreshToken: true,
+          // AccountPanel validates the short-lived callback state before
+          // handing any fragment token to Supabase. Automatic URL detection
+          // would create a race that could adopt an unvalidated callback.
+          detectSessionInUrl: false
           }
         })
       : null;
@@ -148,6 +166,43 @@ export class HarbourlineCloud {
     return data.session;
   }
 
+  async consumeAuthCallbackFragment(): Promise<boolean> {
+    if (!this.client || !location.hash) return true;
+    const url = new URL(location.href);
+    try {
+      const fragment = new URLSearchParams(url.hash.slice(1));
+      const keys = [...fragment.keys()];
+      const approvedKeys = new Set([
+        "access_token",
+        "error",
+        "error_code",
+        "error_description",
+        "expires_at",
+        "expires_in",
+        "refresh_token",
+        "token_type",
+        "type"
+      ]);
+      const validShape = keys.length > 0 &&
+        new Set(keys).size === keys.length &&
+        keys.every((key) => approvedKeys.has(key)) &&
+        [...fragment.values()].every((value) => value.length > 0) &&
+        (fragment.has("access_token") || fragment.has("error"));
+      if (!validShape) return false;
+      if (fragment.has("error")) return false;
+      const accessToken = fragment.get("access_token");
+      const refreshToken = fragment.get("refresh_token");
+      if (!accessToken || !refreshToken) return false;
+      const { error } = await this.requireClient().auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken
+      });
+      return !error;
+    } finally {
+      history.replaceState(history.state, "", `${url.pathname}${url.search}`);
+    }
+  }
+
   onAuthChange(callback: (event: AuthChangeEvent, session: Session | null) => void): () => void {
     if (!this.client) return () => undefined;
     const { data } = this.client.auth.onAuthStateChange(callback);
@@ -159,8 +214,8 @@ export class HarbourlineCloud {
     if (error) throw error;
   }
 
-  async signInWithGoogle(): Promise<void> {
-    const redirectTo = `${location.origin}${location.pathname}?account=signin`;
+  async signInWithGoogle(expectedEmail: string | null = null): Promise<void> {
+    const redirectTo = authRedirectUrl("account=signin", "signin", expectedEmail);
     const { error } = await this.requireClient().auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo }
@@ -169,7 +224,7 @@ export class HarbourlineCloud {
   }
 
   async sendMagicLink(email: string): Promise<void> {
-    const redirectTo = `${location.origin}${location.pathname}?account=signin`;
+    const redirectTo = authRedirectUrl("account=signin", "signin", email);
     const { error } = await this.requireClient().auth.signInWithOtp({
       email,
       options: {
@@ -181,7 +236,7 @@ export class HarbourlineCloud {
   }
 
   async sendPasswordReset(email: string): Promise<void> {
-    const redirectTo = `${location.origin}${location.pathname}?recovery=1`;
+    const redirectTo = authRedirectUrl("recovery=1", "recovery", email);
     const { error } = await this.requireClient().auth.resetPasswordForEmail(email, {
       redirectTo
     });

@@ -47,6 +47,9 @@ verify_jwt = true
 [functions.get-beta-operations]
 verify_jwt = true
 
+[functions.harbourline-api]
+verify_jwt = false
+
 [functions.google-calendar-start]
 verify_jwt = true
 

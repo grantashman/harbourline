@@ -16,6 +16,16 @@ export interface HarbourlineLocalBridge {
   openWorkspace(tab: "payday"): void;
 }
 
+export interface HarbourlineMobileBridge {
+  isNative: boolean;
+  authRedirectOrigin: string;
+  shareExport(blob: Blob, filename: string): Promise<boolean>;
+  getReminderPermission?(): Promise<"granted" | "denied" | "prompt" | "unsupported">;
+  requestReminderNotifications?(): Promise<"granted" | "denied" | "prompt" | "unsupported">;
+  scheduleGenericReminder?(): Promise<boolean>;
+  cancelGenericReminder?(): Promise<boolean>;
+}
+
 export interface Release2Status {
   message: string;
   tone: "neutral" | "good" | "warning" | "danger";
@@ -36,10 +46,12 @@ export interface AccountState {
 declare global {
   interface Window {
     HarbourlineLocal?: HarbourlineLocalBridge;
+    HarbourlineMobile?: HarbourlineMobileBridge;
   }
 
   interface WindowEventMap {
     "harbourline:ready": CustomEvent<void>;
+    "harbourline:app-lifecycle": CustomEvent<{ active: boolean }>;
     "harbourline:workspace-viewed": CustomEvent<{ tab: string | undefined }>;
     "harbourline:state-changed": CustomEvent<{
       source: string;

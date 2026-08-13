@@ -140,5 +140,6 @@ jobs:
             grep -Fx "$required_secret" <<<"$secret_names" >/dev/null
           done
           supabase functions list --project-ref "$SUPABASE_PROJECT_REF" | grep -F 'create-checkout-session'
+          supabase functions list --project-ref "$SUPABASE_PROJECT_REF" | grep -F 'harbourline-api'
           schema_check="$(supabase db query --linked --output json "select (exists (select 1 from public.currency_catalog where code = 'AUD' and enabled = true)) as aud_ok, (exists (select 1 from public.currency_catalog where code = 'NZD' and enabled = true)) as nzd_ok, (exists (select 1 from public.currency_catalog where code = 'USD' and enabled = true)) as usd_ok, (not exists (select 1 from public.currency_catalog where enabled = true and code not in ('AUD', 'NZD', 'USD'))) as allowlist_ok, (exists (select 1 from pg_proc where oid = 'public.sync_budget(uuid,uuid,bigint,integer,text,text)'::regprocedure)) as sync_ok")"
           jq -e '((if type == "array" then .[0] else .rows[0] end) | .aud_ok == true and .nzd_ok == true and .usd_ok == true and .allowlist_ok == true and .sync_ok == true)' <<<"$schema_check" >/dev/null
