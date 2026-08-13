@@ -112,9 +112,13 @@ export function parseTokenCreateRequest(value: unknown): TokenCreateRequest {
   if (!name || name.length > 80) {
     throw new Error("name must be between 1 and 80 characters");
   }
-  const expiresInDays = value.expiresInDays === undefined
-    ? 30
-    : Number(value.expiresInDays);
+  const rawExpiresInDays = value.expiresInDays;
+  if (
+    rawExpiresInDays !== undefined && typeof rawExpiresInDays !== "number"
+  ) {
+    throw new Error("expiresInDays must be a number");
+  }
+  const expiresInDays = rawExpiresInDays === undefined ? 30 : rawExpiresInDays;
   if (
     !Number.isInteger(expiresInDays) || expiresInDays < 1 || expiresInDays > 365
   ) {
@@ -157,11 +161,97 @@ function text(value: unknown, fallback = ""): string {
   return typeof value === "string" ? value.trim() : fallback;
 }
 
+const EXACT_MONEY_FIELDS = new Set([
+  "amount",
+  "reservedAmount",
+  "debtBalance",
+  "target",
+  "current",
+  "value",
+  "total",
+  "startingSavings",
+  "extraPayment",
+  "billsAccountBalance",
+  "income",
+  "transfer",
+  "savings",
+  "extraDebt",
+  "safeSpend",
+]);
+const MINOR_UNIT_PATTERN = /^-?(0|[1-9][0-9]*)$/;
+
 function nullableMinor(value: unknown): string | null {
-  if (typeof value !== "string" || !/^-?(0|[1-9][0-9]*)$/.test(value)) {
+  if (typeof value !== "string" || !MINOR_UNIT_PATTERN.test(value)) {
     return null;
   }
   return BigInt(value).toString();
+}
+
+function validateExactMoneyDocument(
+  source: Record<string, unknown>,
+  currency: string,
+): void {
+  const expectedCurrency = currency.trim().toUpperCase();
+  if (
+    typeof source.currency !== "string" ||
+    source.currency.trim().toUpperCase() !== expectedCurrency
+  ) {
+    throw new Error(
+      "Exact-money budget currency does not match the household currency",
+    );
+  }
+
+  const visit = (value: unknown, path: string): void => {
+    if (Array.isArray(value)) {
+      value.forEach((entry, index) => visit(entry, `${path}[${index}]`));
+      return;
+    }
+    if (!isRecord(value)) return;
+    for (const [key, entry] of Object.entries(value)) {
+      const entryPath = `${path}.${key}`;
+      if (
+        key === "currency" &&
+        (typeof entry !== "string" ||
+          entry.trim().toUpperCase() !== expectedCurrency)
+      ) {
+        throw new Error(
+          `Exact-money currency metadata is invalid at ${entryPath}`,
+        );
+      }
+      if (key === "moneyRepresentation" && entry !== "minor-unit-string") {
+        throw new Error(`Money representation is invalid at ${entryPath}`);
+      }
+      if (
+        EXACT_MONEY_FIELDS.has(key) &&
+        (typeof entry !== "string" || !MINOR_UNIT_PATTERN.test(entry))
+      ) {
+        throw new Error(`Exact-money value is invalid at ${entryPath}`);
+      }
+      visit(entry, entryPath);
+    }
+  };
+
+  visit(source, "$");
+  const expenses = source.expenses;
+  if (expenses !== undefined && !Array.isArray(expenses)) {
+    throw new Error("Exact-money expenses must be an array");
+  }
+  for (const [index, expense] of (expenses ?? []).entries()) {
+    if (!isRecord(expense)) {
+      throw new Error(`Exact-money expense is invalid at $.expenses[${index}]`);
+    }
+    for (const field of ["amount", "reservedAmount"]) {
+      const fieldValue = expense[field];
+      if (
+        typeof fieldValue !== "string" ||
+        !MINOR_UNIT_PATTERN.test(fieldValue)
+      ) {
+        throw new Error(
+          `Exact-money bill field is invalid at $.expenses[${index}].${field}`,
+        );
+      }
+    }
+  }
 }
 
 function nullableNumber(value: unknown): number | null {
@@ -200,6 +290,7 @@ export function projectBills(
 ): ApiBill[] {
   const source = isRecord(state) ? state : {};
   const exactMoney = source.moneyRepresentation === "minor-unit-string";
+  if (exactMoney) validateExactMoneyDocument(source, currency);
   const expenses = Array.isArray(source.expenses) ? source.expenses : [];
 
   return expenses.flatMap((value): ApiBill[] => {

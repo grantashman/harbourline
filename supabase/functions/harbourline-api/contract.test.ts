@@ -70,6 +70,20 @@ test("parses token management routes and bounded token creation", () => {
     }), /expiresInDays must be between 1 and 365/);
 });
 
+test("rejects non-number token expiry values", () => {
+  for (const expiresInDays of [true, [90], null, "90"]) {
+    assert.throws(
+      () =>
+        parseTokenCreateRequest({
+          householdId: "20000000-0000-0000-0000-000000000001",
+          name: "Bills inbox",
+          expiresInDays,
+        }),
+      /expiresInDays must be a number/,
+    );
+  }
+});
+
 test("parses bounded bill query filters", () => {
   assert.deepEqual(
     parseBillsQuery("?due_after=2026-08-01&due_before=2026-08-31&limit=25"),
@@ -84,6 +98,7 @@ test("parses bounded bill query filters", () => {
 test("projects exact minor-unit bills without converting through floating point", () => {
   const bills = projectBills(
     {
+      currency: "AUD",
       moneyRepresentation: "minor-unit-string",
       expenses: [
         {
@@ -115,6 +130,56 @@ test("projects exact minor-unit bills without converting through floating point"
   });
 });
 
+test("rejects malformed exact-money documents instead of downgrading them", () => {
+  assert.throws(
+    () =>
+      projectBills(
+        {
+          currency: "USD",
+          moneyRepresentation: "minor-unit-string",
+          expenses: [{
+            id: "rent",
+            amount: 12345,
+            reservedAmount: "12345",
+          }],
+        },
+        "AUD",
+        2,
+      ),
+    /currency does not match/,
+  );
+  assert.throws(
+    () =>
+      projectBills(
+        {
+          currency: "AUD",
+          moneyRepresentation: "minor-unit-string",
+          expenses: [{
+            id: "rent",
+            amount: 12345,
+            reservedAmount: "12345",
+          }],
+        },
+        "AUD",
+        2,
+      ),
+    /Exact-money value is invalid at \$\.expenses\[0\]\.amount/,
+  );
+  assert.throws(
+    () =>
+      projectBills(
+        {
+          currency: "AUD",
+          moneyRepresentation: "minor-unit-string",
+          expenses: [{ id: "rent", amount: "12345" }],
+        },
+        "AUD",
+        2,
+      ),
+    /Exact-money bill field is invalid at \$\.expenses\[0\]\.reservedAmount/,
+  );
+});
+
 test("marks legacy major-unit bills rather than inventing exact minor units", () => {
   const bills = projectBills(
     {
@@ -140,6 +205,7 @@ test("marks legacy major-unit bills rather than inventing exact minor units", ()
 test("uses the currency catalog precision for exact minor-unit bills", () => {
   const bills = projectBills(
     {
+      currency: "BHD",
       moneyRepresentation: "minor-unit-string",
       expenses: [{
         id: "tax",
