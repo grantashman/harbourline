@@ -25,6 +25,7 @@ create index api_tokens_hash_active
 alter table public.api_tokens enable row level security;
 
 revoke all on public.api_tokens from anon, authenticated;
+grant select, update on public.api_tokens to authenticated;
 
 drop policy if exists "household owners view API tokens" on public.api_tokens;
 create policy "household owners view API tokens"
