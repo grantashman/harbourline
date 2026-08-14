@@ -92,10 +92,12 @@ declare
       then new.raw_user_meta_data -> 'marketing_attribution'
     else '{}'::jsonb
   end;
+  verified_at timestamptz := coalesce(new.email_confirmed_at, new.confirmed_at);
 begin
   insert into public.beta_operational_events (
     user_id,
     event_name,
+    signup_verified_at,
     attribution_source,
     attribution_medium,
     attribution_campaign,
@@ -106,6 +108,7 @@ begin
   values (
     new.id,
     'signup_completed',
+    verified_at,
     private.safe_marketing_attribution_value(attribution, 'source'),
     private.safe_marketing_attribution_value(attribution, 'medium'),
     private.safe_marketing_attribution_value(attribution, 'campaign'),
@@ -114,6 +117,20 @@ begin
     private.safe_marketing_landing_path(attribution)
   )
   on conflict do nothing;
+
+  update public.beta_operational_events
+  set signup_verified_at = coalesce(signup_verified_at, verified_at),
+      attribution_source = coalesce(attribution_source, private.safe_marketing_attribution_value(attribution, 'source')),
+      attribution_medium = coalesce(attribution_medium, private.safe_marketing_attribution_value(attribution, 'medium')),
+      attribution_campaign = coalesce(attribution_campaign, private.safe_marketing_attribution_value(attribution, 'campaign')),
+      attribution_content = coalesce(attribution_content, private.safe_marketing_attribution_value(attribution, 'content')),
+      attribution_term = coalesce(attribution_term, private.safe_marketing_attribution_value(attribution, 'term')),
+      attribution_landing_path = coalesce(attribution_landing_path, private.safe_marketing_landing_path(attribution))
+  where user_id = new.id
+    and event_name = 'signup_completed'
+    and (signup_verified_at is null or attribution_source is null or attribution_medium is null
+      or attribution_campaign is null or attribution_content is null or attribution_term is null
+      or attribution_landing_path is null);
   return new;
 end;
 $$;
