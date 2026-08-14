@@ -2,7 +2,7 @@
 
 Harbourline is a calm household money plan for paydays, bills, savings, debt and what is safe to spend next.
 
-It is designed for Australian households who want to move beyond a record of past spending and make a practical plan for the next pay.
+It is designed for households anywhere that want to move beyond a record of past spending and make a practical plan for the next pay.
 
 ## Start here
 

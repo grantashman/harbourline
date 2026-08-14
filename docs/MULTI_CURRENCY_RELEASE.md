@@ -325,11 +325,10 @@ currency metadata and existing pilot-currency documents may depend on it.
 
 Use this wording until a currency pilot is approved:
 
-> Harbourline is AUD-first. The current public release supports Australian
-> dollars (AUD) for budgeting and the introductory subscription. Additional
-> currencies are being evaluated and are not available unless they appear in
-> your approved account experience. Harbourline does not convert budgets or
-> exchange money for you.
+> Harbourline currently supports AUD, NZD and USD for budgeting. The introductory
+> subscription remains billed in AUD. Additional currencies are being evaluated
+> and are not available unless they appear in your approved account experience.
+> Harbourline does not convert budgets or exchange money for you.
 
 > Changing a budget currency never converts existing records. Start a new empty
 > budget if you need a different currency, and keep your original export.

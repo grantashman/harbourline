@@ -5,9 +5,10 @@ Last reviewed: 31 July 2026
 ## Launch decision
 
 Run Harbourline as a free-starter funnel with a controlled paid beta before
-opening broad public signup. Recruit free starter users and 20 to 50 Australian
-paying households over four to six weeks at the single introductory price of
-A$2.50 per week.
+opening broad public signup. Start with an Australian learning cohort of free
+starter users and 20 to 50 paying households over four to six weeks at the
+single introductory price of A$2.50 per week, while keeping the product and
+message open to other supported-currency markets.
 
 The beta has one job: prove that households who build a first payday plan keep
 using it and see enough value in cloud continuity to upgrade. Marketing should
@@ -16,10 +17,10 @@ the funnel loses them.
 
 ### Currency availability
 
-The public launch is AUD-first in positioning. Do not claim that Harbourline
-supports every currency, localises subscription pricing globally, or converts
-budgets. The current release supports AUD, NZD and USD for budgeting; the
-introductory subscription remains billed in AUD. Further currencies may be
+The public launch is not Australia-only. Do not claim that Harbourline supports
+every currency, localises subscription pricing globally, or converts budgets.
+The current release supports AUD, NZD and USD for budgeting; the introductory
+subscription remains billed in AUD. Further currencies may be
 described only as a controlled pilot after the
 payment, tax, reporting, precision, support and recovery gates are approved.
 Keep the currency promise consistent across the homepage, pricing, onboarding,
@@ -54,9 +55,9 @@ Keep paid acquisition paused until these criteria hold for one complete cohort.
 
 ### Primary customer
 
-An Australian household that:
+A household in any supported market that:
 
-- receives income weekly or fortnightly;
+- receives income weekly, every two weeks, monthly or yearly;
 - manages at least five recurring bills;
 - shares money decisions with a partner or housemate; and
 - wants a safe-to-spend number before the next payday.
@@ -75,7 +76,7 @@ plan the household can review each payday.
 | Problem | The household knows its bills, but the timing of money still creates surprises. |
 | Product | Harbourline shows what to set aside, what is safe to spend and what needs attention. |
 | Proof | 13-week bills forecast, payday planning, shared household sync, savings and debt scenarios, exports. |
-| Trust | AUD-first, budget in AUD/NZD/USD, account-protected, no bank credentials, no advertising or sale of financial data. |
+| Trust | Budget in AUD/NZD/USD, account-protected, no bank credentials, no advertising or sale of financial data. |
 | Offer | Build the first plan free; pay A$2.50 per week during early access for cloud continuity. |
 | CTA | Try the payday plan free. |
 
@@ -90,8 +91,8 @@ the next marketing pass:
 
 - Lead with “Create a free account” and explain that sign-in is required before
   using the local payday plan.
-- Put “Built for Australian households paid weekly or fortnightly” above the
-  first call to action.
+- Put “Payday planning for households across supported currencies” above the first call to
+  action, with the supported AUD, NZD and USD budgeting currencies visible.
 - Show the first-use sequence: add income, add five bills, open the payday plan.
 - Add a short privacy block: “No bank passwords. No financial-product advice.
   Export or delete your data when you choose.”
@@ -100,18 +101,25 @@ the next marketing pass:
 - Explain that a free account and sign-in are required for the local starter,
   while no payment card is needed, and keep the A$2.50/week price visible
   beside the cloud-sync upgrade CTA.
-- Add the currency FAQ: the public release is AUD-first, budget currency changes
-  never convert existing records, and the subscription price is independently
-  configured.
-- Add campaign attribution without sending budget amounts, bill names or free
-  text to analytics.
+- Add the currency FAQ: budgeting is currently available in AUD, NZD and USD,
+  budget currency changes never convert existing records, and the subscription
+  price is independently configured and billed in AUD.
+- Campaign attribution is now implemented for homepage account requests using
+  whitelisted UTM fields and the landing path only. It is stored on the
+  signup event for later source/cohort reporting; budget amounts, bill names,
+  email addresses and free text are excluded.
+- Free Starter now has a local guided activation path: income and next pay
+  date, three recurring commitments, then the payday view. It does not create
+  a cloud household or unlock paid access. The web client records only
+  privacy-safe milestone names, including `verified_session_started`, so
+  account creation can be distinguished from a later verified app session.
 
 Suggested hero copy:
 
 > Know what your next payday needs to cover.
 >
-> Harbourline helps Australian households set aside for bills, see what is safe
-> to spend and keep savings and debt moving.
+> Harbourline helps households set aside for bills, see what is safe to spend
+> and keep savings and debt moving in the supported budgeting currencies.
 
 Primary CTA: `Try the payday plan free`
 

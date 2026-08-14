@@ -21,6 +21,9 @@ identifiers. Those values must never be collected.
 - Import requires a deliberate file selection.
 - Export produces a user-controlled JSON backup.
 - No analytics, remote logging or third-party scripts receive budget values.
+- Campaign attribution is limited to whitelisted UTM fields and the landing
+  path; it never includes email addresses, budget amounts, bill names or free
+  text.
 - The production application requires an account and sign-in before planning.
   Free Starter works locally after sign-in without a payment card; paid
   subscriptions unlock cloud sync, household sharing, Calendar sync and
