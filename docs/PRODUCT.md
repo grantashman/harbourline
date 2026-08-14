@@ -2,18 +2,18 @@
 
 ## Product promise
 
-Harbourline helps Australian households turn each payday into a clear plan for
-bills, spending, debt and savings.
+Harbourline helps households turn each payday into a clear plan for bills,
+spending, debt and savings.
 
-The product is designed for households that are paid weekly or fortnightly and
-need to provision for expenses that arrive on different schedules.
+The product is designed for households paid weekly, every two weeks, monthly or
+yearly that need to provision for expenses arriving on different schedules.
 
 ## Primary customer
 
-The initial customer is an Australian household that:
+The initial customer is a household that:
 
 - manages at least five recurring bills
-- receives income weekly or fortnightly
+- receives income weekly, every two weeks, monthly or yearly
 - wants to coordinate money with a partner
 - needs a reliable safe-to-spend figure
 - is actively building savings or paying down debt
@@ -33,7 +33,8 @@ On payday, a household should be able to answer:
 - Account-based for continuity: all application access requires a Harbourline account and sign-in; paid hosted access additionally requires an internet connection.
 - Household-first for cloud plans: paid plans belong to a household, not a single device or person; the Free Starter remains local to one browser and device.
 - Explainable: every projection exposes the inputs and calculation behind it.
-- Australian by default: AUD, en-AU dates and Australian pay cycles.
+- Multi-currency by release: budgeting currently supports AUD, NZD and USD;
+  local terminology and date formatting follow the selected currency locale.
 - No advertising or sale of financial data.
 - Portable: users can export and delete their data at any time.
 - Focused: every supported customer receives the same core planning experience;
@@ -41,9 +42,9 @@ On payday, a household should be able to answer:
 
 ### Currency availability
 
-Harbourline is AUD-first in product positioning. The current public release
-enables AUD, NZD and USD for budgeting, while the introductory subscription
-remains an AUD billing contract. Further currencies are pilot-only and must
+Harbourline is designed for households in multiple markets. The current public
+release enables AUD, NZD and USD for budgeting, while the introductory
+subscription remains an AUD billing contract. Further currencies are pilot-only and must
 not be promised until their payment, tax, reporting, precision, support and
 recovery gates are approved.
 Budget currency is metadata for a household plan, not a foreign-exchange service,

@@ -29,6 +29,8 @@ import {
 } from "./local-sync-store";
 import { reportError } from "./monitoring";
 import { OnboardingFlow } from "./onboarding-flow";
+import { FreeStarterFlow } from "./free-starter-flow";
+import { shouldTrackVerifiedSession } from "./session-analytics-policy";
 import { SyncController } from "./sync-controller";
 import type {
   AccountState,
@@ -125,6 +127,7 @@ export class AccountPanel {
   private readonly newsDialog: HTMLDialogElement;
   private readonly accountButton: HTMLButtonElement;
   private readonly onboarding: OnboardingFlow;
+  private readonly freeStarter: FreeStarterFlow;
   private state: AccountState;
   private notice = "";
   private busy = false;
@@ -150,6 +153,7 @@ export class AccountPanel {
   private pendingRecoveryRedirect = false;
   private pendingRecoveryUserId: string | null = null;
   private pendingAuthExpectedEmail: string | null = null;
+  private trackedVerifiedSessionUserId: string | null = null;
   private authCallbackRejected = false;
   private dialogReturnFocus: HTMLElement | null = null;
   private dialogHistoryActive = false;
@@ -193,6 +197,7 @@ export class AccountPanel {
       createHousehold: (name, currency) => this.cloud.createHousehold(name, currency),
       linkHousehold: (householdId) => this.sync.linkDevice(householdId, "device")
     });
+    this.freeStarter = new FreeStarterFlow(bridge);
     this.calendarSync = new GoogleCalendarSync(bridge, this.cloud);
     this.accountButton = this.createAccountButton();
     this.dialog = this.createDialog();
@@ -657,6 +662,12 @@ export class AccountPanel {
     }
     const previousUserId = this.state.user?.id ?? null;
     const nextUserId = adoptedSession?.user.id ?? null;
+    if (!nextUserId) {
+      this.trackedVerifiedSessionUserId = null;
+    } else if (shouldTrackVerifiedSession(this.trackedVerifiedSessionUserId, nextUserId)) {
+      this.trackedVerifiedSessionUserId = nextUserId;
+      track("verified_session_started");
+    }
     if (previousUserId !== nextUserId) {
       const preserveRecovery = shouldPreserveRecoveryForSession(
         this.pendingRecoveryRedirect,
@@ -895,6 +906,7 @@ export class AccountPanel {
       if (!await this.disconnectLocalSync(this.sessionGeneration, refreshGeneration)) return;
       if (refreshGeneration !== this.accountRefreshGeneration) return;
       await this.onboarding.refresh({ session: null, subscriptionActive: false, households: [] });
+      this.freeStarter.refresh(false);
       if (refreshGeneration !== this.accountRefreshGeneration) return;
       this.resetCloudState(null);
       this.billingConfirmationPending = false;
@@ -935,6 +947,7 @@ export class AccountPanel {
         if (refreshGeneration !== this.accountRefreshGeneration || !this.state.session) return;
         this.state.metadata = null;
       }
+      this.freeStarter.refresh(!subscriptionActive);
       if (subscriptionActive) this.billingConfirmationPending = false;
       this.billingSubscription = billingSubscription;
       const metadata = this.sync.metadata;
@@ -1004,6 +1017,7 @@ export class AccountPanel {
         subscriptionActive: false,
         households: []
       });
+      this.freeStarter.refresh(false);
       if (refreshGeneration !== this.accountRefreshGeneration) return;
       this.notice = error instanceof Error ? error.message : "Account details could not be loaded.";
     }
@@ -1026,6 +1040,7 @@ export class AccountPanel {
     this.calendarSync.reset();
     this.inviteToken = "";
     this.onboarding.dispose();
+    this.freeStarter.refresh(false);
     this.updateCalendarControls();
   }
 

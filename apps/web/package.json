@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -p tsconfig.json --noEmit && vite build && node scripts/verify-browser-web-build.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node --experimental-strip-types --test src/access-model.test.ts src/auth-event-policy.test.ts src/auth-return-policy.test.ts src/auth-callback-state.test.ts src/realtime-lease.test.ts src/auth-gate-focus.test.ts src/pwa-update-policy.test.ts",
+    "test": "node --experimental-strip-types --test src/access-model.test.ts src/auth-event-policy.test.ts src/auth-return-policy.test.ts src/auth-callback-state.test.ts src/realtime-lease.test.ts src/auth-gate-focus.test.ts src/pwa-update-policy.test.ts src/marketing-attribution.test.ts src/free-starter-activation.test.ts src/session-analytics-policy.test.ts",
     "test:mobile": "node --experimental-strip-types --test ../mobile/src/mobile-platform.test.ts"
   },
   "dependencies": {
