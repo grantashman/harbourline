@@ -12,8 +12,9 @@
     "multi-currency:verify": "node scripts/verify-multi-currency-production.mjs",
     "pdf:verify": "node scripts/verify-pdf-build.mjs",
     "growth:verify": "node scripts/verify-growth-positioning.mjs",
+    "seo:verify": "node scripts/verify-marketing-seo.mjs",
     "db:test": "supabase test db",
     "deploy:verify": "node scripts/verify-beta-deployment-config.mjs",
-    "check": "pnpm typecheck && pnpm test && pnpm db:verify && pnpm multi-currency:verify && pnpm growth:verify && pnpm build && pnpm pdf:verify"
+    "check": "pnpm typecheck && pnpm test && pnpm db:verify && pnpm multi-currency:verify && pnpm growth:verify && pnpm seo:verify && pnpm build && pnpm pdf:verify"
   }
 }
