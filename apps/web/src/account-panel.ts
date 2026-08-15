@@ -14,7 +14,8 @@ import {
 import {
   isApprovedAccountCallbackTransport,
   parseApprovedAuthReturn,
-  parseAuthProviderError
+  parseAuthProviderError,
+  clearAuthProviderErrorRedirect
 } from "./auth-return-policy";
 import {
   consumeInvalidAuthCallback,
@@ -383,10 +384,8 @@ export class AccountPanel {
       }
       this.authCallbackRejected = false;
       this.notice = googleProviderNotice(providerError.errorCode, providerError.error);
-      for (const key of ["account", "provider", "state", "code", "sb_flow_id", "error", "error_code", "error_description"]) {
-        url.searchParams.delete(key);
-      }
-      history.replaceState(history.state, "", `${url.pathname}${url.search}${url.hash}`);
+      clearAuthProviderErrorRedirect(url);
+      history.replaceState(history.state, "", `${url.pathname}${url.search}`);
       return true;
     }
     const callback = parseApprovedAuthReturn(url.searchParams);
