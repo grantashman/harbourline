@@ -142,6 +142,11 @@ export class HarbourlineCloud {
           flowType: "pkce",
           persistSession: true,
           autoRefreshToken: true,
+          experimental: {
+            // Bind the callback to the exact verifier created for this OAuth flow.
+            // The reserved sb_flow_id is accepted by Supabase's redirect allowlist.
+            appendPkceFlowIdToRedirects: true
+          },
           // AccountPanel validates the short-lived callback state before
           // handing any fragment token to Supabase. Automatic URL detection
           // would create a race that could adopt an unvalidated callback.
@@ -170,9 +175,13 @@ export class HarbourlineCloud {
     const url = new URL(location.href);
     try {
       const code = url.searchParams.get("code");
+      const flowId = url.searchParams.get("sb_flow_id");
       if (code && url.hash) return false;
       if (code) {
-        const { error } = await this.requireClient().auth.exchangeCodeForSession(code);
+        const { error } = await this.requireClient().auth.exchangeCodeForSession(
+          code,
+          flowId ? { flowId } : undefined
+        );
         return !error;
       }
       if (!location.hash) return true;
@@ -206,6 +215,7 @@ export class HarbourlineCloud {
       return !error;
     } finally {
       url.searchParams.delete("code");
+      url.searchParams.delete("sb_flow_id");
       history.replaceState(history.state, "", `${url.pathname}${url.search}`);
     }
   }
