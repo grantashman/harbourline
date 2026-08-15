@@ -6,6 +6,10 @@ const AUTH_STATE = "0123456789abcdef0123456789abcdef";
 
 test("accepts each callback intent and the existing billing/account tuple", () => {
   assert.deepEqual(parseApprovedAuthReturn(new URLSearchParams("account=signin")), { account: "signin" });
+  assert.deepEqual(
+    parseApprovedAuthReturn(new URLSearchParams("account=signin&provider=google")),
+    { account: "signin", provider: "google" }
+  );
   assert.deepEqual(parseApprovedAuthReturn(new URLSearchParams(`account=signin&state=${AUTH_STATE}`)), { account: "signin", state: AUTH_STATE });
   assert.deepEqual(parseApprovedAuthReturn(new URLSearchParams(`recovery=1&state=${AUTH_STATE}`)), { recovery: "1", state: AUTH_STATE });
   assert.deepEqual(parseApprovedAuthReturn(new URLSearchParams("billing=success")), { billing: "success" });
@@ -25,6 +29,9 @@ test("rejects duplicate, unknown, and mixed-intent callbacks", () => {
     "billing=unexpected",
     "recovery=1&utm_source=mail",
     "account=signin&state=short",
+    "account=signin&provider=github",
+    "provider=google",
+    "account=signin&provider=google&state=" + AUTH_STATE,
     "account=signin&state=" + AUTH_STATE + "&recovery=1"
   ]) {
     assert.equal(parseApprovedAuthReturn(new URLSearchParams(query)), null, query);

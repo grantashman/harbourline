@@ -1507,19 +1507,17 @@
 
     document.querySelectorAll("[data-provider]").forEach((button) => {
       button.addEventListener("click", async () => {
-        if (!client) return setNote("Account creation is temporarily unavailable. Please try again shortly.", "error");
+        if (!client || !config?.appUrl) return setNote("Account creation is temporarily unavailable. Please try again shortly.", "error");
+        const provider = button.dataset.provider;
+        if (provider !== "google") return setNote("This sign-in option is not available right now.", "error");
         button.disabled = true;
         setButtonState(button, "Connecting...", "pending");
-        setNote("Connecting to Google...", "");
-        const { error } = await client.auth.signInWithOAuth({
-          provider: button.dataset.provider,
-          options: { redirectTo: `${config.appUrl}?account=signin` }
-        });
-        if (error) {
-          button.disabled = false;
-          setButtonState(button, "Google");
-          setNote(error.message, "error");
-        }
+        setNote("Opening secure Google sign-in...", "");
+        const appUrl = new URL(config.appUrl, window.location.href);
+        appUrl.search = "";
+        appUrl.searchParams.set("account", "signin");
+        appUrl.searchParams.set("provider", "google");
+        window.location.assign(appUrl.toString());
       });
     });
   </script>
