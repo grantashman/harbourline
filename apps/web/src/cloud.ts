@@ -137,10 +137,9 @@ export class HarbourlineCloud {
     this.client = this.configured
       ? createClient(url, publishableKey, {
         auth: {
-          // The public homepage and app use different origins. The homepage
-          // therefore returns OAuth sessions in the URL fragment so the app
-          // can consume them after the redirect.
-          flowType: "implicit",
+          // OAuth providers return an authorization code. AccountPanel
+          // validates the callback state before exchanging that code.
+          flowType: "pkce",
           persistSession: true,
           autoRefreshToken: true,
           // AccountPanel validates the short-lived callback state before
@@ -167,9 +166,16 @@ export class HarbourlineCloud {
   }
 
   async consumeAuthCallbackFragment(): Promise<boolean> {
-    if (!this.client || !location.hash) return true;
+    if (!this.client) return true;
     const url = new URL(location.href);
     try {
+      const code = url.searchParams.get("code");
+      if (code && url.hash) return false;
+      if (code) {
+        const { error } = await this.requireClient().auth.exchangeCodeForSession(code);
+        return !error;
+      }
+      if (!location.hash) return true;
       const fragment = new URLSearchParams(url.hash.slice(1));
       const keys = [...fragment.keys()];
       const approvedKeys = new Set([
@@ -199,6 +205,7 @@ export class HarbourlineCloud {
       });
       return !error;
     } finally {
+      url.searchParams.delete("code");
       history.replaceState(history.state, "", `${url.pathname}${url.search}`);
     }
   }
