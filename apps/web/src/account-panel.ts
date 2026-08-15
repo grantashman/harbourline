@@ -13,7 +13,8 @@ import {
 } from "./auth-event-policy";
 import {
   isApprovedAccountCallbackTransport,
-  parseApprovedAuthReturn
+  parseApprovedAuthReturn,
+  parseAuthProviderError
 } from "./auth-return-policy";
 import {
   consumeInvalidAuthCallback,
@@ -121,6 +122,13 @@ function emptyGoogleCalendarStatus(): GoogleCalendarStatus {
 
 function verifiedSession(session: Session | null): Session | null {
   return isVerifiedAccountUser(session?.user) ? session : null;
+}
+
+function googleProviderNotice(errorCode: string | null, error: string): string {
+  if (error === "access_denied" || errorCode === "access_denied") {
+    return "Google sign-in was cancelled. You can try again when ready.";
+  }
+  return `Google sign-in could not be completed${errorCode ? ` (${errorCode})` : ""}. Please try again.`;
 }
 
 export class AccountPanel {
@@ -368,6 +376,19 @@ export class AccountPanel {
 
   private consumeAccountRedirect(): boolean {
     const url = new URL(location.href);
+    const providerError = parseAuthProviderError(url.searchParams);
+    if (providerError) {
+      if (providerError.state) {
+        consumePendingAuthCallback("signin", providerError.state);
+      }
+      this.authCallbackRejected = false;
+      this.notice = googleProviderNotice(providerError.errorCode, providerError.error);
+      for (const key of ["account", "provider", "state", "code", "sb_flow_id", "error", "error_code", "error_description"]) {
+        url.searchParams.delete(key);
+      }
+      history.replaceState(history.state, "", `${url.pathname}${url.search}${url.hash}`);
+      return true;
+    }
     const callback = parseApprovedAuthReturn(url.searchParams);
     if (callback?.account !== "signin") {
       if (url.searchParams.has("account")) {
