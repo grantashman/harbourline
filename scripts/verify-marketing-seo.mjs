@@ -79,7 +79,13 @@ assert.match(robots, /^Sitemap: https:\/\/www\.harbourline\.app\/sitemap\.xml\s*
 const sitemap = readFileSync("marketing/sitemap.xml", "utf8");
 const sitemapUrls = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(([, url]) => url);
 assert.deepEqual(sitemapUrls, publicPages.map(({ url }) => url), "sitemap URLs must match the public marketing pages in order");
-assert.ok(!sitemap.includes("https://harbourline.app"), "sitemap must not include the private app host");
+assert.ok(
+  sitemapUrls.every((url) => {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" && parsed.hostname === "www.harbourline.app";
+  }),
+  "sitemap URLs must use the public www host"
+);
 
 const appShell = readFileSync("index.html", "utf8");
 assert.match(appShell, /<meta\s+name="robots"\s+content="noindex, follow"\s*\/>/i, "app shell must not be indexed as a marketing result");
