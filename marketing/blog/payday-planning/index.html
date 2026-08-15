@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>A budget can be accurate and still leave you guessing | Harbourline</title>
+  <meta name="description" content="A monthly budget can be correct and still fail on payday. Learn how to turn bills, savings and debt into a practical plan for each pay cycle." />
+  <meta property="og:title" content="A budget can be accurate and still leave you guessing" />
+  <meta property="og:description" content="A monthly budget can be correct and still fail on payday. Learn how to turn bills, savings and debt into a practical plan for each pay cycle." />
+  <meta property="og:type" content="article" />
+  <meta property="og:image" content="https://www.harbourline.app/assets/harbourline-waterfront.jpg" />
+  <meta property="og:image:alt" content="Harbourline household money planning preview" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="A budget can be accurate and still leave you guessing" />
+  <meta name="twitter:description" content="A monthly budget can be correct and still fail on payday. Learn how to turn bills, savings and debt into a practical plan for each pay cycle." />
+  <meta name="twitter:image" content="https://www.harbourline.app/assets/harbourline-waterfront.jpg" />
+  <link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml" />
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #06110f;
+      --panel: #0d1d1a;
+      --panel-2: #112824;
+      --ink: #f4fffb;
+      --muted: #adc5bd;
+      --line: rgba(174, 230, 211, 0.18);
+      --mint: #5ce0b3;
+      --mint-2: #2fb98d;
+      --blue: #7fa7ff;
+      --amber: #ffc66d;
+      --rose: #ff8d9c;
+      --shadow: 0 30px 90px rgba(0, 0, 0, 0.38);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 12% 8%, rgba(92, 224, 179, 0.18), transparent 30%),
+        radial-gradient(circle at 84% 16%, rgba(127, 167, 255, 0.14), transparent 32%),
+        linear-gradient(180deg, #071512 0%, #06110f 58%, #091714 100%);
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    button,
+    input,
+    select { font: inherit; }
+
+    .page { width: min(1180px, calc(100% - 32px)); margin: 0 auto; }
+
+    .nav {
+      position: sticky;
+      top: 14px;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin: 18px auto 0;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(7, 21, 18, 0.78);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+    }
+
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .brand img { width: 44px; height: 44px; border-radius: 8px; box-shadow: 0 10px 28px rgba(92, 224, 179, 0.16); }
+    .eyebrow { color: var(--mint); font-size: 0.72rem; font-weight: 850; letter-spacing: 0.08em; text-transform: uppercase; }
+    .brand strong { display: block; margin-top: 2px; font-size: 1.15rem; line-height: 1; }
+
+    .nav-links { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .nav-desktop-links { display: flex; align-items: center; gap: 8px; }
+    .nav-links > a:not(.button) { padding: 10px 12px; border-radius: 8px; color: var(--muted); font-size: 0.88rem; font-weight: 750; }
+    .nav-links > a:not(.button):hover, .nav-links > a:not(.button)[aria-current="page"] { color: var(--ink); background: rgba(255, 255, 255, 0.07); }
+
+    .nav-menu { display: none; position: relative; }
+    .nav-menu summary {
+      display: inline-flex;
+      min-height: 42px;
+      align-items: center;
+      padding: 0 13px;
+      color: var(--muted);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.04);
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-weight: 800;
+      list-style: none;
+    }
+    .nav-menu summary::-webkit-details-marker { display: none; }
+    .nav-menu[open] summary, .nav-menu summary:hover { color: var(--ink); border-color: rgba(92, 224, 179, 0.46); }
+    .nav-menu-links {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      z-index: 2;
+      display: grid;
+      min-width: 180px;
+      gap: 4px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+    }
+    .nav-menu-links a { padding: 10px 11px; border-radius: 7px; color: var(--muted); font-size: 0.84rem; font-weight: 750; }
+    .nav-menu-links a:hover { color: var(--ink); background: rgba(255, 255, 255, 0.07); }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 0 16px;
+      border: 1px solid rgba(92, 224, 179, 0.36);
+      border-radius: 8px;
+      color: #04130f;
+      background: linear-gradient(135deg, var(--mint), #96f2d2);
+      font-weight: 850;
+      box-shadow: 0 18px 36px rgba(52, 202, 155, 0.18);
+    }
+    .button.secondary { color: var(--ink); background: rgba(255, 255, 255, 0.07); border-color: var(--line); box-shadow: none; }
+    .nav-links > a.button:not(.secondary) { color: #04130f; }
+    .button:hover:not(:disabled) { transform: translateY(-1px); border-color: rgba(92, 224, 179, 0.72); }
+    .button:active:not(:disabled), .button.is-pending { transform: translateY(1px); }
+    .button:focus-visible { outline: 3px solid rgba(126, 165, 255, 0.62); outline-offset: 3px; }
+    .button:disabled { cursor: not-allowed; opacity: 0.68; }
+
+    .skip-link {
+      position: fixed;
+      top: 8px;
+      left: 8px;
+      z-index: 50;
+      padding: 10px 13px;
+      color: #04130f;
+      border-radius: 8px;
+      background: var(--mint);
+      font-weight: 850;
+      transform: translateY(-160%);
+      transition: transform 160ms ease;
+    }
+    .skip-link:focus-visible { transform: translateY(0); outline: 3px solid rgba(126, 165, 255, 0.62); outline-offset: 3px; }
+
+    .article-shell { padding: 82px 0 68px; scroll-margin-top: 90px; }
+    .article { max-width: 800px; margin: 0 auto; }
+    .post-kicker { display: inline-flex; align-items: center; gap: 8px; color: var(--mint); font-size: 0.76rem; font-weight: 850; letter-spacing: 0.08em; text-transform: uppercase; }
+    .post-kicker::before { content: ""; width: 28px; height: 1px; background: var(--mint); }
+    .post-title { max-width: 800px; margin: 18px 0 20px; font-size: clamp(2.8rem, 7vw, 5.4rem); line-height: 0.96; letter-spacing: -0.045em; text-wrap: balance; }
+    .post-dek { max-width: 700px; margin: 0; color: var(--muted); font-size: clamp(1.1rem, 2vw, 1.35rem); line-height: 1.55; text-wrap: pretty; }
+    .post-meta { display: flex; flex-wrap: wrap; gap: 12px 18px; margin-top: 24px; color: var(--muted); font-size: 0.82rem; font-weight: 700; }
+    .post-meta span + span { padding-left: 18px; border-left: 1px solid var(--line); }
+    .post-rule { height: 1px; margin: 42px 0 34px; background: var(--line); }
+
+    .post-body { font-size: 1.04rem; line-height: 1.75; }
+    .post-body p { margin: 0 0 22px; color: #d7e8e2; }
+    .post-body h2 { margin: 42px 0 14px; font-size: clamp(1.65rem, 3vw, 2.35rem); line-height: 1.08; letter-spacing: -0.025em; }
+    .post-body h3 { margin: 28px 0 8px; color: var(--ink); font-size: 1.1rem; }
+    .post-body ul { display: grid; gap: 12px; margin: 18px 0 28px; padding: 0; list-style: none; }
+    .post-body li { position: relative; padding-left: 28px; color: #d7e8e2; }
+    .post-body li::before { content: ""; position: absolute; top: 0.78em; left: 3px; width: 8px; height: 8px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 0 5px rgba(92, 224, 179, 0.1); }
+    .post-body strong { color: var(--ink); }
+
+    .post-cta { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 46px; padding-top: 26px; border-top: 1px solid var(--line); }
+    .post-cta p { max-width: 430px; margin: 0; color: var(--muted); font-size: 0.92rem; line-height: 1.5; }
+    .footer { display: flex; justify-content: space-between; gap: 16px; align-items: center; flex-wrap: wrap; padding: 28px 0 44px; color: var(--muted); border-top: 1px solid var(--line); }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 12px; }
+    .footer-links a { color: var(--mint); font-size: 0.8rem; font-weight: 750; }
+    .footer-links a:hover { color: var(--ink); }
+
+    @media (max-width: 760px) {
+      .post-cta { align-items: flex-start; flex-direction: column; }
+    }
+
+    @media (max-width: 660px) {
+      .page { width: min(100% - 20px, 1180px); }
+      .nav { position: static; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+      .nav-links { width: auto; align-items: center; gap: 6px; }
+      .nav-desktop-links { display: none; }
+      .nav-menu { display: block; }
+      .brand img { width: 38px; height: 38px; }
+      .brand .eyebrow { display: none; }
+      .brand strong { font-size: 1rem; }
+      .nav-links .button { width: auto; min-height: 42px; padding-inline: 12px; }
+      .nav-links .button.secondary { display: none; }
+      .nav-menu summary { min-height: 42px; padding-inline: 9px; font-size: 0.78rem; }
+      .article-shell { padding-top: 52px; }
+      .post-meta span + span { padding-left: 0; border-left: 0; }
+      .footer { align-items: flex-start; flex-direction: column; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#top">Skip to main content</a>
+  <header class="page nav">
+    <a class="brand" href="../../#top" aria-label="Harbourline homepage">
+      <img src="../../assets/harbourline-mark.svg" alt="" width="44" height="44" fetchpriority="high" />
+      <span>
+        <span class="eyebrow">Household money planning</span>
+        <strong>Harbourline</strong>
+      </span>
+    </a>
+    <nav class="nav-links" aria-label="Main navigation">
+      <div class="nav-desktop-links">
+        <a href="../../#features">Features</a>
+        <a href="../../#pricing">Pricing</a>
+        <a href="../">Blog</a>
+      </div>
+      <details class="nav-menu">
+        <summary>Explore</summary>
+        <div class="nav-menu-links">
+          <a href="../../#how-it-works">How it works</a>
+          <a href="../../#features">Features</a>
+          <a href="../../#pricing">Pricing</a>
+          <a href="../">Blog</a>
+          <a href="https://harbourline.app/?account=signin">Sign in</a>
+        </div>
+      </details>
+      <a class="button" href="../../#early-access">Try the payday plan free</a>
+      <a class="button secondary" href="https://harbourline.app/?account=signin">Sign in</a>
+    </nav>
+  </header>
+
+  <main id="top" class="page">
+    <article class="article article-shell">
+      <div class="post-kicker">Payday note</div>
+      <h1 class="post-title">A budget can be accurate and still leave you guessing.</h1>
+      <p class="post-dek">The missing layer in household money planning is timing: what needs to be set aside on the next payday, before it becomes urgent.</p>
+      <div class="post-meta">
+        <span>15 August 2026</span>
+        <span>Harbourline team</span>
+        <span>5 min read</span>
+      </div>
+
+      <div class="post-rule"></div>
+
+      <div class="post-body">
+        <p>A budget can be mathematically correct and still leave you wondering whether you can afford the week ahead.</p>
+        <p>That usually happens because most budgets are organised around calendar months, while households make decisions around paydays.</p>
+        <p>Income arrives weekly, fortnightly, monthly or irregularly. Bills have their own schedules. Rent may be monthly. Insurance may be annual. Electricity might arrive every few months. Savings and debt payments may happen every payday.</p>
+        <p>The problem is not always overspending. Often, it is timing.</p>
+        <p>A household can know exactly how much it spends each year and still be surprised by the bill that arrives next week.</p>
+
+        <h2>The number that matters is not your balance</h2>
+        <p>Your account balance tells you how much money is currently there.</p>
+        <p>It does not tell you how much of that money is already committed.</p>
+        <p>A more useful question is:</p>
+        <p><strong>After the next payday, what needs to be set aside before anything else is considered safe to spend?</strong></p>
+        <p>That means separating the money already spoken for from the money that is genuinely available for groceries, transport, discretionary spending and unexpected costs.</p>
+        <p>This is why a “safe-to-spend” number can be more useful than a balance alone. It turns a vague feeling into a decision boundary.</p>
+        <p>It is not a prediction of everything that could happen. It is a clear view of what the current plan needs to cover.</p>
+
+        <h2>A simple fortnightly example</h2>
+        <p>Imagine a household receives <strong>A$2,400 every two weeks</strong>.</p>
+        <p>Its regular commitments look like this:</p>
+        <ul>
+          <li><strong>Rent:</strong> A$738.46 set aside each fortnight for a A$1,600 monthly payment.</li>
+          <li><strong>Utilities:</strong> A$110.77 set aside each fortnight for A$240 per month.</li>
+          <li><strong>Annual insurance:</strong> A$46.15 set aside each fortnight for a A$1,200 yearly bill.</li>
+          <li><strong>Annual registration:</strong> A$30.00 set aside each fortnight for a A$780 yearly bill.</li>
+          <li><strong>Savings:</strong> A$300 set aside each payday.</li>
+          <li><strong>Extra debt payment:</strong> A$150 set aside each payday.</li>
+        </ul>
+        <p>The total planned allocation is <strong>A$1,375.38</strong>. That leaves <strong>A$1,024.62</strong> before other variable spending such as food, fuel and household purchases.</p>
+        <p>The important part is not the exact figure. The important part is that monthly and annual commitments have been translated into the same rhythm as the household’s income.</p>
+        <p>Without that translation, the annual insurance bill can feel like a sudden emergency even though the household could afford it if the money had been provisioned gradually.</p>
+
+        <h2>Annual bills are not surprises</h2>
+        <p>An annual bill is only a surprise if the plan waits until the due date to deal with it.</p>
+        <p>The same applies to quarterly rates, school costs, registration, memberships, maintenance and other expenses that do not appear every payday.</p>
+        <p>A practical plan gives these expenses a small allocation each pay cycle. That allocation may be easy to overlook because it is not attached to an immediate purchase, but it is what prevents the future bill from competing with the current week.</p>
+        <p>This is the difference between recording an expense and planning for it.</p>
+        <p>Recording tells you what happened.</p>
+        <p>Planning tells you what needs to happen next.</p>
+
+        <h2>The calendar is part of the budget</h2>
+        <p>A list of categories is useful, but it is incomplete without dates.</p>
+        <p>Two households can have the same annual income and the same annual expenses while experiencing completely different levels of pressure. The difference may be when their income arrives and when their largest bills are due.</p>
+        <p>A payday plan should make four things visible:</p>
+        <ul>
+          <li>What income is arriving next.</li>
+          <li>Which commitments need funding.</li>
+          <li>What is underfunded or approaching.</li>
+          <li>What remains after the plan is accounted for.</li>
+        </ul>
+        <p>That view is especially important when two people share decisions. A shared household conversation is easier when both people can see the same forward picture instead of comparing separate mental calculations.</p>
+
+        <h2>A useful plan should survive real life</h2>
+        <p>No household follows a plan perfectly.</p>
+        <p>Income changes. Bills move. A repair appears. A savings goal gets adjusted. A debt payment needs to be reconsidered.</p>
+        <p>That does not mean the plan has failed. It means the plan needs to be updated without losing the forward view.</p>
+        <p>The goal is not to create a perfect record of the past. The goal is to make the next decision clearer.</p>
+        <p>A strong household planning system should therefore do two things at once:</p>
+        <ul>
+          <li>show what the plan says should happen; and</li>
+          <li>let you compare that plan with what actually happened.</li>
+        </ul>
+        <p>That distinction matters. If every change destroys the original plan, it becomes difficult to understand where the household drifted or what needs to be adjusted next.</p>
+
+        <h2>Start with the next payday</h2>
+        <p>A useful starting point does not require every historical transaction or a perfectly categorised year of spending.</p>
+        <p>Start with:</p>
+        <ul>
+          <li>the next income date;</li>
+          <li>the commitments that repeat;</li>
+          <li>the bills that arrive less often;</li>
+          <li>the savings and debt goals that should keep moving; and</li>
+          <li>the amount that remains after those allocations.</li>
+        </ul>
+        <p>Once the next payday is clear, the longer view becomes easier to build.</p>
+        <p>Harbourline is designed around this rhythm. It lets households map income, bills, savings and debt across weekly, fortnightly, monthly and yearly cycles, then use the Payday Check-in to decide what the next pay needs to cover.</p>
+        <p>The product also includes a 13-week bills forecast, cash-flow calendar, savings and debt scenarios, actual transaction tracking and portable exports. The free local planner is available without a payment card, while the paid Household plan adds cloud sync, multi-device access, household invitations and optional one-way Google Calendar synchronisation.</p>
+        <p>Budgeting is currently available in <strong>AUD, NZD and USD</strong>. The introductory subscription remains billed in AUD. Harbourline is a planning tool, not financial advice, and it does not move money or perform foreign exchange.</p>
+        <p>The useful question is not simply:</p>
+        <p><strong>How much money do we have?</strong></p>
+        <p>It is:</p>
+        <p><strong>What does the next payday need to do?</strong></p>
+        <p>That is the layer that turns a budget from a record into a plan.</p>
+
+        <div class="post-cta">
+          <p>Ready to see your next payday more clearly?</p>
+          <a class="button" href="../../#early-access">Try the payday plan free</a>
+        </div>
+      </div>
+    </article>
+  </main>
+
+  <footer class="page footer">
+    <span>&copy; 2026 Harbourline</span>
+    <span>Clearer money planning for everyday households.</span>
+    <div class="footer-links">
+      <a href="../../#trust">Privacy &amp; access</a>
+      <a href="../../#pricing">Pricing</a>
+      <a href="../">Blog</a>
+      <a href="https://harbourline.app/?account=signin">Sign in</a>
+    </div>
+  </footer>
+</body>
+</html>
