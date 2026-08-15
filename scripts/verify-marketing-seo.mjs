@@ -91,8 +91,14 @@ const appShell = readFileSync("index.html", "utf8");
 assert.match(appShell, /<meta\s+name="robots"\s+content="noindex, follow"\s*\/>/i, "app shell must not be indexed as a marketing result");
 
 const vercel = JSON.parse(readFileSync("vercel.json", "utf8"));
-const blogRedirects = (vercel.redirects ?? []).filter(({ source }) => source === "/blog" || source === "/blog/:path*");
-assert.equal(blogRedirects.length, 2, "app deployment must redirect apex blog paths to the public marketing host");
-assert.ok(blogRedirects.every(({ destination, permanent }) => destination.startsWith("https://www.harbourline.app/blog") && permanent === true), "apex blog redirects must be permanent and use the public host");
+const expectedBlogRedirects = [
+  { source: "/blog", destination: "https://www.harbourline.app/blog/", permanent: true },
+  { source: "/blog/", destination: "https://www.harbourline.app/blog/", permanent: true },
+  { source: "/blog/payday-planning/", destination: "https://www.harbourline.app/blog/payday-planning/", permanent: true },
+  { source: "/blog/early-access/", destination: "https://www.harbourline.app/blog/early-access/", permanent: true },
+  { source: "/blog/:path*", destination: "https://www.harbourline.app/blog/:path*", permanent: true }
+];
+const blogRedirects = (vercel.redirects ?? []).filter(({ source }) => source.startsWith("/blog"));
+assert.deepEqual(blogRedirects, expectedBlogRedirects, "app deployment must redirect all public apex blog paths to the public marketing host");
 
 console.log(`Marketing SEO guard passed for ${publicPages.length} public pages.`);
