@@ -7,6 +7,21 @@
       "permanent": true
     },
     {
+      "source": "/blog/",
+      "destination": "https://www.harbourline.app/blog/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/payday-planning/",
+      "destination": "https://www.harbourline.app/blog/payday-planning/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/early-access/",
+      "destination": "https://www.harbourline.app/blog/early-access/",
+      "permanent": true
+    },
+    {
       "source": "/blog/:path*",
       "destination": "https://www.harbourline.app/blog/:path*",
       "permanent": true
