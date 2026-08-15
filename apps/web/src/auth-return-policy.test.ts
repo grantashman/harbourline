@@ -3,7 +3,8 @@ import test from "node:test";
 import {
   isApprovedAccountCallbackTransport,
   parseApprovedAuthReturn,
-  parseAuthProviderError
+  parseAuthProviderError,
+  clearAuthProviderErrorRedirect
 } from "./auth-return-policy.ts";
 
 const AUTH_STATE = "0123456789abcdef0123456789abcdef";
@@ -93,4 +94,14 @@ test("rejects unsafe or mixed provider errors", () => {
   ]) {
     assert.equal(parseAuthProviderError(new URLSearchParams(query)), null, query);
   }
+});
+
+test("clears the duplicated provider error hash before callback processing", () => {
+  const url = new URL(
+    `https://harbourline.app/?account=signin&state=${AUTH_STATE}&error=server_error&error_code=unexpected_failure&error_description=Unable+to+exchange+external+code&sb_flow_id=${FLOW_ID}#error=server_error&error_code=unexpected_failure&error_description=Unable%20to%20exchange%20external%20code&sb=ignored`
+  );
+  clearAuthProviderErrorRedirect(url);
+  assert.equal(url.pathname, "/");
+  assert.equal(url.search, "");
+  assert.equal(url.hash, "");
 });

@@ -117,6 +117,16 @@ export function parseAuthProviderError(query: URLSearchParams): AuthProviderErro
   };
 }
 
+export function clearAuthProviderErrorRedirect(url: URL): void {
+  for (const key of ["account", "provider", "state", "code", "sb_flow_id", "error", "error_code", "error_description"]) {
+    url.searchParams.delete(key);
+  }
+  // Supabase duplicates provider errors into a hash. The query was already
+  // validated above; leaving the duplicate hash makes the generic callback
+  // parser reject the otherwise valid provider-error return.
+  url.hash = "";
+}
+
 export function isApprovedAccountCallbackTransport(
   callback: ApprovedAuthReturn | null,
   hasHash: boolean
