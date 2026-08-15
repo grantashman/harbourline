@@ -153,6 +153,7 @@ export class AccountPanel {
   private pendingRecoveryRedirect = false;
   private pendingRecoveryUserId: string | null = null;
   private pendingAuthExpectedEmail: string | null = null;
+  private pendingGoogleSignIn = false;
   private trackedVerifiedSessionUserId: string | null = null;
   private authCallbackRejected = false;
   private dialogReturnFocus: HTMLElement | null = null;
@@ -338,6 +339,19 @@ export class AccountPanel {
       await this.refreshAccount();
       if (recoveryRedirect) this.openRecoveryMode();
     }
+    const shouldStartGoogleSignIn = this.pendingGoogleSignIn && !adoptedInitialSession;
+    this.pendingGoogleSignIn = false;
+    if (shouldStartGoogleSignIn) {
+      try {
+        await this.cloud.signInWithGoogle();
+        return;
+      } catch (error) {
+        reportError(error);
+        this.notice = error instanceof Error
+          ? error.message
+          : "Google sign-in could not be started. Please try again.";
+      }
+    }
     this.handleBillingRedirect(billingRedirect);
     this.handleCalendarRedirect(calendarRedirect);
     if (billingRedirect || calendarRedirect) {
@@ -396,7 +410,9 @@ export class AccountPanel {
       }
       this.pendingAuthExpectedEmail = validation.pending.expectedEmail;
     }
+    this.pendingGoogleSignIn = callback.provider === "google";
     url.searchParams.delete("account");
+    url.searchParams.delete("provider");
     url.searchParams.delete("state");
     history.replaceState(history.state, "", `${url.pathname}${url.search}${url.hash}`);
     return true;
