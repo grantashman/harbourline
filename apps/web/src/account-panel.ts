@@ -11,7 +11,10 @@ import {
   shouldNotifySignupForAuthEvent,
   shouldPreserveRecoveryForSession
 } from "./auth-event-policy";
-import { parseApprovedAuthReturn } from "./auth-return-policy";
+import {
+  isApprovedAccountCallbackTransport,
+  parseApprovedAuthReturn
+} from "./auth-return-policy";
 import {
   consumeInvalidAuthCallback,
   consumePendingAuthCallback,
@@ -377,15 +380,7 @@ export class AccountPanel {
       }
       return false;
     }
-    if (callback.state && !url.hash) {
-      recordInvalidAuthCallback();
-      this.authCallbackRejected = true;
-      url.searchParams.delete("account");
-      url.searchParams.delete("state");
-      history.replaceState(history.state, "", `${url.pathname}${url.search}`);
-      return false;
-    }
-    if (!callback.state && url.hash) {
+    if (!isApprovedAccountCallbackTransport(callback, Boolean(url.hash))) {
       recordInvalidAuthCallback();
       this.authCallbackRejected = true;
       url.searchParams.delete("account");

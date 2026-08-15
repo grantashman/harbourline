@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseApprovedAuthReturn } from "./auth-return-policy.ts";
+import {
+  isApprovedAccountCallbackTransport,
+  parseApprovedAuthReturn
+} from "./auth-return-policy.ts";
 
 const AUTH_STATE = "0123456789abcdef0123456789abcdef";
 
@@ -43,4 +46,19 @@ test("rejects duplicate, unknown, and mixed-intent callbacks", () => {
   ]) {
     assert.equal(parseApprovedAuthReturn(new URLSearchParams(query)), null, query);
   }
+});
+
+test("allows a PKCE code callback without an implicit-flow hash", () => {
+  const callback = parseApprovedAuthReturn(
+    new URLSearchParams(`account=signin&state=${AUTH_STATE}&code=oauth-code`)
+  );
+  assert.equal(isApprovedAccountCallbackTransport(callback, false), true);
+  assert.equal(isApprovedAccountCallbackTransport(callback, true), false);
+  assert.equal(
+    isApprovedAccountCallbackTransport(
+      parseApprovedAuthReturn(new URLSearchParams(`account=signin&state=${AUTH_STATE}`)),
+      false
+    ),
+    false
+  );
 });

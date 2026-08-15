@@ -62,3 +62,14 @@ export function parseApprovedAuthReturn(query: URLSearchParams): ApprovedAuthRet
     ...(query.has("state") ? { state: query.get("state") ?? undefined } : {})
   };
 }
+
+export function isApprovedAccountCallbackTransport(
+  callback: ApprovedAuthReturn | null,
+  hasHash: boolean
+): boolean {
+  if (callback?.account !== "signin") return false;
+  if (callback.code && hasHash) return false;
+  if (callback.state && !hasHash && !callback.code) return false;
+  if (!callback.state && hasHash) return false;
+  return true;
+}
