@@ -25,8 +25,10 @@
       --muted: #adc5bd;
       --line: rgba(174, 230, 211, 0.18);
       --mint: #5ce0b3;
+      --mint-2: #2fb98d;
       --blue: #7fa7ff;
       --amber: #ffc66d;
+      --rose: #ff8d9c;
       --shadow: 0 30px 90px rgba(0, 0, 0, 0.38);
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
@@ -46,6 +48,10 @@
     }
 
     a { color: inherit; text-decoration: none; }
+
+    button,
+    input,
+    select { font: inherit; }
 
     .page { width: min(1180px, calc(100% - 32px)); margin: 0 auto; }
 
@@ -73,8 +79,8 @@
 
     .nav-links { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
     .nav-desktop-links { display: flex; align-items: center; gap: 8px; }
-    .nav-links a { padding: 10px 12px; border-radius: 8px; color: var(--muted); font-size: 0.88rem; font-weight: 750; }
-    .nav-links a:hover, .nav-links a[aria-current="page"] { color: var(--ink); background: rgba(255, 255, 255, 0.07); }
+    .nav-links > a:not(.button) { padding: 10px 12px; border-radius: 8px; color: var(--muted); font-size: 0.88rem; font-weight: 750; }
+    .nav-links > a:not(.button):hover, .nav-links > a:not(.button)[aria-current="page"] { color: var(--ink); background: rgba(255, 255, 255, 0.07); }
 
     .nav-menu { display: none; position: relative; }
     .nav-menu summary {
@@ -124,14 +130,45 @@
       box-shadow: 0 18px 36px rgba(52, 202, 155, 0.18);
     }
     .button.secondary { color: var(--ink); background: rgba(255, 255, 255, 0.07); border-color: var(--line); box-shadow: none; }
-    .button:hover { transform: translateY(-1px); border-color: rgba(92, 224, 179, 0.72); }
-    .button:focus-visible, a:focus-visible { outline: 3px solid rgba(126, 165, 255, 0.62); outline-offset: 3px; }
+    .nav-links > a.button:not(.secondary) { color: #04130f; }
+    .button:hover:not(:disabled) { transform: translateY(-1px); border-color: rgba(92, 224, 179, 0.72); }
+    .button:active:not(:disabled), .button.is-pending { transform: translateY(1px); }
+    .button:focus-visible { outline: 3px solid rgba(126, 165, 255, 0.62); outline-offset: 3px; }
+    .button:disabled { cursor: not-allowed; opacity: 0.68; }
 
-    .article-shell { padding: 82px 0 68px; }
+    .skip-link {
+      position: fixed;
+      top: 8px;
+      left: 8px;
+      z-index: 50;
+      padding: 10px 13px;
+      color: #04130f;
+      border-radius: 8px;
+      background: var(--mint);
+      font-weight: 850;
+      transform: translateY(-160%);
+      transition: transform 160ms ease;
+    }
+    .skip-link:focus-visible { transform: translateY(0); outline: 3px solid rgba(126, 165, 255, 0.62); outline-offset: 3px; }
+
+    .blog-hero { padding: 76px 0 42px; }
+    .blog-hero h1 { max-width: 760px; margin: 14px 0 18px; font-size: clamp(2.8rem, 7vw, 5.4rem); line-height: 0.96; letter-spacing: -0.045em; text-wrap: balance; }
+    .blog-hero p { max-width: 700px; margin: 0; color: var(--muted); font-size: clamp(1.1rem, 2vw, 1.35rem); line-height: 1.55; text-wrap: pretty; }
+    .article-index { padding: 18px 0 34px; }
+    .article-index-heading { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-bottom: 18px; }
+    .article-index-heading h2 { margin: 0; font-size: clamp(1.65rem, 3vw, 2.35rem); line-height: 1.08; letter-spacing: -0.025em; }
+    .article-index-heading p { max-width: 420px; margin: 0; color: var(--muted); line-height: 1.55; }
+    .article-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .article-card { display: flex; min-height: 250px; flex-direction: column; align-items: flex-start; padding: 22px; border: 1px solid var(--line); border-radius: 10px; background: rgba(13, 29, 26, 0.78); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset; }
+    .article-card.featured { grid-column: span 2; background: linear-gradient(145deg, rgba(17, 40, 36, 0.92), rgba(13, 29, 26, 0.72)); }
+    .article-card h3 { max-width: 620px; margin: 14px 0 10px; font-size: clamp(1.45rem, 2.7vw, 2.1rem); line-height: 1.08; letter-spacing: -0.025em; }
+    .article-card p { margin: 0 0 18px; color: var(--muted); line-height: 1.55; }
+    .article-card .button { margin-top: auto; }
+    .article-shell { padding: 48px 0 68px; scroll-margin-top: 90px; }
     .article { max-width: 800px; margin: 0 auto; }
     .post-kicker { display: inline-flex; align-items: center; gap: 8px; color: var(--mint); font-size: 0.76rem; font-weight: 850; letter-spacing: 0.08em; text-transform: uppercase; }
     .post-kicker::before { content: ""; width: 28px; height: 1px; background: var(--mint); }
-    h1 { max-width: 800px; margin: 18px 0 20px; font-size: clamp(2.8rem, 7vw, 5.4rem); line-height: 0.96; letter-spacing: -0.045em; text-wrap: balance; }
+    .post-title { max-width: 800px; margin: 18px 0 20px; font-size: clamp(2.8rem, 7vw, 5.4rem); line-height: 0.96; letter-spacing: -0.045em; text-wrap: balance; }
     .post-dek { max-width: 700px; margin: 0; color: var(--muted); font-size: clamp(1.1rem, 2vw, 1.35rem); line-height: 1.55; text-wrap: pretty; }
     .post-meta { display: flex; flex-wrap: wrap; gap: 12px 18px; margin-top: 24px; color: var(--muted); font-size: 0.82rem; font-weight: 700; }
     .post-meta span + span { padding-left: 18px; border-left: 1px solid var(--line); }
@@ -172,36 +209,40 @@
     .footer-links a:hover { color: var(--ink); }
 
     @media (max-width: 760px) {
-      .release-card { grid-template-columns: 1fr; }
+      .article-grid { grid-template-columns: 1fr; }
+      .article-card.featured { grid-column: auto; }
+      .article-index-heading { align-items: flex-start; flex-direction: column; }
       .post-cta { align-items: flex-start; flex-direction: column; }
     }
 
     @media (max-width: 660px) {
       .page { width: min(100% - 20px, 1180px); }
       .nav { position: static; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+      .nav-links { width: auto; align-items: center; gap: 6px; }
       .nav-desktop-links { display: none; }
       .nav-menu { display: block; }
       .brand img { width: 38px; height: 38px; }
       .brand .eyebrow { display: none; }
       .brand strong { font-size: 1rem; }
-      .nav-links { gap: 6px; }
-      .nav-links .button { min-height: 42px; padding-inline: 10px; font-size: 0.78rem; }
+      .nav-links .button { width: auto; min-height: 42px; padding-inline: 12px; }
       .nav-links .button.secondary { display: none; }
-      .article-shell { padding-top: 52px; }
+      .nav-menu summary { min-height: 42px; padding-inline: 9px; font-size: 0.78rem; }
+      .blog-hero { padding-top: 46px; }
       .post-meta span + span { padding-left: 0; border-left: 0; }
       .footer { align-items: flex-start; flex-direction: column; }
     }
 
     @media (prefers-reduced-motion: reduce) {
       html { scroll-behavior: auto; }
-      .button:hover { transform: none; }
+      *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
     }
   </style>
 </head>
 <body>
+  <a class="skip-link" href="#top">Skip to main content</a>
   <header class="page nav">
-    <a class="brand" href="../" aria-label="Harbourline homepage">
-      <img src="../assets/harbourline-mark.svg" alt="" />
+    <a class="brand" href="../#top" aria-label="Harbourline homepage">
+      <img src="../assets/harbourline-mark.svg" alt="" width="44" height="44" fetchpriority="high" />
       <span>
         <span class="eyebrow">Household money planning</span>
         <strong>Harbourline</strong>
@@ -223,15 +264,36 @@
           <a href="https://harbourline.app/?account=signin">Sign in</a>
         </div>
       </details>
-      <a class="button" href="../#early-access">Start planning</a>
+      <a class="button" href="../#early-access">Try the payday plan free</a>
       <a class="button secondary" href="https://harbourline.app/?account=signin">Sign in</a>
     </nav>
   </header>
 
-  <main class="page article-shell">
-    <article class="article">
+  <main id="top" class="page">
+    <section class="blog-hero" aria-labelledby="blog-title">
+      <span class="eyebrow">Harbourline journal</span>
+      <h1 id="blog-title">Practical ideas for the next payday.</h1>
+      <p>Useful notes on household money planning, bill timing and the decisions that make the next pay cycle easier to navigate.</p>
+    </section>
+
+    <section class="article-index" aria-labelledby="latest-article-title">
+      <div class="article-index-heading">
+        <h2 id="latest-article-title">Latest article</h2>
+        <p>This index is designed to grow with the Harbourline journal. New articles can be added as cards without changing the shared page shell.</p>
+      </div>
+      <div class="article-grid">
+        <article class="article-card featured">
+          <span class="post-kicker">Payday note · 5 min read</span>
+          <h3>A budget can be accurate and still leave you guessing.</h3>
+          <p>A monthly budget can be correct and still fail on payday. The missing layer is timing: what needs to be set aside before it becomes urgent.</p>
+          <a class="button secondary" href="#payday-planning">Read the article</a>
+        </article>
+      </div>
+    </section>
+
+    <article id="payday-planning" class="article article-shell">
       <div class="post-kicker">Payday note</div>
-      <h1>A budget can be accurate and still leave you guessing.</h1>
+      <h2 class="post-title">A budget can be accurate and still leave you guessing.</h2>
       <p class="post-dek">The missing layer in household money planning is timing: what needs to be set aside on the next payday, before it becomes urgent.</p>
       <div class="post-meta">
         <span>15 August 2026</span>
@@ -317,7 +379,7 @@
         <p>Once the next payday is clear, the longer view becomes easier to build.</p>
         <p>Harbourline is designed around this rhythm. It lets households map income, bills, savings and debt across weekly, fortnightly, monthly and yearly cycles, then use the Payday Check-in to decide what the next pay needs to cover.</p>
         <p>The product also includes a 13-week bills forecast, cash-flow calendar, savings and debt scenarios, actual transaction tracking and portable exports. The free local planner is available without a payment card, while the paid Household plan adds cloud sync, multi-device access, household invitations and optional one-way Google Calendar synchronisation.</p>
-        <p>Budgeting is currently available in <strong>AUD, NZD and USD</strong>. Harbourline is a planning tool, not financial advice, and it does not move money or perform foreign exchange.</p>
+        <p>Budgeting is currently available in <strong>AUD, NZD and USD</strong>. The introductory subscription remains billed in AUD. Harbourline is a planning tool, not financial advice, and it does not move money or perform foreign exchange.</p>
         <p>The useful question is not simply:</p>
         <p><strong>How much money do we have?</strong></p>
         <p>It is:</p>
