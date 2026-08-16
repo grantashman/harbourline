@@ -4048,14 +4048,14 @@
         </div>
         <div class="workspace-control-grid">
           <label>
-            Fallback pay cycle
+            Default pay cycle
             <select id="payCycle">
               <option value="weekly">Weekly</option>
               <option value="fortnightly">Fortnightly</option>
             </select>
           </label>
           <label>
-            Fallback pay date
+            Next payday if no income date is set
             <input id="nextPayday" type="date" />
           </label>
           <label>
@@ -7242,12 +7242,12 @@
                 Amount
                 <span class="input-wrap">
                   <span class="prefix">$</span>
-                  <input class="money-input income-amount" data-income-id="${escapeHtml(source.id)}" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" value="${source.amount || ""}" />
+                  <input id="income-${escapeHtml(source.id)}-amount" name="income-${escapeHtml(source.id)}-amount" class="money-input income-amount" data-income-id="${escapeHtml(source.id)}" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" value="${source.amount || ""}" />
                 </span>
               </label>
               <label>
                 Frequency
-                <select class="income-frequency" data-income-id="${escapeHtml(source.id)}">
+                <select id="income-${escapeHtml(source.id)}-frequency" name="income-${escapeHtml(source.id)}-frequency" class="income-frequency" data-income-id="${escapeHtml(source.id)}">
                   <option value="weekly" ${source.frequency === "weekly" ? "selected" : ""}>Weekly</option>
                   <option value="fortnightly" ${source.frequency === "fortnightly" ? "selected" : ""}>Fortnightly</option>
                   <option value="monthly" ${source.frequency === "monthly" ? "selected" : ""}>Monthly</option>
@@ -7256,7 +7256,7 @@
               </label>
               <label class="income-pay-date-field">
                 Next pay date
-                <input class="income-pay-date" data-income-id="${escapeHtml(source.id)}" type="date" value="${escapeHtml(source.nextPayDate || "")}" />
+                <input id="income-${escapeHtml(source.id)}-pay-date" name="income-${escapeHtml(source.id)}-pay-date" class="income-pay-date" data-income-id="${escapeHtml(source.id)}" type="date" value="${escapeHtml(source.nextPayDate || "")}" />
               </label>
             </div>
           </section>
@@ -8569,13 +8569,32 @@
         .replace(/[^\x20-\x7E]/g, "");
     }
 
+    let pdfToolsLoadPromise = null;
+
+    function loadPdfTools() {
+      if (window.PDFLib) return Promise.resolve(window.PDFLib);
+      if (pdfToolsLoadPromise) return pdfToolsLoadPromise;
+      pdfToolsLoadPromise = new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = new URL("assets/vendor/pdf-lib.min.js", document.baseURI).toString();
+        script.async = true;
+        script.onload = () => window.PDFLib
+          ? resolve(window.PDFLib)
+          : reject(new Error("PDF tools did not expose the expected library."));
+        script.onerror = () => reject(new Error("PDF tools could not be loaded."));
+        document.head.append(script);
+      });
+      return pdfToolsLoadPromise;
+    }
+
     async function exportPdfReport() {
-      if (!window.PDFLib) {
+      const pdfLib = await loadPdfTools();
+      if (!pdfLib) {
         showToast("PDF tools could not be loaded");
         return;
       }
 
-      const { PDFDocument, StandardFonts, rgb } = window.PDFLib;
+      const { PDFDocument, StandardFonts, rgb } = pdfLib;
       const pdfDoc = await PDFDocument.create();
       pdfDoc.setTitle(`${PRODUCT_NAME} Household Report`);
       pdfDoc.setAuthor(PRODUCT_NAME);

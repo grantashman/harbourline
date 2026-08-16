@@ -1244,14 +1244,27 @@ export class AccountPanel {
       }
       gate.innerHTML = `
         <div class="release2-access-gate-card">
-          <span class="eyebrow">Free Starter</span>
-          <h1 id="release2AccessGateTitle">Create an account to start planning.</h1>
-          <p>Sign up for a free Harbourline account, then sign in to use the local planner and exports. No payment is required. Upgrade later if you want cloud sync, household sharing or multi-device access.</p>
-          <div class="release2-gate-actions">
-            <button class="btn" type="button" data-action="open-account">Sign in</button>
-            <a class="btn secondary" href="https://www.harbourline.app/#early-access" target="_blank" rel="noreferrer">Create free account</a>
+          <div class="release2-access-gate-brand">
+            <img src="./assets/harbourline-mark.svg" alt="" width="44" height="44" />
+            <span>
+              <span class="eyebrow">Household money planning</span>
+              <strong>Harbourline</strong>
+            </span>
           </div>
-          <p class="release2-gate-note">Already registered? Sign in here. New accounts are created on the Harbourline homepage.</p>
+          <span class="eyebrow">Free Starter</span>
+          <h1 id="release2AccessGateTitle">Know what your next payday needs to cover.</h1>
+          <p>Start with a free Harbourline account, then build your local payday plan for income, bills, savings and debt. No payment is required for Free Starter.</p>
+          <div class="release2-gate-actions">
+            <a class="btn" href="https://www.harbourline.app/#early-access" target="_blank" rel="noreferrer">Create your free account</a>
+            <button class="btn secondary" type="button" data-action="open-account">Already have an account? Sign in</button>
+          </div>
+          <div class="release2-gate-facts" aria-label="Free Starter benefits">
+            <span>Local planning</span>
+            <span>Portable exports</span>
+            <span>No payment required</span>
+          </div>
+          <p class="release2-gate-note">New accounts are created on the Harbourline homepage. <a href="https://www.harbourline.app/#trust" target="_blank" rel="noreferrer">Read about privacy and access</a>.</p>
+          <a class="release2-gate-back" href="https://www.harbourline.app/">Back to Harbourline homepage</a>
         </div>
       `;
       if (!this.dialog.open && (gateWasCreated || gateHadFocus || documentNeedsGateFocus)) {

@@ -5,10 +5,12 @@ import {
   type GoogleCalendarConnection
 } from "../_shared/google-calendar.ts";
 
+import { configuredAppOrigin } from "../_shared/beta.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, apikey, content-type",
   "Access-Control-Allow-Methods": "DELETE, OPTIONS",
-  "Access-Control-Allow-Origin": "*"
+  "Access-Control-Allow-Origin": configuredAppOrigin()
 };
 
 const cancellableStripeStatuses = new Set([
@@ -90,11 +92,16 @@ const securedHandler = withSupabase({ auth: "user" }, async (request, context) =
     );
   }
 
-  const { data: billing, error: billingError } = await context.supabaseAdmin
+  const billingResult = await context.supabaseAdmin
     .from("billing_subscriptions")
     .select("stripe_subscription_id, status")
     .eq("user_id", userId)
     .maybeSingle();
+  const billing = billingResult.data as {
+    stripe_subscription_id: string | null;
+    status: string;
+  } | null;
+  const billingError = billingResult.error;
   if (billingError) {
     return Response.json({ message: "Could not verify billing cleanup" }, { status: 503 });
   }

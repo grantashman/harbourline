@@ -31,15 +31,6 @@ const runtimeThemeAssetPlugin: Plugin = {
 
 const pdfVendorAssetPlugin: Plugin = {
   name: "harbourline-pdf-vendor-asset",
-  transformIndexHtml: {
-    order: "post",
-    handler(html) {
-      return html.replace(
-        "</body>",
-        '  <script src="assets/vendor/pdf-lib.min.js"></script>\n</body>'
-      );
-    }
-  },
   generateBundle() {
     this.emitFile({
       type: "asset",
