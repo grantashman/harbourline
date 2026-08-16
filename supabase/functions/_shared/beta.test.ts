@@ -1,6 +1,6 @@
 import { assertEquals, assertThrows } from "jsr:@std/assert";
 import { lifecycleEmailFor, signupNotificationContent } from "./beta-email.ts";
-import { parseOperatorEmails, isVerifiedAuthUser, validateBetaEvent, validateClientBetaEvent } from "./beta.ts";
+import { parseOperatorEmails, isVerifiedAuthUser, validateBetaEvent, validateClientBetaEvent, configuredAppOrigin } from "./beta.ts";
 import { isStaleSubscriptionEvent } from "../stripe-subscription-ordering.ts";
 import { noSubscriptionReconciliation } from "../reconcile-billing-subscription/reconciliation.ts";
 
@@ -18,6 +18,19 @@ Deno.test("anonymous and unknown auth identities fail closed", () => {
   assertEquals(isVerifiedAuthUser({ is_anonymous: true }), false);
   assertEquals(isVerifiedAuthUser({ is_anonymous: undefined }), false);
   assertEquals(isVerifiedAuthUser({ is_anonymous: null }), false);
+});
+
+Deno.test("normalises configured browser origins and fails closed", () => {
+  const previous = Deno.env.get("HARBOURLINE_APP_URL");
+  try {
+    Deno.env.set("HARBOURLINE_APP_URL", "https://www.harbourline.app/path");
+    assertEquals(configuredAppOrigin(), "https://www.harbourline.app");
+    Deno.env.set("HARBOURLINE_APP_URL", "https://example.invalid");
+    assertEquals(configuredAppOrigin(), "https://harbourline.app");
+  } finally {
+    if (previous === undefined) Deno.env.delete("HARBOURLINE_APP_URL");
+    else Deno.env.set("HARBOURLINE_APP_URL", previous);
+  }
 });
 
 Deno.test("matches normalised operator emails", () => {

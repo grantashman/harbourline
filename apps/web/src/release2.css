@@ -131,6 +131,28 @@
   box-shadow: 0 30px 90px rgba(0, 0, 0, 0.42);
 }
 
+.release2-access-gate-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 30px;
+}
+
+.release2-access-gate-brand img {
+  width: 44px;
+  height: 44px;
+}
+
+.release2-access-gate-brand span {
+  display: grid;
+  gap: 2px;
+}
+
+.release2-access-gate-brand strong {
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+}
+
 .release2-access-gate-card h1 {
   margin: 14px 0 12px;
   font-size: clamp(2rem, 5vw, 3.5rem);
@@ -154,11 +176,39 @@
   flex: 1 1 190px;
 }
 
+.release2-gate-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.release2-gate-facts span {
+  padding: 7px 10px;
+  color: var(--muted);
+  border: 1px solid color-mix(in srgb, var(--mint) 28%, var(--line));
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
 .release2-gate-note {
   margin: 14px 0 0 !important;
   color: var(--muted);
   font-size: 0.78rem !important;
   line-height: 1.45 !important;
+}
+
+.release2-gate-note a,
+.release2-gate-back {
+  color: var(--mint-dark);
+  font-weight: 750;
+}
+
+.release2-gate-back {
+  display: inline-block;
+  margin-top: 20px;
+  font-size: 0.82rem;
 }
 
 .release2-access-gate-checking .release2-access-gate-card {
@@ -210,6 +260,26 @@
 @media (prefers-reduced-motion: reduce) {
   .release2-gate-status .release2-status-dot {
     animation: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .release2-access-gate {
+    align-items: start;
+    overflow-y: auto;
+    padding: 16px;
+  }
+
+  .release2-access-gate-card {
+    padding: 24px;
+  }
+
+  .release2-access-gate-brand {
+    margin-bottom: 24px;
+  }
+
+  .release2-access-gate-card h1 {
+    font-size: clamp(1.9rem, 11vw, 2.8rem);
   }
 }
 
