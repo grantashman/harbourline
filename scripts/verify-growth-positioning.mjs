@@ -8,7 +8,7 @@ const attributionMigration = readFileSync(
 );
 
 assert.match(homepage, /<html lang="en">/, "homepage language must not be Australia-only");
-assert.match(homepage, /Payday planning for households across supported currencies/, "homepage must use a globally addressable audience label");
+assert.match(homepage, /Payday planning for households with bills on different schedules/, "homepage must lead with the mixed-bill-timing problem");
 assert.doesNotMatch(
   homepage,
   /Australian households|Australia-first|AUD-first/i,
@@ -22,12 +22,12 @@ assert.match(
 
 assert.match(
   homepage,
-  /<h1>Know what your next payday needs to cover\.<\/h1>/,
+  /<h1>Turn every bill into a plan for your next payday\.<\/h1>/,
   "homepage must lead with the payday outcome"
 );
 assert.match(
   homepage,
-  /Try the payday plan free/,
+  /Build your free payday plan/,
   "homepage must use an outcome-led free CTA"
 );
 assert.match(
@@ -42,7 +42,7 @@ assert.match(
 );
 assert.match(
   homepage,
-  /No bank passwords[\s\S]*Export or delete your data/,
+  /No bank connection[\s\S]*Free Starter stays local[\s\S]*Export or delete your data/,
   "homepage must state the key trust boundaries"
 );
 assert.doesNotMatch(

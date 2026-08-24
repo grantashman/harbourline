@@ -12,6 +12,10 @@ const expenses = Array.from({ length: FREE_STARTER_MIN_EXPENSES }, (_, index) =>
   name: `Bill ${index + 1}`
 }));
 
+test("keeps the free starter first-value threshold at three commitments", () => {
+  assert.equal(FREE_STARTER_MIN_EXPENSES, 3);
+});
+
 test("starts at income when no usable payday income exists", () => {
   assert.equal(getFreeStarterStep({ incomes: [], expenses: [] }), "income");
   assert.equal(getFreeStarterStep({ incomes: [{ amount: 1200 }], expenses }), "income");
