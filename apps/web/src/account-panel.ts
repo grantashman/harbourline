@@ -1,11 +1,16 @@
 import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import type { HouseholdSummary, RemoteBudgetDocument } from "@harbourline/sync";
 import { track } from "@vercel/analytics";
+import { shouldOpenAccountPanelForAuthResult } from "./account-entry-policy";
 import {
   isVerifiedAccountUser,
   resolveWorkspaceAccess,
   type WorkspaceAccess
 } from "./access-model";
+import {
+  resolveBillingPlanState,
+  type BillingPlanState
+} from "./billing-ui-state";
 import { getFocusWrapTarget } from "./auth-gate-focus";
 import {
   shouldNotifySignupForAuthEvent,
@@ -148,6 +153,7 @@ export class AccountPanel {
   private authEventGeneration = 0;
   private subscriptionActive: boolean | null = null;
   private billingReconciled = false;
+  private billingLookupError = false;
   private workspaceAccess: WorkspaceAccess = "signed-out";
   private freeStarterViewed = false;
   private billingConfirmationPending = false;
@@ -335,7 +341,11 @@ export class AccountPanel {
         )) {
           void this.notifySignupIfCurrent();
         }
-        void this.refreshAccount();
+        void this.refreshAccount()
+          .then(() => {
+            if (event === "SIGNED_IN" && this.hasGettingStartedFlow()) this.closeAccountDialog();
+          })
+          .catch(reportError);
         if (event === "PASSWORD_RECOVERY" && !this.dialog.open) {
           this.openAccountDialog(false);
         }
@@ -368,9 +378,10 @@ export class AccountPanel {
     this.handleCalendarRedirect(calendarRedirect);
     if (billingRedirect || calendarRedirect) {
       if (!this.dialog.open) this.openAccountDialog(false);
-    } else if ((shouldOpenAccount || this.authCallbackRejected) && this.state.session) {
-      this.openAccountDialog(false);
-    } else if ((shouldOpenAccount || this.authCallbackRejected) && !this.dialog.open) {
+    } else if (shouldOpenAccountPanelForAuthResult({
+      authCallbackRejected: this.authCallbackRejected,
+      dialogOpen: this.dialog.open
+    })) {
       this.openAccountDialog(false);
     }
   }
@@ -596,6 +607,10 @@ export class AccountPanel {
 
   private closeAccountDialog(): void {
     if (this.dialog.open) this.dialog.close();
+  }
+
+  private hasGettingStartedFlow(): boolean {
+    return this.freeStarter.isOpen() || this.onboarding.isOpen();
   }
 
   private createDialog(): HTMLDialogElement {
@@ -1048,7 +1063,8 @@ export class AccountPanel {
         subscriptionActive: false,
         households: []
       });
-      this.freeStarter.refresh(false);
+      this.billingLookupError = true;
+      this.freeStarter.refresh(true);
       if (refreshGeneration !== this.accountRefreshGeneration) return;
       this.notice = error instanceof Error ? error.message : "Account details could not be loaded.";
     }
@@ -1065,6 +1081,7 @@ export class AccountPanel {
     this.state.conflict = null;
     this.subscriptionActive = subscriptionActive;
     this.billingReconciled = false;
+    this.billingLookupError = false;
     this.workspaceAccess = this.state.session ? "free" : "signed-out";
     this.billingSubscription = null;
     this.googleCalendarStatus = emptyGoogleCalendarStatus();
@@ -1418,7 +1435,7 @@ export class AccountPanel {
   }
 
   private renderSubscriptionSummary(
-    planState: "active" | "pending" | "checking" | "attention" | "not-started",
+    planState: BillingPlanState,
     periodEnd: string | null
   ): string {
     const nativeCompanion = window.HarbourlineMobile?.isNative === true;
@@ -1447,6 +1464,12 @@ export class AccountPanel {
         message: "Update your payment method to restore cloud sync, household sharing and multi-device access.",
         icon: "!"
       },
+      error: {
+        eyebrow: "Account status",
+        title: "Cloud plan check needs attention",
+        message: "We couldn’t check your subscription right now. Your local starter is still available; try the plan check again when you’re ready.",
+        icon: "!"
+      },
       "not-started": {
         eyebrow: nativeCompanion ? "Web account access" : "Account status",
         title: nativeCompanion ? "Cloud access is managed on the web" : "Ready to unlock cloud continuity",
@@ -1462,7 +1485,7 @@ export class AccountPanel {
           <h3>${summary.title}</h3>
           <p>${summary.message}</p>
         </div>
-        <span class="badge release2-summary-badge">${planState === "active" ? "Ready" : planState === "pending" ? "Confirming" : planState === "checking" ? "Checking" : planState === "attention" ? "Action needed" : "Not active"}</span>
+        <span class="badge release2-summary-badge">${planState === "active" ? "Ready" : planState === "pending" ? "Confirming" : planState === "checking" ? "Checking" : planState === "attention" ? "Action needed" : planState === "error" ? "Unavailable" : "Not active"}</span>
       </section>
     `;
   }
@@ -1495,15 +1518,13 @@ export class AccountPanel {
     const periodEnd = formatBillingDate(billing?.current_period_end ?? null);
     const paymentNeedsAttention = this.billingReconciled && Boolean(billing && ["incomplete", "past_due", "unpaid"].includes(billing.status));
     const hasBillingPortal = this.billingReconciled && Boolean(billing?.stripe_customer_id);
-    const planState: "active" | "pending" | "checking" | "attention" | "not-started" = !this.billingReconciled || this.subscriptionActive === null
-      ? "checking"
-      : confirmedSubscriptionActive
-        ? "active"
-        : this.billingConfirmationPending
-          ? "pending"
-          : paymentNeedsAttention
-            ? "attention"
-            : "not-started";
+    const planState = resolveBillingPlanState({
+      billingReconciled: this.billingReconciled,
+      subscriptionActive: this.subscriptionActive,
+      billingConfirmationPending: this.billingConfirmationPending,
+      paymentNeedsAttention,
+      billingLookupError: this.billingLookupError
+    });
     const planMessage = confirmedSubscriptionActive
       ? billing?.cancel_at_period_end
         ? `Your plan is active until ${periodEnd ?? "the end of the current billing period"}. Cancellation is scheduled after that date.`
@@ -1512,12 +1533,16 @@ export class AccountPanel {
         ? "Your payment has been received. We’re waiting for the subscription confirmation before opening sync."
       : paymentNeedsAttention
         ? "A payment needs attention. Update your payment method or manage your subscription to restore cloud continuity."
+        : planState === "error"
+          ? "We couldn’t check your cloud plan right now. Your local starter remains available while you retry."
         : "Secure payment is handled by our payment provider. Your local starter plan remains available on this device.";
     const nativeCompanion = window.HarbourlineMobile?.isNative === true;
     const planAction = nativeCompanion
       ? hasBillingPortal
         ? `<div class="release2-plan-management"><div><strong>Billing is managed on the web</strong><p>This companion does not process payments.</p></div><button class="btn secondary" type="button" data-action="open-billing-portal" ${this.busy ? "disabled" : ""}>Manage on web</button></div>`
         : `<span class="badge release2-plan-badge">Web billing only</span>`
+      : planState === "error"
+        ? `<div class="release2-button-row"><span class="badge release2-plan-badge is-attention">Unavailable</span><button class="btn secondary" type="button" data-action="refresh-subscription" ${this.busy ? "disabled" : ""}>Retry plan check</button></div>`
       : confirmedSubscriptionActive
       ? hasBillingPortal
         ? `<div class="release2-plan-management"><div><strong>Manage your subscription</strong><p>Payment method, invoices and cancellation are handled securely by Stripe.</p></div><button class="btn secondary" type="button" data-action="open-billing-portal" ${this.busy ? "disabled" : ""}>Manage subscription</button></div>`
@@ -1533,6 +1558,8 @@ export class AccountPanel {
       ? linkedHousehold
         ? status.message
         : "Plan active. Create or join a household to sync this device."
+      : planState === "error"
+        ? "Local starter ready. Cloud plan check needs attention."
       : !this.billingReconciled || this.subscriptionActive === null
         ? "Checking your Harbourline plan…"
         : nativeCompanion
@@ -1542,6 +1569,8 @@ export class AccountPanel {
       ? linkedHousehold
         ? `${status.online ? "Online" : "Offline"}${status.queued ? ` · ${status.queued} queued` : ""} · ${linkedHousehold.name}`
         : `${status.online ? "Online" : "Offline"} · Sync ready when a household is connected`
+      : planState === "error"
+        ? `${status.online ? "Online" : "Offline"} · Cloud plan check unavailable`
       : `${status.online ? "Online" : "Offline"}${status.queued ? ` · ${status.queued} queued` : ""}`;
     return `
       ${this.renderNotice()}
@@ -1563,7 +1592,7 @@ export class AccountPanel {
       <section class="release2-section release2-plan-card release2-plan-${planState}">
         <div class="release2-section-heading">
           <div><span>Harbourline plan</span><h3>${nativeCompanion ? "Existing web account access" : `${escapeHtml(BILLING_PRICE_LABEL)} introductory early access`}</h3></div>
-          <span class="badge release2-plan-badge ${planState === "active" ? "is-active" : planState === "attention" ? "is-attention" : planState === "pending" || planState === "checking" ? "is-pending" : ""}">${nativeCompanion ? (confirmedSubscriptionActive ? "Active" : "Web only") : planState === "active" ? "Subscribed" : planState === "pending" ? "Confirming" : planState === "checking" ? "Checking" : planState === "attention" ? "Payment needed" : "One plan"}</span>
+          <span class="badge release2-plan-badge ${planState === "active" ? "is-active" : planState === "attention" || planState === "error" ? "is-attention" : planState === "pending" || planState === "checking" ? "is-pending" : ""}">${nativeCompanion ? (confirmedSubscriptionActive ? "Active" : "Web only") : planState === "active" ? "Subscribed" : planState === "pending" ? "Confirming" : planState === "checking" ? "Checking" : planState === "attention" ? "Payment needed" : planState === "error" ? "Unavailable" : "One plan"}</span>
         </div>
         ${confirmedSubscriptionActive ? `<div class="release2-plan-confirmation" role="status"><span class="release2-plan-check" aria-hidden="true">✓</span><div><strong>Subscription active</strong><p>Payment confirmed. Harbourline is ready for household planning and sync.</p></div></div>` : ""}
         <p class="release2-empty">${nativeCompanion && !confirmedSubscriptionActive ? "Manage Harbourline billing on the web. This companion does not process payments." : planMessage}</p>
@@ -1704,6 +1733,9 @@ export class AccountPanel {
   private renderCloudUnlockAction(): string {
     if (window.HarbourlineMobile?.isNative === true) return `<p class="release2-empty">Cloud access is managed by your Harbourline web account.</p>`;
     if (!this.cloud.configured) return `<p class="release2-empty">Online account services are not connected in this build.</p>`;
+    if (this.billingLookupError) {
+      return `<button class="btn secondary" type="button" data-action="refresh-subscription" ${this.busy ? "disabled" : ""}>Retry plan check</button>`;
+    }
     if (!this.billingReconciled || this.subscriptionActive === null || this.billingConfirmationPending) {
       return `<button class="btn secondary" type="button" data-action="refresh-subscription" ${this.busy ? "disabled" : ""}>Check plan status</button>`;
     }
