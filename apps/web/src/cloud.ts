@@ -21,6 +21,7 @@ import type {
 } from "./beta-types";
 import { addRealtimeLease, isRealtimeFailureStatus, releaseRealtimeLease } from "./realtime-lease";
 import { createAuthCallbackState } from "./auth-callback-state.ts";
+import { parseFunctionErrorMessage } from "./function-error";
 
 interface HouseholdMemberRow {
   household_id: string;
@@ -689,7 +690,7 @@ export class HarbourlineCloud {
 
   private async functionError(error: { context?: Response; message: string }): Promise<Error> {
     const detail = error.context ? await error.context.text() : "";
-    return new Error(detail || error.message);
+    return new Error(parseFunctionErrorMessage(detail, error.message));
   }
 
   private mapBudget(row: BudgetRow, currency?: string): RemoteBudgetDocument {

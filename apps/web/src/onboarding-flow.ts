@@ -105,6 +105,10 @@ export class OnboardingFlow {
     this.busy = false;
   }
 
+  isOpen(): boolean {
+    return this.overlay !== null;
+  }
+
   private ensureActive(expectedGeneration = this.interactionGeneration): void {
     if (
       expectedGeneration !== this.interactionGeneration ||
@@ -135,10 +139,10 @@ export class OnboardingFlow {
 
     this.overlay.innerHTML = `
       <div class="release2-onboarding-shell">
-        <p class="eyebrow">Paid early access</p>
+        <p class="eyebrow">Getting started</p>
         <h1 id="release2OnboardingTitle">Build your first household plan.</h1>
-        <p class="release2-onboarding-lede">A few details will turn Harbourline into a useful payday plan. You can keep refining everything in the full workspace afterwards.</p>
-        <ol class="release2-onboarding-progress" aria-label="Onboarding progress">${steps}</ol>
+        <p class="release2-onboarding-lede">A few simple steps will turn Harbourline into a useful payday plan. You can keep refining everything in the full workspace afterwards.</p>
+        <ol class="release2-onboarding-progress" aria-label="Getting started progress">${steps}</ol>
         ${this.notice ? `<div class="release2-notice" role="status">${escapeHtml(this.notice)}</div>` : ""}
         ${this.renderStep()}
       </div>

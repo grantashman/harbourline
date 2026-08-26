@@ -88,6 +88,10 @@ export class FreeStarterFlow {
     this.notice = "";
   }
 
+  isOpen(): boolean {
+    return this.overlay !== null;
+  }
+
   private createOverlay(): void {
     this.overlay = document.createElement("section");
     this.overlay.className = "release2-onboarding release2-free-starter-onboarding";
@@ -109,10 +113,10 @@ export class FreeStarterFlow {
 
     this.overlay.innerHTML = `
       <div class="release2-onboarding-shell">
-        <p class="eyebrow">Free Starter</p>
+        <p class="eyebrow">Getting started</p>
         <h1 id="freeStarterOnboardingTitle">Build your first payday plan.</h1>
-        <p class="release2-onboarding-lede">Add the few details needed to see what your next pay needs to cover. You can keep refining the plan in the full workspace afterwards.</p>
-        <ol class="release2-onboarding-progress" aria-label="Free Starter progress">${steps}</ol>
+        <p class="release2-onboarding-lede">Three simple steps will give Harbourline enough context to show what your next pay needs to cover. You can keep refining the plan in the full workspace afterwards.</p>
+        <ol class="release2-onboarding-progress" aria-label="Getting started progress">${steps}</ol>
         ${this.notice ? `<div class="release2-notice" role="status">${escapeHtml(this.notice)}</div>` : ""}
         ${this.renderStep(state)}
       </div>
@@ -138,7 +142,7 @@ export class FreeStarterFlow {
           <p>Use your normal take-home amount. You can add other income sources later.</p>
           <div class="release2-button-row">
             <button class="btn" type="submit" ${disabled}>Save income</button>
-            <button class="btn secondary" type="button" data-free-starter-action="skip" ${disabled}>Continue in workspace</button>
+            <button class="btn secondary" type="button" data-free-starter-action="skip" ${disabled}>Continue to planner</button>
           </div>
         </form>
       `;
@@ -162,7 +166,7 @@ export class FreeStarterFlow {
           <div class="release2-button-row">
             <button class="btn" type="submit" ${disabled}>Add commitment</button>
             <button class="btn secondary" type="button" data-free-starter-action="payday" ${count < FREE_STARTER_MIN_EXPENSES || this.busy ? "disabled" : ""}>${continueLabel}</button>
-            <button class="btn secondary" type="button" data-free-starter-action="skip" ${disabled}>Continue in workspace</button>
+            <button class="btn secondary" type="button" data-free-starter-action="skip" ${disabled}>Continue to planner</button>
           </div>
         </form>
       `;
@@ -174,7 +178,7 @@ export class FreeStarterFlow {
         <p>Open the payday command centre to see what to set aside before your next pay arrives.</p>
         <div class="release2-button-row">
           <button class="btn" type="button" data-free-starter-action="payday" ${disabled}>Open payday plan</button>
-          <button class="btn secondary" type="button" data-free-starter-action="skip" ${disabled}>Continue in workspace</button>
+          <button class="btn secondary" type="button" data-free-starter-action="skip" ${disabled}>Continue to planner</button>
         </div>
       </div>
     `;
