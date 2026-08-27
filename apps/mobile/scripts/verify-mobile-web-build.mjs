@@ -4,6 +4,10 @@ import { resolve } from "node:path";
 const dist = resolve(import.meta.dirname, "../../web/dist");
 const index = await readFile(resolve(dist, "index.html"), "utf8");
 const assets = await readdir(resolve(dist, "assets"));
+
+if (!index.includes('name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"')) {
+  throw new Error("Mobile web build must opt into viewport-fit=cover for iOS safe-area handling.");
+}
 const scripts = await Promise.all(
   assets
     .filter((name) => name.endsWith(".js"))
