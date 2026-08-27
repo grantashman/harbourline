@@ -1,0 +1,87 @@
+name: Harbourline iOS simulator verification
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/mobile-ios.yml"
+      - "apps/mobile/**"
+      - "apps/web/**"
+      - "packages/**"
+      - "assets/**"
+      - "index.html"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-ios-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ios-simulator:
+    name: Build unsigned iOS Simulator app
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11.9.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify mobile web contract
+        run: |
+          pnpm --filter @harbourline/mobile typecheck
+          pnpm --filter @harbourline/mobile test
+          pnpm --filter @harbourline/mobile build:web
+
+      - name: Sync the reviewed bundle into iOS
+        run: pnpm --filter @harbourline/mobile exec cap sync ios
+
+      - name: Report Xcode toolchain
+        run: xcodebuild -version
+
+      - name: Build unsigned iOS Simulator app
+        run: >-
+          xcodebuild
+          -project apps/mobile/ios/App/App.xcodeproj
+          -scheme App
+          -configuration Debug
+          -sdk iphonesimulator
+          -destination "generic/platform=iOS Simulator"
+          -derivedDataPath "$RUNNER_TEMP/HarbourlineDerivedData"
+          -resultBundlePath "$RUNNER_TEMP/Harbourline-iOS.xcresult"
+          CODE_SIGNING_ALLOWED=NO
+          CODE_SIGNING_REQUIRED=NO
+          build
+
+      - name: Package simulator app
+        run: >-
+          ditto -c -k --sequesterRsrc --keepParent
+          "$RUNNER_TEMP/HarbourlineDerivedData/Build/Products/Debug-iphonesimulator/App.app"
+          "$RUNNER_TEMP/Harbourline-iOS-simulator.app.zip"
+
+      - name: Upload simulator build evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: harbourline-ios-simulator-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 7
+          path: |
+            ${{ runner.temp }}/Harbourline-iOS-simulator.app.zip
+            ${{ runner.temp }}/Harbourline-iOS.xcresult

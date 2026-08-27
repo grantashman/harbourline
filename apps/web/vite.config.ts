@@ -51,6 +51,12 @@ export default defineConfig({
       transformIndexHtml: {
         order: "post",
         handler(html) {
+          if (mobileBuild) {
+            html = html.replace(
+              '<meta name="viewport" content="width=device-width, initial-scale=1" />',
+              '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />'
+            );
+          }
           const scripts = [
             mobileBuild ? '  <script type="module" src="./assets/mobile-bootstrap.js"></script>' : "",
             '  <script type="module" src="./assets/release2.js"></script>'
