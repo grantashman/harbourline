@@ -1,5 +1,6 @@
 import type { Session } from "@supabase/supabase-js";
 import type { HouseholdSummary } from "@harbourline/sync";
+import { track } from "./analytics";
 import type { HarbourlineCloud } from "./cloud";
 import type {
   BetaOnboardingProgress,
