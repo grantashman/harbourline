@@ -13,7 +13,7 @@
   "dependencies": {
     "@harbourline/domain": "workspace:*",
     "@harbourline/sync": "workspace:*",
-    "@sentry/browser": "^10.69.0",
+    "@sentry/browser": "^10.72.0",
     "@supabase/supabase-js": "^2.112.1",
     "@vercel/analytics": "^2.0.1",
     "posthog-js": "^1.417.0"
