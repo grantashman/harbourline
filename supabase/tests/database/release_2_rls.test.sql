@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(32);
+select plan(33);
 
 select has_table('public', 'households', 'households table exists');
 select has_table('public', 'household_members', 'household membership table exists');
@@ -219,12 +219,15 @@ select is(
   1::bigint,
   'member can read the household budget'
 );
-select throws_ok(
+select lives_ok(
   $$update public.budget_documents
     set state = '{"tampered":true}'
     where household_id = '20000000-0000-0000-0000-000000000001'$$,
-  '42501',
-  null,
+  'member direct update is filtered by RLS'
+);
+select is(
+  (select count(*) from public.budget_documents where state = '{"tampered":true}'::jsonb),
+  0::bigint,
   'member cannot bypass revisioned sync with a direct update'
 );
 select lives_ok(

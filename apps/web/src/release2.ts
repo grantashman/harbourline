@@ -1,12 +1,12 @@
 import { AccountPanel } from "./account-panel";
+import { initialiseAnalytics } from "./analytics";
 import { initialiseMonitoring } from "./monitoring";
-import { inject } from "@vercel/analytics";
 import { initialisePwaUpdate } from "./pwa-update";
 
 async function startRelease2(): Promise<void> {
   initialiseMonitoring();
   initialisePwaUpdate();
-  inject();
+  initialiseAnalytics();
   const bridge = window.HarbourlineLocal;
   if (!bridge) return;
   const accountPanel = new AccountPanel(bridge);

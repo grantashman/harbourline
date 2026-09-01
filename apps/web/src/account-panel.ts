@@ -1,6 +1,6 @@
 import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import type { HouseholdSummary, RemoteBudgetDocument } from "@harbourline/sync";
-import { track } from "@vercel/analytics";
+import { identifyUser, resetUser, track } from "./analytics";
 import { shouldOpenAccountPanelForAuthResult } from "./account-entry-policy";
 import {
   isVerifiedAccountUser,

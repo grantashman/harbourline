@@ -109,6 +109,8 @@ VITE_HARBOURLINE_BILLING_CURRENCY (public display; default AUD)
 VITE_HARBOURLINE_BILLING_LOCALE (public display; default en-AU)
 VITE_SENTRY_DSN
 VITE_HARBOURLINE_RELEASE
+VITE_POSTHOG_KEY (optional public project key; leave unset to disable PostHog)
+VITE_POSTHOG_HOST (default https://us.i.posthog.com)
 ```
 
 Currency rollout configuration is separate from billing configuration. The
@@ -294,9 +296,9 @@ first-copy selection, offline queueing, conflict handling, invitations,
 export and account deletion.
 
 The Vercel deployment applies the response security policy in `vercel.json`.
-Keep its `connect-src` limited to the production Supabase project, and review
-the policy before adding analytics, payment widgets or any other third-party
-browser integration.
+The checked-in policy permits the default PostHog US host only when the optional
+PostHog integration is enabled. If a different PostHog host or region is used,
+update `connect-src` in the same reviewed change before deployment.
 
 ## 7. Activate customer signup and billing
 
