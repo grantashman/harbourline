@@ -1,4 +1,4 @@
-import { track } from "@vercel/analytics";
+import { track } from "./analytics";
 import {
   canCompleteFreeStarter,
   FREE_STARTER_MIN_EXPENSES,

@@ -20,7 +20,10 @@ identifiers. Those values must never be collected.
   an account transition so one account cannot upload another account's queue.
 - Import requires a deliberate file selection.
 - Export produces a user-controlled JSON backup.
-- No analytics, remote logging or third-party scripts receive budget values.
+- Analytics, remote logging and third-party scripts receive no budget values.
+  The optional PostHog adapter uses named events only; it disables pageviews,
+  autocapture and session recording, and identifies accounts only by their auth
+  user ID.
 - Campaign attribution is limited to whitelisted UTM fields and the landing
   path; it never includes email addresses, budget amounts, bill names or free
   text.

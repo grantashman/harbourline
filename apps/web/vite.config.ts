@@ -40,7 +40,7 @@ const pdfVendorAssetPlugin: Plugin = {
   }
 };
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   root: repositoryRoot,
   base: "./",
   plugins: [
@@ -51,9 +51,12 @@ export default defineConfig({
       transformIndexHtml: {
         order: "post",
         handler(html) {
+          const release2Script = command === "serve"
+            ? '  <script type="module" src="/apps/web/src/release2.ts"></script>'
+            : '  <script type="module" src="./assets/release2.js"></script>';
           const scripts = [
             mobileBuild ? '  <script type="module" src="./assets/mobile-bootstrap.js"></script>' : "",
-            '  <script type="module" src="./assets/release2.js"></script>'
+            release2Script
           ].filter(Boolean).join("\n");
           return html.replace("</body>", `${scripts}\n</body>`);
         }
@@ -119,4 +122,4 @@ export default defineConfig({
       allow: [repositoryRoot]
     }
   }
-});
+}));

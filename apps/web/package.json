@@ -15,7 +15,8 @@
     "@harbourline/sync": "workspace:*",
     "@sentry/browser": "^10.69.0",
     "@supabase/supabase-js": "^2.112.1",
-    "@vercel/analytics": "^2.0.1"
+    "@vercel/analytics": "^2.0.1",
+    "posthog-js": "^1.417.0"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",

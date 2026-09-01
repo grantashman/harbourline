@@ -97,7 +97,7 @@
     body {
       width: 100%;
       max-width: 100%;
-      overflow-x: hidden;
+      overflow-x: clip;
     }
 
     body {
@@ -284,7 +284,7 @@
       white-space: nowrap;
     }
 
-    .btn:hover {
+    .btn:hover:not(:disabled) {
       transform: translateY(-1px);
       box-shadow: 0 12px 24px rgba(23, 33, 31, 0.18);
     }
@@ -299,6 +299,15 @@
       background: #fff0f1;
       color: #8d2932;
       border: 1px solid #f0c3c8;
+    }
+
+    :where(button, input, select, summary):focus-visible {
+      outline: 3px solid color-mix(in srgb, var(--blue) 72%, var(--mint));
+      outline-offset: 3px;
+    }
+
+    .btn:active:not(:disabled) {
+      transform: translateY(1px);
     }
 
     :root[data-theme="dark"] .btn.danger {
@@ -350,6 +359,43 @@
       overflow: hidden;
       display: grid;
       align-content: center;
+    }
+
+    .hero-next-move {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 22px;
+      padding: 12px;
+      border: 1px solid color-mix(in srgb, var(--mint) 36%, var(--line));
+      border-radius: 8px;
+      background: color-mix(in srgb, var(--mint) 8%, var(--panel));
+    }
+
+    .hero-next-move-copy {
+      display: grid;
+      min-width: 0;
+      gap: 3px;
+    }
+
+    .hero-next-move-copy span {
+      color: var(--mint-dark);
+      font-size: 0.68rem;
+      font-weight: 850;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .hero-next-move-copy strong {
+      font-size: 0.84rem;
+      overflow-wrap: anywhere;
+    }
+
+    .hero-next-move .btn {
+      flex: 0 0 auto;
     }
 
     .hero-panel::after {
@@ -590,11 +636,15 @@
     }
 
     .theme-option:hover,
-    .theme-option:focus-visible,
     .theme-option.is-selected {
       border-color: color-mix(in srgb, var(--option-accent) 52%, var(--line));
       background: color-mix(in srgb, var(--option-accent) 10%, var(--panel));
-      outline: none;
+    }
+
+    .theme-option:focus-visible {
+      border-color: var(--option-accent);
+      outline: 3px solid color-mix(in srgb, var(--blue) 72%, var(--mint));
+      outline-offset: 3px;
     }
 
     .theme-option[data-theme-option="sea-glass"] {
@@ -3510,6 +3560,15 @@
         font-size: 1.75rem;
       }
 
+      .hero-next-move {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .hero-next-move .btn {
+        width: 100%;
+      }
+
       .field-grid,
       .income-source-grid,
       .income-preview,
@@ -3900,6 +3959,21 @@
         box-shadow: none;
       }
     }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -3961,6 +4035,13 @@
         <p class="eyebrow">Budget / plan / progress</p>
         <h1 id="heroTitle">Your money. Your plan. One clear view.</h1>
         <p class="subhead">Bring paydays, bills, savings, debt and future goals together in one confident household plan. Your information stays private on this device.</p>
+        <section class="hero-next-move" aria-labelledby="heroNextMoveTitle">
+          <div class="hero-next-move-copy">
+            <span id="heroNextMoveTitle">Next move</span>
+            <strong>Add the pay that arrives next.</strong>
+          </div>
+          <button class="btn secondary compact" id="heroNextMove" type="button" aria-controls="incomeSourceGrid">Start with income <span aria-hidden="true">→</span></button>
+        </section>
       </div>
 
       <aside class="summary-panel paycheck-card" aria-labelledby="incomeTitle">
@@ -9327,6 +9408,16 @@
       saveState();
       render();
       showToast("Income source added");
+    });
+
+    document.querySelector("#heroNextMove")?.addEventListener("click", () => {
+      const firstIncomeAmount = document.querySelector("#incomeSourceGrid .income-amount");
+      if (!(firstIncomeAmount instanceof HTMLInputElement)) return;
+      firstIncomeAmount.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+        block: "center"
+      });
+      firstIncomeAmount.focus({ preventScroll: true });
     });
 
     function updateSavingsPlan(updates) {
