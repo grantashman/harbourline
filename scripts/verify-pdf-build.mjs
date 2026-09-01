@@ -17,16 +17,21 @@ const javascript = await Promise.all(
 );
 const bundledJavascript = javascript.join("\n");
 
-assert.match(
+assert.doesNotMatch(
   indexHtml,
   /<script\s+src=["']assets\/vendor\/pdf-lib\.min\.js["']/i,
-  "the production HTML must load the emitted pdf-lib vendor asset"
+  "the production HTML must not eagerly load the pdf-lib vendor asset"
 );
 assert.ok(javascriptAssets.length > 0, "the production build must contain JavaScript assets");
 assert.doesNotMatch(
   bundledJavascript,
   /PDFDocument/,
   "pdf-lib should remain a separate vendor asset rather than inflating the application bundle"
+);
+assert.match(
+  indexHtml,
+  /new URL\("assets\/vendor\/pdf-lib\.min\.js", document\.baseURI\)/,
+  "the emitted planner HTML must retain the lazy PDF vendor loader"
 );
 assert.match(pdfVendor, /PDFLib/, "the vendor asset must retain the pdf-lib global bridge");
 assert.match(pdfVendor, /PDFDocument/, "the vendor asset must contain PDFDocument");

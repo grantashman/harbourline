@@ -21,6 +21,7 @@ import type {
 } from "./beta-types";
 import { addRealtimeLease, isRealtimeFailureStatus, releaseRealtimeLease } from "./realtime-lease";
 import { createAuthCallbackState } from "./auth-callback-state.ts";
+import { parseFunctionErrorMessage } from "./function-error";
 
 interface HouseholdMemberRow {
   household_id: string;
@@ -137,12 +138,16 @@ export class HarbourlineCloud {
     this.client = this.configured
       ? createClient(url, publishableKey, {
         auth: {
-          // The public homepage and app use different origins. The homepage
-          // therefore returns OAuth sessions in the URL fragment so the app
-          // can consume them after the redirect.
-          flowType: "implicit",
+          // OAuth providers return an authorization code. AccountPanel
+          // validates the callback state before exchanging that code.
+          flowType: "pkce",
           persistSession: true,
           autoRefreshToken: true,
+          experimental: {
+            // Bind the callback to the exact verifier created for this OAuth flow.
+            // The reserved sb_flow_id is accepted by Supabase's redirect allowlist.
+            appendPkceFlowIdToRedirects: true
+          },
           // AccountPanel validates the short-lived callback state before
           // handing any fragment token to Supabase. Automatic URL detection
           // would create a race that could adopt an unvalidated callback.
@@ -167,9 +172,20 @@ export class HarbourlineCloud {
   }
 
   async consumeAuthCallbackFragment(): Promise<boolean> {
-    if (!this.client || !location.hash) return true;
+    if (!this.client) return true;
     const url = new URL(location.href);
     try {
+      const code = url.searchParams.get("code");
+      const flowId = url.searchParams.get("sb_flow_id");
+      if (code && url.hash) return false;
+      if (code) {
+        const { error } = await this.requireClient().auth.exchangeCodeForSession(
+          code,
+          flowId ? { flowId } : undefined
+        );
+        return !error;
+      }
+      if (!location.hash) return true;
       const fragment = new URLSearchParams(url.hash.slice(1));
       const keys = [...fragment.keys()];
       const approvedKeys = new Set([
@@ -199,6 +215,8 @@ export class HarbourlineCloud {
       });
       return !error;
     } finally {
+      url.searchParams.delete("code");
+      url.searchParams.delete("sb_flow_id");
       history.replaceState(history.state, "", `${url.pathname}${url.search}`);
     }
   }
@@ -672,7 +690,7 @@ export class HarbourlineCloud {
 
   private async functionError(error: { context?: Response; message: string }): Promise<Error> {
     const detail = error.context ? await error.context.text() : "";
-    return new Error(detail || error.message);
+    return new Error(parseFunctionErrorMessage(detail, error.message));
   }
 
   private mapBudget(row: BudgetRow, currency?: string): RemoteBudgetDocument {

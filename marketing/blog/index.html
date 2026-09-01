@@ -155,6 +155,27 @@
     .journal-heading { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-bottom: 18px; }
     .journal-heading h2 { margin: 0; font-size: clamp(1.65rem, 3vw, 2.35rem); line-height: 1.08; letter-spacing: -0.025em; }
     .journal-heading p { max-width: 500px; margin: 0; color: var(--muted); line-height: 1.55; }
+    .weekly-note {
+      margin-bottom: 42px;
+      padding: 30px;
+      border: 1px solid rgba(92, 224, 179, 0.34);
+      border-radius: 10px;
+      background: linear-gradient(145deg, rgba(17, 40, 36, 0.92), rgba(13, 29, 26, 0.72));
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset;
+    }
+    .weekly-note h3 { max-width: 760px; margin: 16px 0 12px; font-size: clamp(2rem, 4vw, 3.25rem); line-height: 1.02; letter-spacing: -0.035em; }
+    .weekly-note .post-dek { max-width: 700px; margin: 0; color: var(--muted); font-size: clamp(1.05rem, 2vw, 1.25rem); line-height: 1.55; }
+    .weekly-note .post-meta { margin-top: 20px; }
+    .weekly-note-rule { height: 1px; margin: 34px 0 28px; background: var(--line); }
+    .weekly-note-body { max-width: 800px; font-size: 1.04rem; line-height: 1.75; }
+    .weekly-note-body p { margin: 0 0 22px; color: #d7e8e2; }
+    .weekly-note-body h4 { margin: 40px 0 14px; color: var(--ink); font-size: clamp(1.45rem, 3vw, 2.1rem); line-height: 1.08; letter-spacing: -0.025em; }
+    .weekly-note-body ul { display: grid; gap: 12px; margin: 18px 0 28px; padding: 0; list-style: none; }
+    .weekly-note-body li { position: relative; padding-left: 28px; color: #d7e8e2; }
+    .weekly-note-body li::before { content: ""; position: absolute; top: 0.78em; left: 3px; width: 8px; height: 8px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 0 5px rgba(92, 224, 179, 0.1); }
+    .weekly-note-body strong { color: var(--ink); }
+    .weekly-note-cta { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 42px; padding-top: 26px; border-top: 1px solid var(--line); }
+    .weekly-note-cta p { max-width: 430px; margin: 0; color: var(--muted); font-size: 0.92rem; line-height: 1.5; }
     .post-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; padding-bottom: 86px; }
     .post-card {
       display: flex;
@@ -183,6 +204,7 @@
     @media (max-width: 760px) {
       .journal-heading { align-items: flex-start; flex-direction: column; }
       .post-grid { grid-template-columns: 1fr; }
+      .weekly-note-cta { align-items: flex-start; flex-direction: column; }
     }
     @media (max-width: 660px) {
       .page { width: min(100% - 20px, 1180px); }
@@ -198,6 +220,7 @@
       .nav-menu summary { min-height: 42px; padding-inline: 9px; font-size: 0.78rem; }
       .journal-hero { padding-top: 52px; }
       .post-meta span + span { padding-left: 0; border-left: 0; }
+      .weekly-note { padding: 22px; }
       .footer { align-items: flex-start; flex-direction: column; }
     }
     @media (prefers-reduced-motion: reduce) {
@@ -232,7 +255,7 @@
           <a href="https://harbourline.app/?account=signin">Sign in</a>
         </div>
       </details>
-      <a class="button" href="../#early-access">Try the payday plan free</a>
+      <a class="button" href="../#early-access">Build your free payday plan</a>
       <a class="button secondary" href="https://harbourline.app/?account=signin">Sign in</a>
     </nav>
   </header>
@@ -244,10 +267,98 @@
       <p>Useful notes on household money planning, bill timing and the decisions that make the next pay cycle easier to navigate.</p>
     </section>
 
+    <section aria-labelledby="weekly-note-heading">
+      <div class="journal-heading">
+        <h2 id="weekly-note-heading">This week's Payday note</h2>
+        <p>A practical way to compare two good uses for the money left after a household's next pay is accounted for.</p>
+      </div>
+      <article class="weekly-note" aria-labelledby="weekly-note-title">
+        <span class="post-kicker">Payday note</span>
+        <h3 id="weekly-note-title">How to split a spare payday amount between savings and extra debt.</h3>
+        <p class="post-dek">When a pay cycle has room after the commitments, compare the choices without pretending one split suits every household.</p>
+        <div class="post-meta">
+          <span><time datetime="2026-08-24">24 August 2026</time></span>
+          <span>Harbourline team</span>
+          <span>6 min read</span>
+        </div>
+
+        <div class="weekly-note-rule"></div>
+
+        <div class="weekly-note-body">
+          <p>When a payday has a little room after the bills, a household often has two sensible uses for it: build savings or pay more than the required amount on a debt. That can turn into an argument because both goals matter, and the answer depends on the household's commitments, flexibility and priorities. A useful plan does not pretend there is one correct split. It makes the trade-off visible.</p>
+          <p>The first step is to decide what "room" actually means. Before comparing savings and extra debt, account for:</p>
+          <ul>
+            <li>income expected by the next payday;</li>
+            <li>bills due before the next pay;</li>
+            <li>regular variable costs such as food, fuel and household needs;</li>
+            <li>minimum required debt payments; and</li>
+            <li>known irregular expenses, such as a registration or school cost.</li>
+          </ul>
+          <p>Only then does a remainder become a candidate for an extra allocation. Even that remainder needs a check against the household's available cash and upcoming calendar. A tidy number on paper is not automatically money that can be moved.</p>
+
+          <h4>Use one pay cycle as the unit</h4>
+          <p>Imagine a fictional household paid A$2,800 fortnightly. In one pay cycle, it has planned A$1,900 for bills and everyday essentials, A$250 for required debt payments, and A$200 for its existing savings plan. That leaves A$450 for an extra choice.</p>
+          <p>These are illustrative figures, not a recommendation. The point is to make the decision fit the same payday rhythm as the income. A monthly or annual target can still be part of the plan, but the household needs to know what it means for this pay.</p>
+          <p>Now write two scenarios using the same A$450:</p>
+          <ul>
+            <li><strong>Scenario A:</strong> put all A$450 towards extra debt.</li>
+            <li><strong>Scenario B:</strong> put A$225 into savings and A$225 towards extra debt.</li>
+          </ul>
+          <p>A third scenario might hold the money for an irregular bill due soon. Include it if the forward calendar shows that the next large commitment is closer than it first appeared.</p>
+
+          <h4>Compare the scenarios, not just the final balances</h4>
+          <p>It is easy to focus on the number that looks most satisfying at the end. A more useful comparison asks what each plan does between now and the next review date.</p>
+          <p>For each scenario, ask:</p>
+          <ul>
+            <li>What is this allocation meant to cover or improve?</li>
+            <li>When will the household need the money again?</li>
+            <li>How much flexibility remains if the next pay is lower or a planned cost arrives early?</li>
+            <li>Does the plan keep required bills and minimum payments funded?</li>
+            <li>What will the household review next time: the amount saved, the debt balance, the upcoming bills, or all three?</li>
+          </ul>
+          <p>This keeps the conversation about the plan rather than turning it into a contest between two good intentions. It also brings assumptions into the open. For example, a savings allocation may be easy to access but slower to grow, while an extra debt payment may reduce a balance but leave less cash available for a near-term cost. The relevant details depend on the particular arrangement, so a general worksheet should not pretend to settle them.</p>
+
+          <h4>Keep the allocations separate</h4>
+          <p>A payday plan is easier to read when similar-sounding allocations have different labels. Keep these lines separate:</p>
+          <ul>
+            <li>required payments, which must be made under an existing arrangement;</li>
+            <li>planned savings, which build towards a household goal or future cost;</li>
+            <li>extra debt payments, which are an additional choice; and</li>
+            <li>irregular bills, which may be months away but still need provision.</li>
+          </ul>
+          <p>Do not count the same dollar twice. If money has been set aside for an annual bill, it is not also available for an extra debt payment. If savings are earmarked for a near-term expense, they are not the same as money that can be freely redirected.</p>
+          <p>That sounds obvious. It becomes less obvious when a household is looking at several accounts, a monthly budget and a payday plan at the same time.</p>
+
+          <h4>Check the next 13 weeks before moving the extra amount</h4>
+          <p>The next payday is the right place to make the decision, but it is not the whole picture. A household can have room this fortnight and still face a cluster of bills later.</p>
+          <p>Review the next 13 weeks and mark the commitments that are easy to forget: annual renewals, quarterly bills, school costs, maintenance, medical expenses or a period with fewer paydays. If the proposed extra allocation creates a shortfall in that view, the money was not truly spare. It had a future job.</p>
+          <p>This is also where two scenarios become useful. One may leave more cash available for an upcoming bill. Another may make faster progress on a stated goal but require a tighter plan for the next few pays. Seeing both versions is more informative than choosing a split because it sounds disciplined.</p>
+
+          <h4>Make the household agreement explicit</h4>
+          <p>When two people share money decisions, write down the decision in ordinary language. For example: "For the next two pays, we will split the extra amount between savings and extra debt, then review the bill forecast." The exact wording is less important than agreeing on the purpose, the time period and the point at which the plan will be revisited.</p>
+          <p>A short review can cover three questions:</p>
+          <ul>
+            <li>Did the expected income arrive?</li>
+            <li>Did the bills and minimum commitments stay funded?</li>
+            <li>Does the next pay still have the same amount available for the chosen split?</li>
+          </ul>
+          <p>That makes it easier to adjust without treating a change as a failure. A plan is a current set of assumptions, not a promise that the next month will behave perfectly.</p>
+
+          <p>Harbourline is built for this kind of comparison. A household can add recurring commitments, set savings and debt allocations, inspect the 13-week bills forecast and compare scenarios before deciding what the next payday needs to cover. It is a budgeting and financial-education tool, not financial advice. It does not recommend financial products or move money.</p>
+          <p>This is a general budgeting example, not personal financial advice. If a decision depends on the terms of a particular credit arrangement or financial product, use the relevant documents and qualified advice.</p>
+
+          <div class="weekly-note-cta">
+            <p>If you want to try the method with your own plan, start with Harbourline's free payday planner.</p>
+            <a class="button" href="../#early-access">Build your free payday plan</a>
+          </div>
+        </div>
+      </article>
+    </section>
+
     <section aria-labelledby="posts-title">
       <div class="journal-heading">
-        <h2 id="posts-title">Latest from Harbourline</h2>
-        <p>Harbourline helps households plan in AUD, NZD or USD. The introductory subscription remains billed in AUD.</p>
+        <h2 id="posts-title">Earlier from Harbourline</h2>
+        <p>Harbourline currently supports AUD, NZD and USD for budgeting; the introductory subscription remains billed in AUD. Previous notes cover payday planning, bill timing and early access.</p>
       </div>
       <div class="post-grid">
         <article class="post-card">

@@ -234,6 +234,8 @@ next merge.
 - enable CAPTCHA before homepage-led account requests and signup launch
 - enforce MFA for Supabase and GitHub administrators
 
+For the exact Resend SMTP fields, template requirements and disposable-account acceptance check, see [`AUTH_EMAIL_BRANDING.md`](AUTH_EMAIL_BRANDING.md).
+
 ### Transactional email coverage
 
 The production account journey has these email paths:

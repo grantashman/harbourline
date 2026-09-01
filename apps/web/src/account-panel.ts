@@ -1,17 +1,29 @@
 import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import type { HouseholdSummary, RemoteBudgetDocument } from "@harbourline/sync";
 import { track } from "@vercel/analytics";
+import { shouldOpenAccountPanelForAuthResult } from "./account-entry-policy";
 import {
   isVerifiedAccountUser,
   resolveWorkspaceAccess,
   type WorkspaceAccess
 } from "./access-model";
+import {
+  billingRefreshNotice,
+  resolveBillingPlanState,
+  shouldOpenFreeStarter,
+  type BillingPlanState
+} from "./billing-ui-state";
 import { getFocusWrapTarget } from "./auth-gate-focus";
 import {
   shouldNotifySignupForAuthEvent,
   shouldPreserveRecoveryForSession
 } from "./auth-event-policy";
-import { parseApprovedAuthReturn } from "./auth-return-policy";
+import {
+  isApprovedAccountCallbackTransport,
+  parseApprovedAuthReturn,
+  parseAuthProviderError,
+  clearAuthProviderErrorRedirect
+} from "./auth-return-policy";
 import {
   consumeInvalidAuthCallback,
   consumePendingAuthCallback,
@@ -120,6 +132,13 @@ function verifiedSession(session: Session | null): Session | null {
   return isVerifiedAccountUser(session?.user) ? session : null;
 }
 
+function googleProviderNotice(errorCode: string | null, error: string): string {
+  if (error === "access_denied" || errorCode === "access_denied") {
+    return "Google sign-in was cancelled. You can try again when ready.";
+  }
+  return `Google sign-in could not be completed${errorCode ? ` (${errorCode})` : ""}. Please try again.`;
+}
+
 export class AccountPanel {
   private readonly cloud = new HarbourlineCloud();
   private readonly sync: SyncController;
@@ -136,6 +155,7 @@ export class AccountPanel {
   private authEventGeneration = 0;
   private subscriptionActive: boolean | null = null;
   private billingReconciled = false;
+  private billingLookupError = false;
   private workspaceAccess: WorkspaceAccess = "signed-out";
   private freeStarterViewed = false;
   private billingConfirmationPending = false;
@@ -153,8 +173,12 @@ export class AccountPanel {
   private pendingRecoveryRedirect = false;
   private pendingRecoveryUserId: string | null = null;
   private pendingAuthExpectedEmail: string | null = null;
+  private pendingGoogleSignIn = false;
   private trackedVerifiedSessionUserId: string | null = null;
   private authCallbackRejected = false;
+  private authProviderError = false;
+  private plainAccountNavigation = false;
+  private accountRefreshError = false;
   private dialogReturnFocus: HTMLElement | null = null;
   private dialogHistoryActive = false;
   private inviteToken = "";
@@ -322,7 +346,11 @@ export class AccountPanel {
         )) {
           void this.notifySignupIfCurrent();
         }
-        void this.refreshAccount();
+        void this.refreshAccount()
+          .then(() => {
+            if (event === "SIGNED_IN" && this.hasGettingStartedFlow()) this.closeAccountDialog();
+          })
+          .catch(reportError);
         if (event === "PASSWORD_RECOVERY" && !this.dialog.open) {
           this.openAccountDialog(false);
         }
@@ -338,19 +366,47 @@ export class AccountPanel {
       await this.refreshAccount();
       if (recoveryRedirect) this.openRecoveryMode();
     }
+    const shouldStartGoogleSignIn = this.pendingGoogleSignIn && !adoptedInitialSession;
+    this.pendingGoogleSignIn = false;
+    if (shouldStartGoogleSignIn) {
+      try {
+        await this.cloud.signInWithGoogle();
+        return;
+      } catch (error) {
+        reportError(error);
+        this.notice = error instanceof Error
+          ? error.message
+          : "Google sign-in could not be started. Please try again.";
+      }
+    }
     this.handleBillingRedirect(billingRedirect);
     this.handleCalendarRedirect(calendarRedirect);
     if (billingRedirect || calendarRedirect) {
       if (!this.dialog.open) this.openAccountDialog(false);
-    } else if ((shouldOpenAccount || this.authCallbackRejected) && this.state.session) {
-      this.openAccountDialog(false);
-    } else if ((shouldOpenAccount || this.authCallbackRejected) && !this.dialog.open) {
+    } else if (shouldOpenAccountPanelForAuthResult({
+      authCallbackRejected: this.authCallbackRejected,
+      plainAccountNavigation: this.plainAccountNavigation,
+      providerError: this.authProviderError,
+      dialogOpen: this.dialog.open
+    })) {
       this.openAccountDialog(false);
     }
   }
 
   private consumeAccountRedirect(): boolean {
     const url = new URL(location.href);
+    const providerError = parseAuthProviderError(url.searchParams);
+    if (providerError) {
+      if (providerError.state) {
+        consumePendingAuthCallback("signin", providerError.state);
+      }
+      this.authProviderError = true;
+      this.authCallbackRejected = false;
+      this.notice = googleProviderNotice(providerError.errorCode, providerError.error);
+      clearAuthProviderErrorRedirect(url);
+      history.replaceState(history.state, "", `${url.pathname}${url.search}`);
+      return true;
+    }
     const callback = parseApprovedAuthReturn(url.searchParams);
     if (callback?.account !== "signin") {
       if (url.searchParams.has("account")) {
@@ -363,15 +419,7 @@ export class AccountPanel {
       }
       return false;
     }
-    if (callback.state && !url.hash) {
-      recordInvalidAuthCallback();
-      this.authCallbackRejected = true;
-      url.searchParams.delete("account");
-      url.searchParams.delete("state");
-      history.replaceState(history.state, "", `${url.pathname}${url.search}`);
-      return false;
-    }
-    if (!callback.state && url.hash) {
+    if (!isApprovedAccountCallbackTransport(callback, Boolean(url.hash))) {
       recordInvalidAuthCallback();
       this.authCallbackRejected = true;
       url.searchParams.delete("account");
@@ -380,6 +428,13 @@ export class AccountPanel {
       history.replaceState(history.state, "", `${url.pathname}${url.search}`);
       return false;
     }
+    this.plainAccountNavigation = Boolean(
+      callback.account === "signin" &&
+      !callback.provider &&
+      !callback.code &&
+      !callback.state &&
+      !url.hash
+    );
     if (callback.state) {
       const nativePending = consumeValidatedNativeAuthCallback("signin", callback.state);
       const validation = nativePending
@@ -396,7 +451,9 @@ export class AccountPanel {
       }
       this.pendingAuthExpectedEmail = validation.pending.expectedEmail;
     }
+    this.pendingGoogleSignIn = callback.provider === "google";
     url.searchParams.delete("account");
+    url.searchParams.delete("provider");
     url.searchParams.delete("state");
     history.replaceState(history.state, "", `${url.pathname}${url.search}${url.hash}`);
     return true;
@@ -565,6 +622,10 @@ export class AccountPanel {
 
   private closeAccountDialog(): void {
     if (this.dialog.open) this.dialog.close();
+  }
+
+  private hasGettingStartedFlow(): boolean {
+    return this.freeStarter.isOpen() || this.onboarding.isOpen();
   }
 
   private createDialog(): HTMLDialogElement {
@@ -919,8 +980,10 @@ export class AccountPanel {
     await this.sync.suspendCloudAccess(true);
     if (refreshGeneration !== this.accountRefreshGeneration || !this.state.session) return;
     let calendarRefreshGeneration = this.calendarOperationGeneration;
+    let billingLookupFailed = true;
     try {
       const billingReconciliation = await this.cloud.reconcileBillingSubscription();
+      billingLookupFailed = false;
       if (refreshGeneration !== this.accountRefreshGeneration || !this.state.session) return;
       this.billingReconciled = billingReconciliation.reconciled === true;
       const subscriptionActive = billingReconciliation.reconciled === true && Boolean(billingReconciliation.active);
@@ -947,9 +1010,19 @@ export class AccountPanel {
         if (refreshGeneration !== this.accountRefreshGeneration || !this.state.session) return;
         this.state.metadata = null;
       }
-      this.freeStarter.refresh(!subscriptionActive);
-      if (subscriptionActive) this.billingConfirmationPending = false;
       this.billingSubscription = billingSubscription;
+      const paymentNeedsAttention = Boolean(
+        billingSubscription && ["incomplete", "past_due", "unpaid"].includes(billingSubscription.status)
+      );
+      const freeStarterEligible = shouldOpenFreeStarter({
+        billingReconciled: this.billingReconciled,
+        subscriptionActive,
+        billingConfirmationPending: this.billingConfirmationPending,
+        paymentNeedsAttention,
+        billingLookupError: false
+      });
+      this.freeStarter.refresh(freeStarterEligible);
+      if (subscriptionActive) this.billingConfirmationPending = false;
       const metadata = this.sync.metadata;
       const linked = metadata?.householdId ?? null;
       const metadataAuthorized = Boolean(
@@ -1012,12 +1085,18 @@ export class AccountPanel {
       if (!await this.disconnectLocalSync(this.sessionGeneration, refreshGeneration)) return;
       if (refreshGeneration !== this.accountRefreshGeneration) return;
       this.resetCloudState(null);
-      await this.onboarding.refresh({
-        session: this.state.session,
-        subscriptionActive: false,
-        households: []
-      });
-      this.freeStarter.refresh(false);
+      if (billingLookupFailed) {
+        await this.onboarding.refresh({
+          session: this.state.session,
+          subscriptionActive: false,
+          households: []
+        });
+        this.billingLookupError = true;
+        this.freeStarter.refresh(true);
+      } else {
+        this.accountRefreshError = true;
+        this.freeStarter.refresh(false);
+      }
       if (refreshGeneration !== this.accountRefreshGeneration) return;
       this.notice = error instanceof Error ? error.message : "Account details could not be loaded.";
     }
@@ -1034,6 +1113,8 @@ export class AccountPanel {
     this.state.conflict = null;
     this.subscriptionActive = subscriptionActive;
     this.billingReconciled = false;
+    this.billingLookupError = false;
+    this.accountRefreshError = false;
     this.workspaceAccess = this.state.session ? "free" : "signed-out";
     this.billingSubscription = null;
     this.googleCalendarStatus = emptyGoogleCalendarStatus();
@@ -1213,14 +1294,27 @@ export class AccountPanel {
       }
       gate.innerHTML = `
         <div class="release2-access-gate-card">
-          <span class="eyebrow">Free Starter</span>
-          <h1 id="release2AccessGateTitle">Create an account to start planning.</h1>
-          <p>Sign up for a free Harbourline account, then sign in to use the local planner and exports. No payment is required. Upgrade later if you want cloud sync, household sharing or multi-device access.</p>
-          <div class="release2-gate-actions">
-            <button class="btn" type="button" data-action="open-account">Sign in</button>
-            <a class="btn secondary" href="https://www.harbourline.app/#early-access" target="_blank" rel="noreferrer">Create free account</a>
+          <div class="release2-access-gate-brand">
+            <img src="./assets/harbourline-mark.svg" alt="" width="44" height="44" />
+            <span>
+              <span class="eyebrow">Household money planning</span>
+              <strong>Harbourline</strong>
+            </span>
           </div>
-          <p class="release2-gate-note">Already registered? Sign in here. New accounts are created on the Harbourline homepage.</p>
+          <span class="eyebrow">Free Starter</span>
+          <h1 id="release2AccessGateTitle">Know what your next payday needs to cover.</h1>
+          <p>Start with a free Harbourline account, then build your local payday plan for income, bills, savings and debt. No payment is required for Free Starter.</p>
+          <div class="release2-gate-actions">
+            <a class="btn" href="https://www.harbourline.app/#early-access" target="_blank" rel="noreferrer">Create your free account</a>
+            <button class="btn secondary" type="button" data-action="open-account">Already have an account? Sign in</button>
+          </div>
+          <div class="release2-gate-facts" aria-label="Free Starter benefits">
+            <span>Local planning</span>
+            <span>Portable exports</span>
+            <span>No payment required</span>
+          </div>
+          <p class="release2-gate-note">New accounts are created on the Harbourline homepage. <a href="https://www.harbourline.app/#trust" target="_blank" rel="noreferrer">Read about privacy and access</a>.</p>
+          <a class="release2-gate-back" href="https://www.harbourline.app/">Back to Harbourline homepage</a>
         </div>
       `;
       if (!this.dialog.open && (gateWasCreated || gateHadFocus || documentNeedsGateFocus)) {
@@ -1374,7 +1468,7 @@ export class AccountPanel {
   }
 
   private renderSubscriptionSummary(
-    planState: "active" | "pending" | "checking" | "attention" | "not-started",
+    planState: BillingPlanState,
     periodEnd: string | null
   ): string {
     const nativeCompanion = window.HarbourlineMobile?.isNative === true;
@@ -1403,6 +1497,12 @@ export class AccountPanel {
         message: "Update your payment method to restore cloud sync, household sharing and multi-device access.",
         icon: "!"
       },
+      error: {
+        eyebrow: "Account status",
+        title: "Cloud plan check needs attention",
+        message: "We couldn’t check your subscription right now. Your local starter is still available; try the plan check again when you’re ready.",
+        icon: "!"
+      },
       "not-started": {
         eyebrow: nativeCompanion ? "Web account access" : "Account status",
         title: nativeCompanion ? "Cloud access is managed on the web" : "Ready to unlock cloud continuity",
@@ -1418,7 +1518,7 @@ export class AccountPanel {
           <h3>${summary.title}</h3>
           <p>${summary.message}</p>
         </div>
-        <span class="badge release2-summary-badge">${planState === "active" ? "Ready" : planState === "pending" ? "Confirming" : planState === "checking" ? "Checking" : planState === "attention" ? "Action needed" : "Not active"}</span>
+        <span class="badge release2-summary-badge">${planState === "active" ? "Ready" : planState === "pending" ? "Confirming" : planState === "checking" ? "Checking" : planState === "attention" ? "Action needed" : planState === "error" ? "Unavailable" : "Not active"}</span>
       </section>
     `;
   }
@@ -1451,15 +1551,13 @@ export class AccountPanel {
     const periodEnd = formatBillingDate(billing?.current_period_end ?? null);
     const paymentNeedsAttention = this.billingReconciled && Boolean(billing && ["incomplete", "past_due", "unpaid"].includes(billing.status));
     const hasBillingPortal = this.billingReconciled && Boolean(billing?.stripe_customer_id);
-    const planState: "active" | "pending" | "checking" | "attention" | "not-started" = !this.billingReconciled || this.subscriptionActive === null
-      ? "checking"
-      : confirmedSubscriptionActive
-        ? "active"
-        : this.billingConfirmationPending
-          ? "pending"
-          : paymentNeedsAttention
-            ? "attention"
-            : "not-started";
+    const planState = resolveBillingPlanState({
+      billingReconciled: this.billingReconciled,
+      subscriptionActive: this.subscriptionActive,
+      billingConfirmationPending: this.billingConfirmationPending,
+      paymentNeedsAttention,
+      billingLookupError: this.billingLookupError || this.accountRefreshError
+    });
     const planMessage = confirmedSubscriptionActive
       ? billing?.cancel_at_period_end
         ? `Your plan is active until ${periodEnd ?? "the end of the current billing period"}. Cancellation is scheduled after that date.`
@@ -1468,12 +1566,16 @@ export class AccountPanel {
         ? "Your payment has been received. We’re waiting for the subscription confirmation before opening sync."
       : paymentNeedsAttention
         ? "A payment needs attention. Update your payment method or manage your subscription to restore cloud continuity."
+        : planState === "error"
+          ? "We couldn’t check your cloud plan right now. Your local starter remains available while you retry."
         : "Secure payment is handled by our payment provider. Your local starter plan remains available on this device.";
     const nativeCompanion = window.HarbourlineMobile?.isNative === true;
     const planAction = nativeCompanion
       ? hasBillingPortal
         ? `<div class="release2-plan-management"><div><strong>Billing is managed on the web</strong><p>This companion does not process payments.</p></div><button class="btn secondary" type="button" data-action="open-billing-portal" ${this.busy ? "disabled" : ""}>Manage on web</button></div>`
         : `<span class="badge release2-plan-badge">Web billing only</span>`
+      : planState === "error"
+        ? `<div class="release2-button-row"><span class="badge release2-plan-badge is-attention">Unavailable</span><button class="btn secondary" type="button" data-action="refresh-subscription" ${this.busy ? "disabled" : ""}>Retry plan check</button></div>`
       : confirmedSubscriptionActive
       ? hasBillingPortal
         ? `<div class="release2-plan-management"><div><strong>Manage your subscription</strong><p>Payment method, invoices and cancellation are handled securely by Stripe.</p></div><button class="btn secondary" type="button" data-action="open-billing-portal" ${this.busy ? "disabled" : ""}>Manage subscription</button></div>`
@@ -1489,6 +1591,8 @@ export class AccountPanel {
       ? linkedHousehold
         ? status.message
         : "Plan active. Create or join a household to sync this device."
+      : planState === "error"
+        ? "Local starter ready. Cloud plan check needs attention."
       : !this.billingReconciled || this.subscriptionActive === null
         ? "Checking your Harbourline plan…"
         : nativeCompanion
@@ -1498,6 +1602,8 @@ export class AccountPanel {
       ? linkedHousehold
         ? `${status.online ? "Online" : "Offline"}${status.queued ? ` · ${status.queued} queued` : ""} · ${linkedHousehold.name}`
         : `${status.online ? "Online" : "Offline"} · Sync ready when a household is connected`
+      : planState === "error"
+        ? `${status.online ? "Online" : "Offline"} · Cloud plan check unavailable`
       : `${status.online ? "Online" : "Offline"}${status.queued ? ` · ${status.queued} queued` : ""}`;
     return `
       ${this.renderNotice()}
@@ -1519,7 +1625,7 @@ export class AccountPanel {
       <section class="release2-section release2-plan-card release2-plan-${planState}">
         <div class="release2-section-heading">
           <div><span>Harbourline plan</span><h3>${nativeCompanion ? "Existing web account access" : `${escapeHtml(BILLING_PRICE_LABEL)} introductory early access`}</h3></div>
-          <span class="badge release2-plan-badge ${planState === "active" ? "is-active" : planState === "attention" ? "is-attention" : planState === "pending" || planState === "checking" ? "is-pending" : ""}">${nativeCompanion ? (confirmedSubscriptionActive ? "Active" : "Web only") : planState === "active" ? "Subscribed" : planState === "pending" ? "Confirming" : planState === "checking" ? "Checking" : planState === "attention" ? "Payment needed" : "One plan"}</span>
+          <span class="badge release2-plan-badge ${planState === "active" ? "is-active" : planState === "attention" || planState === "error" ? "is-attention" : planState === "pending" || planState === "checking" ? "is-pending" : ""}">${nativeCompanion ? (confirmedSubscriptionActive ? "Active" : "Web only") : planState === "active" ? "Subscribed" : planState === "pending" ? "Confirming" : planState === "checking" ? "Checking" : planState === "attention" ? "Payment needed" : planState === "error" ? "Unavailable" : "One plan"}</span>
         </div>
         ${confirmedSubscriptionActive ? `<div class="release2-plan-confirmation" role="status"><span class="release2-plan-check" aria-hidden="true">✓</span><div><strong>Subscription active</strong><p>Payment confirmed. Harbourline is ready for household planning and sync.</p></div></div>` : ""}
         <p class="release2-empty">${nativeCompanion && !confirmedSubscriptionActive ? "Manage Harbourline billing on the web. This companion does not process payments." : planMessage}</p>
@@ -1660,6 +1766,9 @@ export class AccountPanel {
   private renderCloudUnlockAction(): string {
     if (window.HarbourlineMobile?.isNative === true) return `<p class="release2-empty">Cloud access is managed by your Harbourline web account.</p>`;
     if (!this.cloud.configured) return `<p class="release2-empty">Online account services are not connected in this build.</p>`;
+    if (this.billingLookupError || this.accountRefreshError) {
+      return `<button class="btn secondary" type="button" data-action="refresh-subscription" ${this.busy ? "disabled" : ""}>Retry plan check</button>`;
+    }
     if (!this.billingReconciled || this.subscriptionActive === null || this.billingConfirmationPending) {
       return `<button class="btn secondary" type="button" data-action="refresh-subscription" ${this.busy ? "disabled" : ""}>Check plan status</button>`;
     }
@@ -1954,9 +2063,17 @@ export class AccountPanel {
           operationActionGeneration !== this.actionGeneration ||
           this.accountRefreshGeneration !== refreshGeneration + 1
         ) return;
-        this.notice = this.billingReconciled && this.subscriptionActive
-          ? "Payment confirmed. Your Harbourline plan is active."
-          : "Your plan is still being confirmed. Check again shortly.";
+        const paymentNeedsAttention = this.billingReconciled && Boolean(
+          this.billingSubscription && ["incomplete", "past_due", "unpaid"].includes(this.billingSubscription.status)
+        );
+        const retryState = resolveBillingPlanState({
+          billingReconciled: this.billingReconciled,
+          subscriptionActive: this.subscriptionActive,
+          billingConfirmationPending: this.billingConfirmationPending,
+          paymentNeedsAttention,
+          billingLookupError: this.billingLookupError || this.accountRefreshError
+        });
+        this.notice = billingRefreshNotice(retryState);
       } else if (action === "google-calendar-sync") {
         await this.handleCalendarButton();
       } else if (action === "google-calendar-disconnect") {

@@ -64,10 +64,11 @@ A household in any supported market that:
 
 ### Core promise
 
-> Know what your next payday needs to cover.
+> Turn every bill into a plan for your next payday.
 
-Harbourline turns income dates, bill due dates, savings and debt goals into a
-plan the household can review each payday.
+Harbourline turns income dates, bills on different schedules, savings and debt
+goals into a plan the household can review each payday and use to decide what is
+safe to spend next.
 
 ### Message house
 
@@ -78,7 +79,7 @@ plan the household can review each payday.
 | Proof | 13-week bills forecast, payday planning, shared household sync, savings and debt scenarios, exports. |
 | Trust | Budget in AUD/NZD/USD, account-protected, no bank credentials, no advertising or sale of financial data. |
 | Offer | Build the first plan free; pay A$2.50 per week during early access for cloud continuity. |
-| CTA | Try the payday plan free. |
+| CTA | Build your free payday plan. |
 
 Use budgeting, cash-flow planning and financial education language. Keep
 personalised investment, lending, insurance, superannuation and product
@@ -89,13 +90,15 @@ recommendations outside the product and its marketing.
 The current homepage has the right feature set. Change the conversion path in
 the next marketing pass:
 
-- Lead with “Create a free account” and explain that sign-in is required before
-  using the local payday plan.
-- Put “Payday planning for households across supported currencies” above the first call to
-  action, with the supported AUD, NZD and USD budgeting currencies visible.
-- Show the first-use sequence: add income, add five bills, open the payday plan.
-- Add a short privacy block: “No bank passwords. No financial-product advice.
-  Export or delete your data when you choose.”
+- Lead with “Build your free payday plan” and explain that sign-in is required
+  before using the local payday plan.
+- Put the mixed-bill-timing problem above the first call to action, with the
+  supported AUD, NZD and USD budgeting currencies visible as supporting detail.
+- Show the first-use sequence: add income, add three recurring commitments to
+  open the first plan, then add more for a fuller picture. The paid beta can
+  retain a separate five-bill depth milestone.
+- Add a short privacy block: “No bank connection or bank passwords. No
+  financial-product advice. Export or delete your data when you choose.”
 - Add a FAQ covering price, cancellation, data location, Google Calendar sync,
   household sharing and the limits of the product.
 - Explain that a free account and sign-in are required for the local starter,
@@ -116,12 +119,13 @@ the next marketing pass:
 
 Suggested hero copy:
 
-> Know what your next payday needs to cover.
+> Turn every bill into a plan for your next payday.
 >
-> Harbourline helps households set aside for bills, see what is safe to spend
-> and keep savings and debt moving in the supported budgeting currencies.
+> For households paid weekly, every two weeks, monthly or yearly when bills land
+> on different schedules. Set aside what’s needed and see what is safe to spend
+> before the next pay.
 
-Primary CTA: `Try the payday plan free`
+Primary CTA: `Build your free payday plan`
 
 Secondary CTA: `Unlock household sync for A$2.50/week`
 
