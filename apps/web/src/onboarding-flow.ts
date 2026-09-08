@@ -169,7 +169,7 @@ export class OnboardingFlow {
       .join("");
 
     this.overlay.innerHTML = `
-      <div class="release2-onboarding-shell">
+      <div class="release2-onboarding-shell" aria-busy="${this.busy}">
         <p class="eyebrow">Getting started</p>
         <h1 id="release2OnboardingTitle">Build your first household plan.</h1>
         <p class="release2-onboarding-lede">A few simple steps will turn Harbourline into a useful payday plan. You can keep refining everything in the full workspace afterwards.</p>
@@ -180,6 +180,7 @@ export class OnboardingFlow {
           <span>${escapeHtml(nextActionDetail)}</span>
         </aside>
         ${this.notice ? `<div class="release2-notice" role="status">${escapeHtml(this.notice)}</div>` : ""}
+        ${this.busy ? `<p class="release2-saving" role="status" aria-live="polite">Saving your household plan…</p>` : ""}
         ${this.renderStep()}
       </div>
     `;

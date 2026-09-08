@@ -127,7 +127,7 @@ export class FreeStarterFlow {
       .join("");
 
     this.overlay.innerHTML = `
-      <div class="release2-onboarding-shell">
+      <div class="release2-onboarding-shell" aria-busy="${this.busy}">
         <p class="eyebrow">Getting started</p>
         <h1 id="freeStarterOnboardingTitle">Build your first payday plan.</h1>
         <p class="release2-onboarding-lede">Three simple steps will give Harbourline enough context to show what your next pay needs to cover. You can keep refining the plan in the full workspace afterwards.</p>
@@ -138,6 +138,7 @@ export class FreeStarterFlow {
           <span>${escapeHtml(progress.nextActionDetail)}</span>
         </aside>
         ${this.notice ? `<div class="release2-notice" role="status">${escapeHtml(this.notice)}</div>` : ""}
+        ${this.busy ? `<p class="release2-saving" role="status" aria-live="polite">Saving your payday plan…</p>` : ""}
         ${this.renderStep(state)}
       </div>
     `;

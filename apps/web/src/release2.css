@@ -765,6 +765,29 @@
   box-shadow: 0 0 0 5px color-mix(in srgb, var(--rose) 15%, transparent);
 }
 
+.release2-saving {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.release2-saving::before {
+  width: 7px;
+  height: 7px;
+  border: 2px solid color-mix(in srgb, var(--mint) 35%, transparent);
+  border-top-color: var(--mint);
+  border-radius: 50%;
+  content: "";
+  animation: release2-saving-spin 700ms linear infinite;
+}
+
+@keyframes release2-saving-spin {
+  to { transform: rotate(360deg); }
+}
+
 .release2-notice {
   padding: 12px 14px;
   color: var(--ink);
