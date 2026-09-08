@@ -1,6 +1,7 @@
 import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import type { HouseholdSummary, RemoteBudgetDocument } from "@harbourline/sync";
 import { identifyUser, resetUser, track } from "./analytics";
+import { projectBetaOperations, type BetaOperationsView } from "./beta-operations-view";
 import { shouldOpenAccountPanelForAuthResult } from "./account-entry-policy";
 import {
   isVerifiedAccountUser,
@@ -166,6 +167,7 @@ export class AccountPanel {
   private cleanupLatchChannel: BroadcastChannel | null = null;
   private readonly calendarSync: GoogleCalendarSync;
   private googleCalendarStatus: GoogleCalendarStatus = emptyGoogleCalendarStatus();
+  private betaOperations: BetaOperationsView | null = null;
   private calendarBusy = false;
   private calendarOperationGeneration = 0;
   private recoveryMode = false;
@@ -1045,6 +1047,12 @@ export class AccountPanel {
         ) return;
       }
       this.googleCalendarStatus = googleCalendarStatus;
+      try {
+        const operations = await this.cloud.getBetaOperations();
+        this.betaOperations = operations ? projectBetaOperations(operations) : null;
+      } catch {
+        this.betaOperations = null;
+      }
       this.updateCalendarControls();
       if (subscriptionActive && this.state.user?.id && !this.cleanupBlocked) {
         const cloudActivated = await withCleanupLatchLock(async () => {
@@ -1118,6 +1126,7 @@ export class AccountPanel {
     this.workspaceAccess = this.state.session ? "free" : "signed-out";
     this.billingSubscription = null;
     this.googleCalendarStatus = emptyGoogleCalendarStatus();
+    this.betaOperations = null;
     this.calendarSync.reset();
     this.inviteToken = "";
     this.onboarding.dispose();
@@ -1541,6 +1550,30 @@ export class AccountPanel {
     `;
   }
 
+  private renderBetaOperations(): string {
+    const operations = this.betaOperations;
+    if (!operations) return "";
+    const max = Math.max(1, ...operations.funnel.map((row) => row.count));
+    return `
+      <section class="release2-section release2-operations" aria-labelledby="betaOperationsTitle">
+        <div class="release2-section-heading">
+          <div><span>Operator view</span><h3 id="betaOperationsTitle">Beta operations</h3></div>
+          <span class="badge">Privacy-safe</span>
+        </div>
+        <p class="release2-empty">Aggregate activation milestones only. Amounts, names and email addresses are not shown.</p>
+        <div class="release2-operations-metrics">
+          <div><span>Active</span><strong>${operations.activeSubscriptions}</strong></div>
+          <div><span>Past due</span><strong>${operations.pastDueSubscriptions}</strong></div>
+          <div><span>Cancelled</span><strong>${operations.cancelledSubscriptions}</strong></div>
+        </div>
+        <div class="release2-operations-funnel">
+          ${operations.funnel.map((row) => `<div class="release2-operations-row"><span>${escapeHtml(row.label)}</span><strong>${row.count}</strong><span class="release2-operations-bar"><i style="width:${Math.round((row.count / max) * 100)}%"></i></span></div>`).join("")}
+        </div>
+        ${operations.recentDays.length ? `<p class="release2-operations-days"><strong>Recent activity</strong> ${operations.recentDays.map((row) => `${escapeHtml(row.day)} · ${row.count}`).join("  ·  ")}</p>` : ""}
+      </section>
+    `;
+  }
+
   private renderSignedIn(): string {
     const linkedId = this.sync.metadata?.householdId;
     const linkedHousehold = this.state.households.find((household) => household.id === linkedId);
@@ -1607,6 +1640,7 @@ export class AccountPanel {
       : `${status.online ? "Online" : "Offline"}${status.queued ? ` · ${status.queued} queued` : ""}`;
     return `
       ${this.renderNotice()}
+      ${this.renderBetaOperations()}
       ${this.renderSubscriptionSummary(planState, periodEnd)}
       <section class="release2-sync-status release2-tone-${status.tone}">
         <span class="release2-status-dot"></span>
