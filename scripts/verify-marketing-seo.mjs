@@ -97,6 +97,14 @@ assert.ok(
   "sitemap URLs must use the public www host"
 );
 
+const journal = readFileSync("marketing/blog/index.html", "utf8");
+assert.equal(
+  countMatches(journal, /href="13-week-bills-check\/"/g),
+  1,
+  "the latest article must appear once in the journal index"
+);
+assert.match(journal, /<h2 id="weekly-note-heading">This week's planning note<\/h2>/, "latest journal section must be featured");
+
 const appShell = readFileSync("index.html", "utf8");
 assert.match(appShell, /<meta\s+name="robots"\s+content="noindex, follow"\s*\/>/i, "app shell must not be indexed as a marketing result");
 
