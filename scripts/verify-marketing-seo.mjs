@@ -23,6 +23,11 @@ const publicPages = [
     schemaTypes: ["BlogPosting"]
   },
   {
+    file: "marketing/blog/13-week-bills-check/index.html",
+    url: "https://www.harbourline.app/blog/13-week-bills-check/",
+    schemaTypes: ["BlogPosting"]
+  },
+  {
     file: "marketing/blog/early-access/index.html",
     url: "https://www.harbourline.app/blog/early-access/",
     schemaTypes: ["BlogPosting"]
