@@ -226,6 +226,16 @@
       .footer { align-items: flex-start; flex-direction: column; }
     }
 
+    @media (max-width: 380px) {
+      .nav { gap: 6px; padding: 8px; }
+      .brand { gap: 8px; }
+      .brand img { width: 34px; height: 34px; }
+      .brand strong { font-size: 0.92rem; }
+      .nav-links { gap: 4px; }
+      .nav-links .button:not(.secondary) { max-width: 126px; padding-inline: 8px; font-size: 0.7rem; }
+      .nav-menu summary { padding-inline: 7px; font-size: 0.7rem; }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       html { scroll-behavior: auto; }
       *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
