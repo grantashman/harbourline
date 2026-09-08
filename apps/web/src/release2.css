@@ -1340,6 +1340,18 @@
   font-size: 0.88rem;
 }
 
+.release2-operations-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.release2-operations-heading-actions .btn {
+  min-height: 32px;
+  padding: 5px 10px;
+  font-size: 0.7rem;
+}
+
 .release2-operations-metrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

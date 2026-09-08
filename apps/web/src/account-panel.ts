@@ -168,6 +168,7 @@ export class AccountPanel {
   private readonly calendarSync: GoogleCalendarSync;
   private googleCalendarStatus: GoogleCalendarStatus = emptyGoogleCalendarStatus();
   private betaOperations: BetaOperationsView | null = null;
+  private betaOperationsLoadedAt: string | null = null;
   private calendarBusy = false;
   private calendarOperationGeneration = 0;
   private recoveryMode = false;
@@ -1047,12 +1048,7 @@ export class AccountPanel {
         ) return;
       }
       this.googleCalendarStatus = googleCalendarStatus;
-      try {
-        const operations = await this.cloud.getBetaOperations();
-        this.betaOperations = operations ? projectBetaOperations(operations) : null;
-      } catch {
-        this.betaOperations = null;
-      }
+      await this.refreshBetaOperations(refreshGeneration);
       this.updateCalendarControls();
       if (subscriptionActive && this.state.user?.id && !this.cleanupBlocked) {
         const cloudActivated = await withCleanupLatchLock(async () => {
@@ -1113,6 +1109,24 @@ export class AccountPanel {
     this.render();
   }
 
+  private async refreshBetaOperations(expectedRefreshGeneration = this.accountRefreshGeneration): Promise<void> {
+    if (!this.state.session) {
+      this.betaOperations = null;
+      this.betaOperationsLoadedAt = null;
+      return;
+    }
+    try {
+      const operations = await this.cloud.getBetaOperations();
+      if (expectedRefreshGeneration !== this.accountRefreshGeneration) return;
+      this.betaOperations = operations ? projectBetaOperations(operations) : null;
+      this.betaOperationsLoadedAt = operations ? new Date().toISOString() : null;
+    } catch {
+      if (expectedRefreshGeneration !== this.accountRefreshGeneration) return;
+      this.betaOperations = null;
+      this.betaOperationsLoadedAt = null;
+    }
+  }
+
   private resetCloudState(subscriptionActive: boolean | null): void {
     this.calendarOperationGeneration += 1;
     this.calendarBusy = false;
@@ -1127,6 +1141,7 @@ export class AccountPanel {
     this.billingSubscription = null;
     this.googleCalendarStatus = emptyGoogleCalendarStatus();
     this.betaOperations = null;
+    this.betaOperationsLoadedAt = null;
     this.calendarSync.reset();
     this.inviteToken = "";
     this.onboarding.dispose();
@@ -1558,9 +1573,9 @@ export class AccountPanel {
       <section class="release2-section release2-operations" aria-labelledby="betaOperationsTitle">
         <div class="release2-section-heading">
           <div><span>Operator view</span><h3 id="betaOperationsTitle">Beta operations</h3></div>
-          <span class="badge">Privacy-safe</span>
+          <div class="release2-operations-heading-actions"><span class="badge">Privacy-safe</span><button class="btn secondary" type="button" data-action="refresh-operations" ${this.busy ? "disabled" : ""}>Refresh</button></div>
         </div>
-        <p class="release2-empty">Aggregate activation milestones only. Amounts, names and email addresses are not shown.</p>
+        <p class="release2-empty">Aggregate activation milestones only. Amounts, names and email addresses are not shown.${this.betaOperationsLoadedAt ? ` Last loaded ${escapeHtml(new Intl.DateTimeFormat(BILLING_LOCALE, { dateStyle: "medium", timeStyle: "short" }).format(new Date(this.betaOperationsLoadedAt)))}` : ""}</p>
         <div class="release2-operations-metrics">
           <div><span>Active</span><strong>${operations.activeSubscriptions}</strong></div>
           <div><span>Past due</span><strong>${operations.pastDueSubscriptions}</strong></div>
@@ -2089,6 +2104,10 @@ export class AccountPanel {
           this.billingConfirmationPending
         ) return;
         window.location.assign(checkoutUrl);
+      } else if (action === "refresh-operations") {
+        await this.refreshBetaOperations(operationRefreshGeneration);
+        if (operationSessionGeneration !== this.sessionGeneration || operationActionGeneration !== this.actionGeneration) return;
+        this.notice = this.betaOperations ? "Beta operations refreshed." : "Beta operations are unavailable for this account.";
       } else if (action === "refresh-subscription") {
         const refreshGeneration = this.accountRefreshGeneration;
         await this.refreshAccount();
