@@ -1,6 +1,7 @@
 import type { Session } from "@supabase/supabase-js";
 import type { HouseholdSummary } from "@harbourline/sync";
 import { track } from "./analytics";
+import { firstPaydayProgress } from "./first-payday-flow";
 import type { HarbourlineCloud } from "./cloud";
 import type {
   BetaOnboardingProgress,
@@ -26,8 +27,22 @@ interface OnboardingContext {
 const STEP_LABELS: Record<GuidedStep, string> = {
   household: "Household",
   income: "Income",
-  bills: "Bills",
+  bills: "Commitments",
   payday: "Payday"
+};
+
+const STEP_DETAILS: Record<GuidedStep, string> = {
+  household: "Create the shared home for this plan.",
+  income: "Add the pay that arrives next.",
+  bills: "Capture the costs this pay needs to cover.",
+  payday: "Review what to set aside and what is safe to spend."
+};
+
+const NEXT_MOVE_COPY: Record<GuidedStep, [string, string]> = {
+  household: ["Create your household", "Give the shared plan a name so it can stay in sync."],
+  income: ["Add income", "Start with the take-home amount and date of your next pay."],
+  bills: ["Add a commitment", "Capture the regular costs that shape what this pay needs to cover."],
+  payday: ["Review your payday plan", "Check what to set aside and what is safe to spend until the next pay."]
 };
 
 function escapeHtml(value: unknown): string {
@@ -134,8 +149,23 @@ export class OnboardingFlow {
     }
 
     const stepIndex = Object.keys(STEP_LABELS).indexOf(this.step);
+    const localState = cloneState(this.dependencies.bridge.read());
+    const paydayProgress = firstPaydayProgress({
+      hasIncome: Array.isArray(localState.incomes) && localState.incomes.some((income: any) => Number(income?.amount) > 0 && String(income?.nextPayDate ?? "").trim().length > 0),
+      commitmentCount: Array.isArray(localState.expenses)
+        ? localState.expenses.filter((expense: any) => Number(expense?.amount) > 0).length
+        : 0,
+      minimumCommitments: 1
+    });
+    const [nextAction, nextActionDetail] = this.step === "household"
+      ? NEXT_MOVE_COPY.household
+      : [paydayProgress.nextAction, paydayProgress.nextActionDetail];
     const steps = Object.entries(STEP_LABELS)
-      .map(([key, label], index) => `<li class="${index <= stepIndex ? "is-current" : ""}"><span>${index + 1}</span>${label}</li>`)
+      .map(([key, label], index) => {
+        const isComplete = index < stepIndex;
+        const isCurrent = index === stepIndex;
+        return `<li class="${isComplete ? "is-complete" : ""}${isCurrent ? " is-current" : ""}"${isCurrent ? ' aria-current="step"' : ""}><span>${isComplete ? "✓" : index + 1}</span><div><strong>${label}</strong><small>${STEP_DETAILS[key as GuidedStep]}</small></div></li>`;
+      })
       .join("");
 
     this.overlay.innerHTML = `
@@ -144,6 +174,11 @@ export class OnboardingFlow {
         <h1 id="release2OnboardingTitle">Build your first household plan.</h1>
         <p class="release2-onboarding-lede">A few simple steps will turn Harbourline into a useful payday plan. You can keep refining everything in the full workspace afterwards.</p>
         <ol class="release2-onboarding-progress" aria-label="Getting started progress">${steps}</ol>
+        <aside class="release2-onboarding-next" aria-label="Next step">
+          <span class="eyebrow">Next move</span>
+          <strong>${escapeHtml(nextAction)}</strong>
+          <span>${escapeHtml(nextActionDetail)}</span>
+        </aside>
         ${this.notice ? `<div class="release2-notice" role="status">${escapeHtml(this.notice)}</div>` : ""}
         ${this.renderStep()}
       </div>

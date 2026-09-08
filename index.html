@@ -1645,6 +1645,33 @@
       line-height: 1.45;
     }
 
+    .payday-loop-next {
+      display: grid;
+      gap: 4px;
+      margin: 16px 0 0;
+      padding: 12px 14px;
+      border: 1px solid color-mix(in srgb, var(--mint) 38%, var(--line));
+      border-left: 4px solid var(--mint);
+      border-radius: 7px;
+      background: color-mix(in srgb, var(--mint) 7%, var(--panel));
+    }
+
+    .payday-loop-next .eyebrow {
+      margin: 0 0 1px;
+      color: var(--mint-dark);
+      font-size: 0.65rem;
+    }
+
+    .payday-loop-next strong {
+      font-size: 0.86rem;
+    }
+
+    .payday-loop-next > span:last-child {
+      color: var(--muted);
+      font-size: 0.74rem;
+      line-height: 1.4;
+    }
+
     .payday-loop-date {
       min-width: 150px;
       padding: 10px 12px;
@@ -1741,6 +1768,18 @@
       align-items: center;
     }
 
+    .payday-loop-progress {
+      min-width: 0;
+      flex: 1 1 auto;
+    }
+
+    .payday-loop-progress-top {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
     .payday-loop-progress strong,
     .payday-loop-progress span {
       display: block;
@@ -1750,8 +1789,30 @@
       font-size: 0.82rem;
     }
 
-    .payday-loop-progress span {
-      margin-top: 3px;
+    .payday-loop-progress-top > span {
+      color: var(--mint-dark);
+      font-size: 0.72rem;
+      font-weight: 900;
+    }
+
+    .payday-progress-track {
+      height: 6px;
+      margin: 8px 0 7px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--line) 70%, var(--panel));
+    }
+
+    .payday-progress-track > span {
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--mint);
+      transition: width 180ms ease;
+    }
+
+    .payday-loop-progress > span:last-child {
+      margin-top: 0;
       color: var(--muted);
       font-size: 0.7rem;
     }
@@ -2455,12 +2516,24 @@
     }
 
     .empty-workspace {
+      display: grid;
+      gap: 6px;
       padding: 14px;
       border: 1px dashed var(--line);
       border-radius: 6px;
       color: var(--muted);
       background: var(--field-muted);
       font-size: 0.76rem;
+    }
+
+    .empty-workspace strong {
+      color: var(--ink);
+      font-size: 0.8rem;
+    }
+
+    .empty-workspace-action .btn {
+      justify-self: start;
+      margin-top: 4px;
     }
 
     .mini-delete {
@@ -2664,7 +2737,25 @@
 
     .toast.show {
       opacity: 1;
+      pointer-events: auto;
       transform: translateX(-50%) translateY(0);
+    }
+
+    .toast-action {
+      min-height: 32px;
+      padding: 5px 10px;
+      color: inherit;
+      border: 1px solid currentColor;
+      border-radius: 5px;
+      background: transparent;
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.74rem;
+      font-weight: 850;
+    }
+
+    .toast-action:hover {
+      background: color-mix(in srgb, currentColor 12%, transparent);
     }
 
     @media (max-width: 1120px) {
@@ -3610,6 +3701,25 @@
         display: block;
       }
 
+      .payday-loop-head,
+      .payday-loop-footer {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .payday-loop-date {
+        min-width: 0;
+        text-align: left;
+      }
+
+      .payday-checklist {
+        grid-template-columns: 1fr;
+      }
+
+      .payday-loop-footer .btn {
+        width: 100%;
+      }
+
       .calendar-toolbar {
         align-items: stretch;
         flex-direction: column;
@@ -4159,6 +4269,11 @@
               <strong id="paydayCheckinDate">Not set</strong>
             </div>
           </div>
+          <div class="payday-loop-next" aria-live="polite">
+            <span class="eyebrow">Next move</span>
+            <strong id="paydayNextMove">Start with the bills amount.</strong>
+            <span id="paydayNextMoveDetail">This plan will show what to set aside before the next pay.</span>
+          </div>
           <div class="payday-checklist" id="paydayChecklist">
             <label class="payday-checklist-item">
               <input id="paydayStepBills" type="checkbox" />
@@ -4187,8 +4302,14 @@
           </div>
           <div class="payday-loop-footer">
             <div class="payday-loop-progress" aria-live="polite">
-              <strong id="paydayChecklistProgress">0 of 3 steps complete</strong>
-              <span id="paydayChecklistStatus">Complete the checklist to confirm this payday plan.</span>
+              <div class="payday-loop-progress-top">
+                <strong id="paydayChecklistProgress">0 of 3 steps complete</strong>
+                <span id="paydayChecklistPercent">0%</span>
+              </div>
+              <div class="payday-progress-track" role="progressbar" aria-label="Payday Check-in progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                <span id="paydayChecklistProgressFill"></span>
+              </div>
+              <span id="paydayChecklistStatus">Start with the bills amount to build this payday plan.</span>
             </div>
             <button class="btn" id="confirmPaydayButton" type="button" disabled>Confirm payday plan</button>
           </div>
@@ -4755,7 +4876,10 @@
     </section>
   </main>
 
-  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="toast" id="toast" role="status" aria-live="polite">
+    <span id="toastMessage"></span>
+    <button class="toast-action" id="toastAction" type="button" hidden>Undo</button>
+  </div>
 
   <script>
     const PRODUCT_NAME = "Harbourline";
@@ -5156,6 +5280,8 @@
     const categoryFilter = document.querySelector("#categoryFilter");
     const sortSelect = document.querySelector("#sortSelect");
     const toast = document.querySelector("#toast");
+    const toastMessage = document.querySelector("#toastMessage");
+    const toastAction = document.querySelector("#toastAction");
     const themeOptions = document.querySelectorAll("[data-theme-option]");
     const currencySelector = document.querySelector("#currencySelector");
     const savingsRate = document.querySelector("#savingsRate");
@@ -5186,7 +5312,12 @@
     const paydayStepSavingsDebt = document.querySelector("#paydayStepSavingsDebt");
     const paydayStepSafeSpend = document.querySelector("#paydayStepSafeSpend");
     const paydayChecklistProgress = document.querySelector("#paydayChecklistProgress");
+    const paydayChecklistPercent = document.querySelector("#paydayChecklistPercent");
+    const paydayChecklistProgressFill = document.querySelector("#paydayChecklistProgressFill");
+    const paydayChecklistProgressBar = document.querySelector(".payday-progress-track");
     const paydayChecklistStatus = document.querySelector("#paydayChecklistStatus");
+    const paydayNextMove = document.querySelector("#paydayNextMove");
+    const paydayNextMoveDetail = document.querySelector("#paydayNextMoveDetail");
     const confirmPaydayButton = document.querySelector("#confirmPaydayButton");
     const paydayHistoryBadge = document.querySelector("#paydayHistoryBadge");
     const paydayHistory = document.querySelector("#paydayHistory");
@@ -5856,11 +5987,46 @@
         ? "Needs attention before spending."
         : `About ${money(Math.max(safeSpendPerDay, 0))} per day until next pay.`;
       paydayChecklistProgress.textContent = `${completed} of 3 steps complete`;
+      const progressPercent = completed === 0 ? 0 : completed === 1 ? 33 : completed === 2 ? 67 : 100;
+      paydayChecklistPercent.textContent = `${progressPercent}%`;
+      paydayChecklistProgressFill.style.width = `${progressPercent}%`;
+      paydayChecklistProgressBar.setAttribute("aria-valuenow", String(progressPercent));
+
+      let nextMove = "Start with the bills amount.";
+      let nextMoveDetail = "Complete the three steps to confirm this payday plan.";
+      if (confirmed) {
+        nextMove = "Payday plan confirmed";
+        nextMoveDetail = "Your plan is set. Revisit it when actual spending changes.";
+      } else if (!summary.income) {
+        nextMove = "Add income above";
+        nextMoveDetail = "Add an income amount and next pay date to make this plan specific.";
+      } else if (!summary.fundings.length) {
+        nextMove = "Add your first commitment";
+        nextMoveDetail = "Add a regular cost below so Harbourline can calculate the bills amount.";
+      } else if (!checklist.billsTransferConfirmed) {
+        nextMove = "Move the bills amount";
+        nextMoveDetail = `Start by setting aside ${money(summary.transfer)} for upcoming commitments.`;
+      } else if (!checklist.savingsDebtConfirmed) {
+        nextMove = "Set savings and debt aside";
+        nextMoveDetail = savingsDebt > 0
+          ? `Protect ${money(savingsDebt)} for long-term progress.`
+          : "No savings or extra debt is allocated yet; confirm this step to continue.";
+      } else if (!checklist.safeSpendConfirmed) {
+        nextMove = "Set your safe-to-spend limit";
+        nextMoveDetail = summary.safeSpend < 0
+          ? "This plan needs attention before spending; review the numbers above."
+          : `Keep day-to-day spending under about ${money(Math.max(safeSpendPerDay, 0))} per day.`;
+      } else {
+        nextMove = "Ready to confirm";
+        nextMoveDetail = "Your bills, savings and safe-to-spend decisions are all checked.";
+      }
+      paydayNextMove.textContent = nextMove;
+      paydayNextMoveDetail.textContent = nextMoveDetail;
       paydayChecklistStatus.textContent = confirmed
-        ? `Confirmed for this payday${checklist.confirmedAt ? ` | ${new Date(checklist.confirmedAt).toLocaleTimeString(state?.locale || "en-AU", { hour: "numeric", minute: "2-digit" })}` : ""}.`
+        ? "Plan confirmed. Revisit it when actual spending changes."
         : completed === 3
-          ? "Your plan is ready to confirm."
-          : "Complete the checklist to confirm this payday plan.";
+          ? "Everything is ready. Confirm this plan to save the payday decision."
+          : nextMoveDetail;
       paydayChecklistStatus.classList.toggle("payday-loop-confirmed", confirmed);
       confirmPaydayButton.disabled = completed !== 3 || confirmed;
       confirmPaydayButton.textContent = confirmed ? "Plan confirmed" : "Confirm payday plan";
@@ -5936,8 +6102,16 @@
         return;
       }
 
+      const transactionId = createId();
+      const previousDue = expense.due || "";
+      const previousReservedAmount = Number(expense.reservedAmount) || 0;
+      const previousBillsAccountBalance = Number(state.paydayPlan.billsAccountBalance) || 0;
+      const paydayDate = state.paydayPlan.checklist?.paydayDate || "";
+      const historyRecord = paydayHistoryRecords().find((record) => record.paydayDate === paydayDate);
+      const previousBillsPaid = historyRecord ? Number(historyRecord.billsPaid) || 0 : null;
+
       state.transactions.push({
-        id: createId(),
+        id: transactionId,
         date: today,
         description: `${expense.name} paid`,
         category: expense.category || "Other",
@@ -5954,17 +6128,37 @@
         expense.reservedAmount = 0;
       }
       state.paydayPlan.history = paydayHistoryRecords().map((record) => (
-        record.paydayDate === state.paydayPlan.checklist?.paydayDate
+        record.paydayDate === paydayDate
           ? { ...record, billsPaid: Math.max(Number(record.billsPaid) || 0, 0) + 1 }
           : record
       ));
       state.paydayPlan.billsAccountBalance = Math.max(
-        Number(state.paydayPlan.billsAccountBalance || 0) - amount,
+        previousBillsAccountBalance - amount,
         0
       );
       saveState();
       render();
-      showToast(`${expense.name} marked paid`);
+      showToastWithAction(`${expense.name} marked paid`, () => {
+        const recordedTransaction = (state.transactions || []).some((transaction) => transaction.id === transactionId);
+        if (!recordedTransaction) {
+          showToast("That payment is no longer available to undo");
+          return;
+        }
+        state.transactions = (state.transactions || []).filter((transaction) => transaction.id !== transactionId);
+        expense.due = previousDue;
+        expense.reservedAmount = previousReservedAmount;
+        state.paydayPlan.billsAccountBalance = previousBillsAccountBalance;
+        if (previousBillsPaid !== null) {
+          state.paydayPlan.history = paydayHistoryRecords().map((record) => (
+            record.paydayDate === paydayDate
+              ? { ...record, billsPaid: previousBillsPaid }
+              : record
+          ));
+        }
+        saveState();
+        render();
+        showToast(`${expense.name} payment undone`);
+      });
     }
 
     function expenseOccurrences(expense, start, end) {
@@ -6604,6 +6798,11 @@
         weeklyValue,
         `. That covers an average of ${money(monthly)} per month while the bill remains ${money(amount)} ${frequencyLabel(expenseFrequency.value)}.`
       );
+    }
+
+    function focusExpenseForm() {
+      expenseForm.scrollIntoView({ behavior: "smooth", block: "start" });
+      expenseName.focus({ preventScroll: true });
     }
 
     function beginExpenseEdit(expense) {
@@ -7396,7 +7595,13 @@
 
       paydayForecast.innerHTML = "";
       if (!forecast.length) {
-        paydayForecast.innerHTML = '<div class="empty-workspace">Add bills to build the forecast.</div>';
+        paydayForecast.innerHTML = `
+          <div class="empty-workspace empty-workspace-action">
+            <strong>${state.expenses.length ? "Add due dates for a sharper forecast" : "Start with your first commitment"}</strong>
+            <span>${state.expenses.length ? "Harbourline can still use average timing, but due dates make the next 13 weeks easier to act on." : "Add a regular bill or cost below so Harbourline can show what your next pay needs to cover."}</span>
+            <button class="btn secondary compact" type="button" data-payday-action="add-expense">Add a commitment</button>
+          </div>
+        `;
       } else {
         const maxMagnitude = Math.max(...forecast.map((week) => Math.abs(week.balance)), 1);
         forecast.forEach((week) => {
@@ -7420,7 +7625,13 @@
       upcomingBills.innerHTML = "";
       const rows = upcomingBillRows();
       if (!rows.length) {
-        upcomingBills.innerHTML = '<div class="empty-workspace">Add next due dates to see upcoming bills and funding readiness.</div>';
+        upcomingBills.innerHTML = `
+          <div class="empty-workspace empty-workspace-action">
+            <strong>${state.expenses.length ? "Nothing needs attention yet" : "No commitments in the plan yet"}</strong>
+            <span>${state.expenses.length ? "Add due dates to see upcoming bills here, or keep using the average provision." : "Add your first regular bill or cost to see its funding status here."}</span>
+            <button class="btn secondary compact" type="button" data-payday-action="add-expense">Add a commitment</button>
+          </div>
+        `;
       } else {
         rows.forEach(({ expense, funding, due }) => {
           const item = document.createElement("div");
@@ -7444,6 +7655,7 @@
           item.querySelector(".funding-status").textContent = funding.status.replace("-", " ");
           item.querySelector(".item-value").textContent = `${money(funding.requiredPerCycle)} / pay`;
           item.querySelector("[data-payday-action]").dataset.expenseId = expense.id;
+          item.querySelector("[data-payday-action]").setAttribute("aria-label", `Mark ${expense.name} paid today`);
           upcomingBills.append(item);
         });
       }
@@ -7927,10 +8139,27 @@
     }
 
     function showToast(message) {
-      toast.textContent = message;
+      showToastWithAction(message, null);
+    }
+
+    function showToastWithAction(message, action) {
+      toastMessage.textContent = message;
+      toastAction.hidden = typeof action !== "function";
+      toastAction.onclick = typeof action === "function"
+        ? () => {
+          hideToast();
+          action();
+        }
+        : null;
       toast.classList.add("show");
       window.clearTimeout(showToast.timer);
-      showToast.timer = window.setTimeout(() => toast.classList.remove("show"), 1800);
+      showToast.timer = window.setTimeout(hideToast, typeof action === "function" ? 6000 : 1800);
+    }
+
+    function hideToast() {
+      toast.classList.remove("show");
+      toastAction.hidden = true;
+      toastAction.onclick = null;
     }
 
     function downloadBlob(blob, filename) {
@@ -9565,8 +9794,19 @@
     upcomingBills.addEventListener("click", (event) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
-      const button = target.closest("[data-payday-action='mark-paid']");
-      if (button instanceof HTMLElement) markBillPaid(button.dataset.expenseId || "");
+      const button = target.closest<HTMLElement>("[data-payday-action]");
+      if (!(button instanceof HTMLElement)) return;
+      if (button.dataset.paydayAction === "add-expense") {
+        focusExpenseForm();
+      } else if (button.dataset.paydayAction === "mark-paid") {
+        markBillPaid(button.dataset.expenseId || "");
+      }
+    });
+    paydayForecast.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const button = target.closest<HTMLElement>("[data-payday-action='add-expense']");
+      if (button) focusExpenseForm();
     });
     realityMonth.addEventListener("change", renderRealityWorkspace);
 

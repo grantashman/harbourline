@@ -1,4 +1,5 @@
 import { track } from "./analytics";
+import { firstPaydayProgress } from "./first-payday-flow";
 import {
   canCompleteFreeStarter,
   FREE_STARTER_MIN_EXPENSES,
@@ -106,9 +107,23 @@ export class FreeStarterFlow {
   private render(): void {
     if (!this.overlay) return;
     const state = cloneState(this.bridge.read());
-    const stepIndex = ["income", "bills", "payday"].indexOf(this.step);
-    const steps = ["Income", "Regular bills", "Payday"]
-      .map((label, index) => `<li class="${index <= stepIndex ? "is-current" : ""}"><span>${index + 1}</span>${label}</li>`)
+    const progress = firstPaydayProgress({
+      hasIncome: Array.isArray(state.incomes) && state.incomes.some(isPositiveIncome),
+      commitmentCount: positiveExpenseCount(state),
+      minimumCommitments: FREE_STARTER_MIN_EXPENSES
+    });
+    const stepIndex = ["income", "commitments", "payday"].indexOf(progress.currentStep);
+    const stepDetails = [
+      ["Income", "Add the pay that arrives next."],
+      ["Commitments", "Capture the costs this pay needs to cover."],
+      ["Payday", "Review what to set aside and what is safe to spend."]
+    ];
+    const steps = stepDetails
+      .map(([label, detail], index) => {
+        const isComplete = index < progress.completedSteps;
+        const isCurrent = index === stepIndex;
+        return `<li class="${isComplete ? "is-complete" : ""}${isCurrent ? " is-current" : ""}"${isCurrent ? ' aria-current="step"' : ""}><span>${isComplete ? "✓" : index + 1}</span><div><strong>${label}</strong><small>${detail}</small></div></li>`;
+      })
       .join("");
 
     this.overlay.innerHTML = `
@@ -117,6 +132,11 @@ export class FreeStarterFlow {
         <h1 id="freeStarterOnboardingTitle">Build your first payday plan.</h1>
         <p class="release2-onboarding-lede">Three simple steps will give Harbourline enough context to show what your next pay needs to cover. You can keep refining the plan in the full workspace afterwards.</p>
         <ol class="release2-onboarding-progress" aria-label="Getting started progress">${steps}</ol>
+        <aside class="release2-onboarding-next" aria-label="Next step">
+          <span class="eyebrow">Next move</span>
+          <strong>${escapeHtml(progress.nextAction)}</strong>
+          <span>${escapeHtml(progress.nextActionDetail)}</span>
+        </aside>
         ${this.notice ? `<div class="release2-notice" role="status">${escapeHtml(this.notice)}</div>` : ""}
         ${this.renderStep(state)}
       </div>
@@ -139,9 +159,9 @@ export class FreeStarterFlow {
             </select></label>
           </div>
           <label>Next pay date<input name="nextPayDate" type="date" value="${escapeHtml(existing?.nextPayDate ?? "")}" required ${disabled} /></label>
-          <p>Use your normal take-home amount. You can add other income sources later.</p>
+          <p>Use your normal take-home amount. You can add other income sources later. Your next payday date drives the first plan.</p>
           <div class="release2-button-row">
-            <button class="btn" type="submit" ${disabled}>Save income</button>
+            <button class="btn" type="submit" ${disabled}>Save and continue</button>
             <button class="btn secondary" type="button" data-free-starter-action="skip" ${disabled}>Continue to planner</button>
           </div>
         </form>
@@ -162,7 +182,7 @@ export class FreeStarterFlow {
             <label>Category<select name="category" ${disabled}><option>Housing</option><option>Utilities</option><option>Food</option><option>Transport</option><option>Insurance</option><option>Debt</option><option>Subscriptions</option><option>Health</option><option>Lifestyle</option><option>Savings</option><option>Other</option></select></label>
             <label>Next due date<input name="due" type="date" ${disabled} /></label>
           </div>
-          <p>${count} of ${FREE_STARTER_MIN_EXPENSES} useful recurring commitments added. Add the commitments that shape what your next pay needs to cover.</p>
+          <p>${count} of ${FREE_STARTER_MIN_EXPENSES} useful commitments added. Add the regular costs that shape what your next pay needs to cover; due dates make the forecast more precise.</p>
           <div class="release2-button-row">
             <button class="btn" type="submit" ${disabled}>Add commitment</button>
             <button class="btn secondary" type="button" data-free-starter-action="payday" ${count < FREE_STARTER_MIN_EXPENSES || this.busy ? "disabled" : ""}>${continueLabel}</button>
@@ -174,10 +194,10 @@ export class FreeStarterFlow {
 
     return `
       <div class="release2-onboarding-form">
-        <h2>Your payday plan is ready to explore.</h2>
-        <p>Open the payday command centre to see what to set aside before your next pay arrives.</p>
+        <h2>Your first payday plan is ready to review.</h2>
+        <p>Open the Payday Check-in to decide what to set aside for bills, savings and debt, then confirm what is safe to spend until the next pay.</p>
         <div class="release2-button-row">
-          <button class="btn" type="button" data-free-starter-action="payday" ${disabled}>Open payday plan</button>
+          <button class="btn" type="button" data-free-starter-action="payday" ${disabled}>Open Payday Check-in</button>
           <button class="btn secondary" type="button" data-free-starter-action="skip" ${disabled}>Continue to planner</button>
         </div>
       </div>
