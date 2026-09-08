@@ -18,6 +18,11 @@ const publicPages = [
     schemaTypes: ["BlogPosting"]
   },
   {
+    file: "marketing/blog/payday-check-in/index.html",
+    url: "https://www.harbourline.app/blog/payday-check-in/",
+    schemaTypes: ["BlogPosting"]
+  },
+  {
     file: "marketing/blog/early-access/index.html",
     url: "https://www.harbourline.app/blog/early-access/",
     schemaTypes: ["BlogPosting"]
