@@ -1340,6 +1340,79 @@
   font-size: 0.88rem;
 }
 
+.release2-operations-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.release2-operations-metrics > div {
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--field-muted);
+}
+
+.release2-operations-metrics span,
+.release2-operations-metrics strong {
+  display: block;
+}
+
+.release2-operations-metrics span {
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
+.release2-operations-metrics strong {
+  margin-top: 3px;
+  color: var(--ink);
+  font-size: 1.15rem;
+}
+
+.release2-operations-funnel {
+  display: grid;
+  gap: 9px;
+}
+
+.release2-operations-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 10px;
+  align-items: center;
+  font-size: 0.76rem;
+}
+
+.release2-operations-row strong {
+  color: var(--ink);
+}
+
+.release2-operations-bar {
+  grid-column: 1 / -1;
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--field-muted);
+}
+
+.release2-operations-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--mint);
+}
+
+.release2-operations-days {
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+
+.release2-operations-days strong {
+  color: var(--ink);
+}
+
 @media (max-width: 720px) {
   .release2-dialog {
     width: calc(100vw - 16px);
