@@ -1197,6 +1197,35 @@
   line-height: 1.6;
 }
 
+.release2-onboarding-next {
+  display: grid;
+  max-width: 600px;
+  gap: 4px;
+  margin: 0 0 22px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--mint) 38%, var(--line));
+  border-left: 4px solid var(--mint);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--mint) 8%, var(--panel));
+}
+
+.release2-onboarding-next .eyebrow {
+  margin: 0 0 2px;
+  color: var(--mint-dark);
+  font-size: 0.67rem;
+}
+
+.release2-onboarding-next strong {
+  color: var(--ink);
+  font-size: 0.92rem;
+}
+
+.release2-onboarding-next > span:last-child {
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
 .release2-onboarding-progress {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1222,9 +1251,35 @@
   width: 28px;
   height: 28px;
   place-items: center;
+  color: var(--muted);
   border: 1px solid var(--line);
   border-radius: 50%;
   background: var(--field-muted);
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.release2-onboarding-progress li > div {
+  min-width: 0;
+}
+
+.release2-onboarding-progress li strong,
+.release2-onboarding-progress li small {
+  display: block;
+}
+
+.release2-onboarding-progress li strong {
+  color: inherit;
+  font-size: 0.74rem;
+  line-height: 1.25;
+}
+
+.release2-onboarding-progress li small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 500;
+  line-height: 1.35;
 }
 
 .release2-onboarding-progress li.is-current {
@@ -1235,6 +1290,16 @@
   color: var(--panel);
   border-color: var(--mint);
   background: var(--mint);
+}
+
+.release2-onboarding-progress li.is-complete {
+  color: var(--ink);
+}
+
+.release2-onboarding-progress li.is-complete span {
+  color: var(--mint-dark);
+  border-color: color-mix(in srgb, var(--mint) 58%, var(--line));
+  background: color-mix(in srgb, var(--mint) 14%, var(--field-muted));
 }
 
 .release2-onboarding-form {
