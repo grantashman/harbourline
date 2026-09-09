@@ -1,5 +1,11 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import test from "node:test";
+
+const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
+const freeStarterSource = readFileSync(resolve(repositoryRoot, "apps/web/src/free-starter-flow.ts"), "utf8");
 import {
   FREE_STARTER_MIN_EXPENSES,
   canCompleteFreeStarter,
@@ -30,6 +36,10 @@ test("reaches payday after the minimum useful plan is present", () => {
   const state = { incomes: [income], expenses };
   assert.equal(getFreeStarterStep(state), "payday");
   assert.equal(canCompleteFreeStarter(state), true);
+});
+
+test("announces changing next-step guidance politely", () => {
+  assert.match(freeStarterSource, /class="release2-onboarding-next" aria-label="Next step" aria-live="polite"/);
 });
 
 test("ignores zero-value income and expenses", () => {
