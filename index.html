@@ -9745,6 +9745,25 @@
 
     workspaceTabs.forEach((tab) => {
       tab.addEventListener("click", () => selectWorkspaceTab(tab.dataset.workspaceTab));
+      tab.addEventListener("keydown", (event) => {
+        if (!(event instanceof KeyboardEvent)) return;
+        const currentIndex = Array.from(workspaceTabs).indexOf(tab);
+        if (currentIndex < 0) return;
+        const nextIndex = event.key === "ArrowRight" || event.key === "ArrowDown"
+          ? (currentIndex + 1) % workspaceTabs.length
+          : event.key === "ArrowLeft" || event.key === "ArrowUp"
+            ? (currentIndex - 1 + workspaceTabs.length) % workspaceTabs.length
+            : event.key === "Home"
+              ? 0
+              : event.key === "End"
+                ? workspaceTabs.length - 1
+                : -1;
+        if (nextIndex < 0) return;
+        event.preventDefault();
+        const nextTab = workspaceTabs[nextIndex];
+        nextTab.focus();
+        selectWorkspaceTab(nextTab.dataset.workspaceTab);
+      });
     });
 
     document.querySelector("#calendarPrevious").addEventListener("click", () => {
