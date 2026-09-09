@@ -183,7 +183,7 @@ export class FreeStarterFlow {
             <label>Category<select name="category" ${disabled}><option>Housing</option><option>Utilities</option><option>Food</option><option>Transport</option><option>Insurance</option><option>Debt</option><option>Subscriptions</option><option>Health</option><option>Lifestyle</option><option>Savings</option><option>Other</option></select></label>
             <label>Next due date<input name="due" type="date" ${disabled} /></label>
           </div>
-          <p>${count} of ${FREE_STARTER_MIN_EXPENSES} useful commitments added. Add the regular costs that shape what your next pay needs to cover; due dates make the forecast more precise.</p>
+          <p id="freeStarterCommitmentProgress" role="status" aria-live="polite">${count} of ${FREE_STARTER_MIN_EXPENSES} useful commitments added. Add the regular costs that shape what your next pay needs to cover; due dates make the forecast more precise.</p>
           <div class="release2-button-row">
             <button class="btn" type="submit" ${disabled}>Add commitment</button>
             <button class="btn secondary" type="button" data-free-starter-action="payday" ${count < FREE_STARTER_MIN_EXPENSES || this.busy ? "disabled" : ""}>${continueLabel}</button>
