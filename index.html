@@ -9726,7 +9726,9 @@
     expenseFrequency.addEventListener("change", renderExpenseConversionPreview);
     function selectWorkspaceTab(selected) {
       workspaceTabs.forEach((tab) => {
-        tab.setAttribute("aria-selected", tab.dataset.workspaceTab === selected ? "true" : "false");
+        const isSelected = tab.dataset.workspaceTab === selected;
+        tab.setAttribute("aria-selected", isSelected ? "true" : "false");
+        tab.setAttribute("tabindex", isSelected ? "0" : "-1");
       });
       const workspaceMore = document.querySelector("#workspaceMore");
       if (workspaceMore instanceof HTMLDetailsElement) {
@@ -9761,8 +9763,8 @@
         if (nextIndex < 0) return;
         event.preventDefault();
         const nextTab = workspaceTabs[nextIndex];
-        nextTab.focus();
         selectWorkspaceTab(nextTab.dataset.workspaceTab);
+        nextTab.focus();
       });
     });
 

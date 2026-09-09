@@ -52,7 +52,8 @@ test("workspace tabs support keyboard navigation", () => {
   assert.match(workspaceSource, /event\.key === "ArrowRight" \|\| event\.key === "ArrowDown"/);
   assert.match(workspaceSource, /event\.key === "Home"/);
   assert.match(workspaceSource, /event\.key === "End"/);
-  assert.match(workspaceSource, /nextTab\.focus\(\);/);
+  assert.match(workspaceSource, /tab\.setAttribute\("tabindex", isSelected \? "0" : "-1"\);/);
+  assert.match(workspaceSource, /selectWorkspaceTab\(nextTab\.dataset\.workspaceTab\);\s*nextTab\.focus\(\);/);
 });
 
 test("ignores zero-value income and expenses", () => {
