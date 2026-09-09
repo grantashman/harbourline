@@ -126,6 +126,7 @@ export class FreeStarterFlow {
       })
       .join("");
 
+    const existingNext = this.overlay.querySelector<HTMLElement>(".release2-onboarding-next");
     this.overlay.innerHTML = `
       <div class="release2-onboarding-shell" aria-busy="${this.busy}">
         <p class="eyebrow">Getting started · Step ${stepIndex + 1} of ${stepDetails.length}</p>
@@ -142,6 +143,11 @@ export class FreeStarterFlow {
         ${this.renderStep(state)}
       </div>
     `;
+    const next = this.overlay.querySelector<HTMLElement>(".release2-onboarding-next");
+    if (existingNext && next) {
+      existingNext.innerHTML = next.innerHTML;
+      next.replaceWith(existingNext);
+    }
   }
 
   private renderStep(state: Record<string, any>): string {
