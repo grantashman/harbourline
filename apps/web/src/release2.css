@@ -1417,7 +1417,7 @@
 
 .release2-operations-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 4px 10px;
   align-items: center;
   font-size: 0.76rem;
@@ -1425,6 +1425,26 @@
 
 .release2-operations-row strong {
   color: var(--ink);
+}
+
+.release2-operations-row small {
+  color: var(--muted);
+  font-size: 0.67rem;
+  white-space: nowrap;
+}
+
+.release2-operations-row .release2-operations-bar {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 480px) {
+  .release2-operations-row {
+    gap: 4px 6px;
+  }
+
+  .release2-operations-row small {
+    font-size: 0.62rem;
+  }
 }
 
 .release2-operations-bar {
