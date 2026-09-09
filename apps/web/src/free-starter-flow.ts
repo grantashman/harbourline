@@ -132,7 +132,7 @@ export class FreeStarterFlow {
         <h1 id="freeStarterOnboardingTitle">Build your first payday plan.</h1>
         <p class="release2-onboarding-lede">Three simple steps will give Harbourline enough context to show what your next pay needs to cover. You can keep refining the plan in the full workspace afterwards.</p>
         <ol class="release2-onboarding-progress" aria-label="Getting started progress">${steps}</ol>
-        <aside class="release2-onboarding-next" aria-label="Next step">
+        <aside class="release2-onboarding-next" aria-label="Next step" aria-live="polite">
           <span class="eyebrow">Next move</span>
           <strong>${escapeHtml(progress.nextAction)}</strong>
           <span>${escapeHtml(progress.nextActionDetail)}</span>
