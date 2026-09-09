@@ -10,7 +10,8 @@ export const BETA_FUNNEL_EVENTS = [
 ] as const;
 
 export interface BetaOperationsView {
-  funnel: Array<{ eventName: string; label: string; count: number }>;
+  funnel: Array<{ eventName: string; label: string; count: number; conversionPercent: number }>;
+  stalledAt: { eventName: string; label: string } | null;
   activeSubscriptions: number;
   pastDueSubscriptions: number;
   cancelledSubscriptions: number;
@@ -20,11 +21,16 @@ export interface BetaOperationsView {
 export function projectBetaOperations(snapshot: BetaOperationsSnapshot): BetaOperationsView {
   const totals = new Map<string, number>();
   for (const row of snapshot.daily) totals.set(row.eventName, (totals.get(row.eventName) ?? 0) + row.count);
+  const verifiedAccounts = totals.get("signup") ?? 0;
   const funnel = BETA_FUNNEL_EVENTS.map(([eventName, label]) => ({
     eventName,
     label,
-    count: totals.get(eventName) ?? 0
+    count: totals.get(eventName) ?? 0,
+    conversionPercent: verifiedAccounts > 0 ? Math.round(((totals.get(eventName) ?? 0) / verifiedAccounts) * 100) : 0
   }));
+  const stalledAt = verifiedAccounts > 0
+    ? funnel.slice(1).find((row) => row.count === 0) ?? null
+    : null;
   const days = new Map<string, number>();
   for (const row of snapshot.daily) days.set(row.day, (days.get(row.day) ?? 0) + row.count);
   const recentDays = [...days.entries()]
@@ -33,6 +39,7 @@ export function projectBetaOperations(snapshot: BetaOperationsSnapshot): BetaOpe
     .map(([day, count]) => ({ day, count }));
   return {
     funnel,
+    stalledAt,
     activeSubscriptions: snapshot.activeSubscriptions,
     pastDueSubscriptions: snapshot.pastDueSubscriptions,
     cancelledSubscriptions: snapshot.cancelledSubscriptions,

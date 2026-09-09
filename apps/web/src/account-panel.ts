@@ -1581,8 +1581,9 @@ export class AccountPanel {
           <div><span>Past due</span><strong>${operations.pastDueSubscriptions}</strong></div>
           <div><span>Cancelled</span><strong>${operations.cancelledSubscriptions}</strong></div>
         </div>
+        ${operations.stalledAt ? `<p class="release2-operations-stall"><strong>First stalled milestone:</strong> ${escapeHtml(operations.stalledAt.label)}. Use this as the next activation question.</p>` : ""}
         <div class="release2-operations-funnel">
-          ${operations.funnel.map((row) => `<div class="release2-operations-row"><span>${escapeHtml(row.label)}</span><strong>${row.count}</strong><span class="release2-operations-bar"><i style="width:${Math.round((row.count / max) * 100)}%"></i></span></div>`).join("")}
+          ${operations.funnel.map((row) => `<div class="release2-operations-row"><span>${escapeHtml(row.label)}</span><strong>${row.count}</strong><small>${row.conversionPercent}% of verified accounts</small><span class="release2-operations-bar"><i style="width:${Math.round((row.count / max) * 100)}%"></i></span></div>`).join("")}
         </div>
         ${operations.recentDays.length ? `<p class="release2-operations-days"><strong>Recent activity</strong> ${operations.recentDays.map((row) => `${escapeHtml(row.day)} · ${row.count}`).join("  ·  ")}</p>` : ""}
       </section>
