@@ -15,6 +15,18 @@ test("signup form exposes its live status and native password validation", () =>
   assert.match(marketingSource, /note\.setAttribute\("aria-live", "polite"\)/);
 });
 
+test("homepage keeps the public accessibility contract explicit", () => {
+  assert.match(marketingSource, /<img src="assets\/harbourline-mark\.svg" alt=""/);
+  assert.equal((marketingSource.match(/<h1\b/g) ?? []).length, 1);
+  const unnamedButtons = [...marketingSource.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/g)]
+    .filter((match) => {
+      const attributes = match[1] ?? "";
+      const text = match[2] ?? "";
+      return !/aria-label=/.test(attributes) && text.replace(/<[^>]+>/g, "").trim().length === 0;
+    });
+  assert.deepEqual(unnamedButtons, []);
+});
+
 test("homepage Google auth hands off to the hosted app", () => {
   assert.match(marketingSource, /appUrl\.searchParams\.set\("account", "signin"\)/);
   assert.match(marketingSource, /appUrl\.searchParams\.set\("provider", "google"\)/);
