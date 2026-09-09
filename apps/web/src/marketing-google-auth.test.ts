@@ -8,7 +8,8 @@ const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../.
 const marketingSource = readFileSync(resolve(repositoryRoot, "marketing/index.html"), "utf8");
 
 test("signup form exposes its live status and native password validation", () => {
-  assert.match(marketingSource, /<form id="earlyAccessForm" aria-describedby="formNote">/);
+  assert.match(marketingSource, /<h2 id="signupFormTitle">Build your first payday plan free\.<\/h2>/);
+  assert.match(marketingSource, /<form id="earlyAccessForm" aria-labelledby="signupFormTitle" aria-describedby="formNote">/);
   assert.match(marketingSource, /id="password"[^>]*minlength="8"/);
   assert.match(marketingSource, /id="confirmPassword"[^>]*aria-describedby="formNote"/);
   assert.match(marketingSource, /confirmPassword\.setCustomValidity\(/);
