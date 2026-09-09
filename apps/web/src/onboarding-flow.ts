@@ -170,7 +170,7 @@ export class OnboardingFlow {
 
     this.overlay.innerHTML = `
       <div class="release2-onboarding-shell" aria-busy="${this.busy}">
-        <p class="eyebrow">Getting started</p>
+        <p class="eyebrow">Getting started · Step ${stepIndex + 1} of ${Object.keys(STEP_LABELS).length}</p>
         <h1 id="release2OnboardingTitle">Build your first household plan.</h1>
         <p class="release2-onboarding-lede">A few simple steps will turn Harbourline into a useful payday plan. You can keep refining everything in the full workspace afterwards.</p>
         <ol class="release2-onboarding-progress" aria-label="Getting started progress">${steps}</ol>
