@@ -17,18 +17,28 @@ test("projects privacy-safe beta operations into funnel and daily totals", () =>
   assert.deepEqual(view.funnel.find((row) => row.eventName === "signup"), {
     eventName: "signup",
     label: "Verified accounts",
-    count: 3
+    count: 3,
+    conversionPercent: 100
   });
   assert.deepEqual(view.funnel.find((row) => row.eventName === "income_added"), {
     eventName: "income_added",
     label: "Added income",
-    count: 2
+    count: 2,
+    conversionPercent: 67
   });
   assert.deepEqual(view.recentDays, [
     { day: "2026-09-08", count: 5 },
     { day: "2026-09-07", count: 5 }
   ]);
   assert.equal(view.activeSubscriptions, 2);
+  assert.equal(view.funnel.find((row) => row.eventName === "signup")?.conversionPercent, 100);
+  assert.equal(view.funnel.find((row) => row.eventName === "income_added")?.conversionPercent, 67);
+  assert.deepEqual(view.stalledAt, {
+    eventName: "onboarding_started",
+    label: "Started onboarding",
+    count: 0,
+    conversionPercent: 0
+  });
 });
 
 test("keeps missing funnel events at zero", () => {
@@ -38,6 +48,7 @@ test("keeps missing funnel events at zero", () => {
     pastDueSubscriptions: 0,
     cancelledSubscriptions: 0
   });
-  assert.equal(view.funnel.every((row) => row.count === 0), true);
+  assert.equal(view.funnel.every((row) => row.count === 0 && row.conversionPercent === 0), true);
+  assert.equal(view.stalledAt, null);
   assert.deepEqual(view.recentDays, []);
 });
