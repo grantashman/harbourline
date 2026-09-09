@@ -1249,6 +1249,11 @@
   line-height: 1.45;
 }
 
+.release2-onboarding-shell > .eyebrow {
+  margin-bottom: 8px;
+  letter-spacing: 0.08em;
+}
+
 .release2-onboarding-progress {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
