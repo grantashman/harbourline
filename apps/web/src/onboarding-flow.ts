@@ -168,13 +168,14 @@ export class OnboardingFlow {
       })
       .join("");
 
+    const existingNext = this.overlay.querySelector<HTMLElement>(".release2-onboarding-next");
     this.overlay.innerHTML = `
       <div class="release2-onboarding-shell" aria-busy="${this.busy}">
         <p class="eyebrow">Getting started · Step ${stepIndex + 1} of ${Object.keys(STEP_LABELS).length}</p>
         <h1 id="release2OnboardingTitle">Build your first household plan.</h1>
         <p class="release2-onboarding-lede">A few simple steps will turn Harbourline into a useful payday plan. You can keep refining everything in the full workspace afterwards.</p>
         <ol class="release2-onboarding-progress" aria-label="Getting started progress">${steps}</ol>
-        <aside class="release2-onboarding-next" aria-label="Next step">
+        <aside class="release2-onboarding-next" aria-label="Next step" aria-live="polite">
           <span class="eyebrow">Next move</span>
           <strong>${escapeHtml(nextAction)}</strong>
           <span>${escapeHtml(nextActionDetail)}</span>
@@ -184,6 +185,11 @@ export class OnboardingFlow {
         ${this.renderStep()}
       </div>
     `;
+    const next = this.overlay.querySelector<HTMLElement>(".release2-onboarding-next");
+    if (existingNext && next) {
+      existingNext.innerHTML = next.innerHTML;
+      next.replaceWith(existingNext);
+    }
   }
 
   private renderStep(): string {

@@ -6,6 +6,7 @@ import test from "node:test";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const freeStarterSource = readFileSync(resolve(repositoryRoot, "apps/web/src/free-starter-flow.ts"), "utf8");
+const onboardingSource = readFileSync(resolve(repositoryRoot, "apps/web/src/onboarding-flow.ts"), "utf8");
 import {
   FREE_STARTER_MIN_EXPENSES,
   canCompleteFreeStarter,
@@ -41,6 +42,8 @@ test("reaches payday after the minimum useful plan is present", () => {
 test("announces changing next-step guidance through a stable live region", () => {
   assert.match(freeStarterSource, /class="release2-onboarding-next" aria-label="Next step" aria-live="polite"/);
   assert.match(freeStarterSource, /existingNext\.innerHTML = next\.innerHTML;[\s\S]*next\.replaceWith\(existingNext\)/);
+  assert.match(onboardingSource, /class="release2-onboarding-next" aria-label="Next step" aria-live="polite"/);
+  assert.match(onboardingSource, /existingNext\.innerHTML = next\.innerHTML;[\s\S]*next\.replaceWith\(existingNext\)/);
 });
 
 test("ignores zero-value income and expenses", () => {
