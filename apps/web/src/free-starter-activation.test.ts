@@ -38,8 +38,9 @@ test("reaches payday after the minimum useful plan is present", () => {
   assert.equal(canCompleteFreeStarter(state), true);
 });
 
-test("announces changing next-step guidance politely", () => {
+test("announces changing next-step guidance through a stable live region", () => {
   assert.match(freeStarterSource, /class="release2-onboarding-next" aria-label="Next step" aria-live="polite"/);
+  assert.match(freeStarterSource, /existingNext\.innerHTML = next\.innerHTML;[\s\S]*next\.replaceWith\(existingNext\)/);
 });
 
 test("ignores zero-value income and expenses", () => {
