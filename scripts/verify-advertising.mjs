@@ -20,7 +20,7 @@ function setup(config = valid, marketingSession = false) {
   function response(status, overrides = {}) {
     listeners.message?.({ origin: "https://harbourline.app", source: frame.contentWindow, data: { type: "harbourline-ad-status", nonce: frame.request?.nonce, status }, ...overrides });
   }
-  return { region, scripts, frames, ads, frame, response, listeners, timers, window };
+  return { region, scripts, frames, ads, frame, response, listeners, timers, window, storage };
 }
 for (const config of [{ ...valid, enabled: false }, { ...valid, consentReady: false }, { ...valid, publisherId: "" }, { ...valid, contentSlotId: "" }]) {
   const page = setup(config); assert.equal(page.frames.length, 0); assert.equal(page.scripts.length, 0); assert.equal(page.region.hidden, true);
@@ -45,3 +45,9 @@ console.log("Advertising guard passed: disabled config, free, paid, unknown, inv
 const publisher = "ca-pub-6568785139480180";
 assert.ok(readFileSync("index.html", "utf8").includes(`name="google-adsense-account" content="${publisher}"`));
 assert.equal(readFileSync("marketing/ads.txt", "utf8").trim(), "google.com, pub-6568785139480180, DIRECT, f08c47fec0942fa0");
+
+const marketingSignIn = setup(); marketingSignIn.response("free");
+const oldNonce = marketingSignIn.frame.request.nonce;
+marketingSignIn.storage.length = 1; marketingSignIn.listeners.storage();
+marketingSignIn.response("free", { data: { type: "harbourline-ad-status", nonce: oldNonce, status: "free" } });
+assert.equal(marketingSignIn.region.hidden, true, "Previous bridge replies cannot override a marketing-origin sign-in");

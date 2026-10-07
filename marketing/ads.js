@@ -50,6 +50,8 @@
     }
   }
   function check() {
+    nonce = null;
+    clearTimeout(timeout);
     apply("unknown");
     // A session on the marketing origin cannot be checked by the apex bridge.
     // Conservatively exclude it, including storage access failures.
