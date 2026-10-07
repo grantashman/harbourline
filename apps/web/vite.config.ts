@@ -19,6 +19,7 @@ const runtimeThemeAssets = [
 const runtimeThemeAssetPlugin: Plugin = {
   name: "harbourline-runtime-theme-assets",
   generateBundle() {
+    if (!mobileBuild) this.emitFile({ type: "asset", fileName: "ads.txt", source: readFileSync(new URL("../../marketing/ads.txt", import.meta.url)) });
     for (const assetPath of runtimeThemeAssets) {
       this.emitFile({
         type: "asset",

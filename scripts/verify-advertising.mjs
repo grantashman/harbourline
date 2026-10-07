@@ -41,3 +41,7 @@ const focus = setup(); focus.response("free"); focus.listeners.focus(); assert.e
 assert.equal(setup(valid, true).frame.request, undefined, "Marketing-origin sessions are conservatively excluded");
 const config = readFileSync("marketing/ads-config.js", "utf8"); assert.match(config, /enabled: false/); assert.match(config, /consentReady: false/);
 console.log("Advertising guard passed: disabled config, free, paid, unknown, invalid messages, timeout and upgrade exclusion.");
+
+const publisher = "ca-pub-6568785139480180";
+assert.ok(readFileSync("index.html", "utf8").includes(`name="google-adsense-account" content="${publisher}"`));
+assert.equal(readFileSync("marketing/ads.txt", "utf8").trim(), "google.com, pub-6568785139480180, DIRECT, f08c47fec0942fa0");

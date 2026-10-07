@@ -3,7 +3,7 @@
 // Privacy & messaging consent setup. See docs/adsense-launch.md.
 window.HARBOURLINE_ADS_CONFIG = Object.freeze({
   enabled: false,
-  publisherId: "",
+  publisherId: "ca-pub-6568785139480180",
   contentSlotId: "",
   consentReady: false
 });
