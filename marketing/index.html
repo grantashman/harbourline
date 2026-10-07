@@ -1308,12 +1308,14 @@
                 <li>Local payday, bills, savings and debt planning</li>
                 <li>Excel, CSV, PDF and JSON exports</li>
                 <li>No account needed; one browser and device</li>
+                  <li>Website advertising may support the free plan</li>
               </ul>
             </div>
             <div class="plan-group paid">
               <h4>Household: shared cloud plan across devices</h4>
               <ul>
-                <li>Secure cloud sync and multi-device synchronisation</li>
+                <li>Ad-free access for signed-in paid accounts</li>
+                  <li>Secure cloud sync and multi-device synchronisation</li>
                 <li>One shared household with member invitations</li>
                 <li>Optional one-way Google Calendar sync</li>
               </ul>
@@ -1331,7 +1333,7 @@
           </div>
         </article>
       </div>
-      <p class="pricing-note">The Free Starter is stored only in your browser, is not cloud backup, and includes portable exports. Export a copy before clearing browser data. Payment is required for cloud sync, household sharing, multi-device synchronisation and optional Google Calendar sync. You can currently budget in AUD, NZD or USD; the introductory A$2.50/week subscription remains billed in AUD. Harbourline does not perform foreign exchange or silently convert existing budgets.</p>
+      <p class="pricing-note">Paid Household accounts have no ads when signed in. Website ads may support the Free Starter; they do not use the contents of your budget. The Free Starter is stored only in your browser, is not cloud backup, and includes portable exports. Export a copy before clearing browser data. Payment is required for cloud sync, household sharing, multi-device synchronisation and optional Google Calendar sync. You can currently budget in AUD, NZD or USD; the introductory A$2.50/week subscription remains billed in AUD. Harbourline does not perform foreign exchange or silently convert existing budgets.</p>
     </section>
 
     <section id="early-access">
@@ -1393,11 +1395,17 @@
     </section>
   </main>
 
+  <aside class="page advertising" data-harbourline-ad hidden aria-label="Advertisement">
+    <div class="advertising-heading"><span>Advertisement</span><a href="./#pricing">Paid Household accounts are ad-free</a></div>
+    <div data-ad-placement></div>
+  </aside>
+
   <footer class="page footer">
     <span>&copy; 2026 Harbourline</span>
     <span>Clearer money planning for everyday households.</span>
     <div class="footer-links">
       <a href="#trust">Privacy &amp; access</a>
+      <a href="./advertising/">Advertising &amp; privacy</a>
       <a href="#pricing">Pricing</a>
       <a href="blog/">Blog</a>
       <a href="https://harbourline.app/?account=signin">Sign in</a>
@@ -1570,5 +1578,7 @@
       });
     });
   </script>
+  <script src="./ads-config.js"></script>
+  <script src="./ads.js" defer></script>
 </body>
 </html>
