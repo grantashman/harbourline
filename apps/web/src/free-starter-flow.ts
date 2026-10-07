@@ -129,9 +129,10 @@ export class FreeStarterFlow {
     const existingNext = this.overlay.querySelector<HTMLElement>(".release2-onboarding-next");
     this.overlay.innerHTML = `
       <div class="release2-onboarding-shell" aria-busy="${this.busy}">
+        <div class="release2-onboarding-brand"><img src="./assets/harbourline-mark.svg" alt="" /><span>Harbourline · Free Starter</span></div>
         <p class="eyebrow">Getting started · Step ${stepIndex + 1} of ${stepDetails.length}</p>
         <h1 id="freeStarterOnboardingTitle">Build your first payday plan.</h1>
-        <p class="release2-onboarding-lede">Three simple steps will give Harbourline enough context to show what your next pay needs to cover. You can keep refining the plan in the full workspace afterwards.</p>
+        <p class="release2-onboarding-lede">Start with your next pay and the bills it needs to cover. No account or bank connection is needed; you can refine the plan as you go.</p>
         <ol class="release2-onboarding-progress" aria-label="Getting started progress">${steps}</ol>
         <aside class="release2-onboarding-next" aria-label="Next step" aria-live="polite">
           <span class="eyebrow">Next move</span>
@@ -141,6 +142,7 @@ export class FreeStarterFlow {
         ${this.notice ? `<div class="release2-notice" role="status">${escapeHtml(this.notice)}</div>` : ""}
         ${this.busy ? `<p class="release2-saving" role="status" aria-live="polite">Saving your payday plan…</p>` : ""}
         ${this.renderStep(state)}
+        <p class="guest-storage-note">Your plan is saved only in this browser on this device. Export a backup before clearing browser data. Paid cloud sync and household sharing are available when you are ready.</p>
       </div>
     `;
     const next = this.overlay.querySelector<HTMLElement>(".release2-onboarding-next");

@@ -101,7 +101,7 @@ the next marketing pass:
   financial-product advice. Export or delete your data when you choose.”
 - Add a FAQ covering price, cancellation, data location, Google Calendar sync,
   household sharing and the limits of the product.
-- Explain that a free account and sign-in are required for the local starter,
+- Explain that no account or sign-in is required for the local starter,
   while no payment card is needed, and keep the A$2.50/week price visible
   beside the cloud-sync upgrade CTA.
 - Add the currency FAQ: budgeting is currently available in AUD, NZD and USD,
@@ -153,7 +153,7 @@ Invite households through direct conversations and warm introductions. Offer a
 15-minute setup call to the first five households. Watch them complete the
 following path:
 
-1. Create a free account and confirm the email.
+1. Open Free Starter without an account. Register and confirm an email only when choosing paid cloud access.
 2. Sign in to the hosted application.
 3. Add income.
 4. Add five recurring bills.
