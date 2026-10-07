@@ -13,8 +13,12 @@ test("active signed-in members receive paid workspace access", () => {
   assert.equal(resolveWorkspaceAccess({ signedIn: true, billingReconciled: true, subscriptionActive: true }), "paid");
 });
 
-test("anonymous visitors must authenticate before receiving starter access", () => {
-  assert.equal(resolveWorkspaceAccess({ signedIn: false, billingReconciled: false, subscriptionActive: null }), "signed-out");
+test("visitors receive free local access without an account", () => {
+  assert.equal(resolveWorkspaceAccess({ signedIn: false, billingReconciled: false, subscriptionActive: null }), "free");
+});
+
+test("signed-out visitors never receive paid access from stale billing state", () => {
+  assert.equal(resolveWorkspaceAccess({ signedIn: false, billingReconciled: true, subscriptionActive: true }), "free");
 });
 
 test("signed-in accounts without an active subscription remain local-only", () => {

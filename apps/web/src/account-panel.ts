@@ -14,7 +14,6 @@ import {
   shouldOpenFreeStarter,
   type BillingPlanState
 } from "./billing-ui-state";
-import { getFocusWrapTarget } from "./auth-gate-focus";
 import {
   shouldNotifySignupForAuthEvent,
   shouldPreserveRecoveryForSession
@@ -52,7 +51,7 @@ import type {
 } from "./release2-types";
 
 const INITIAL_STATUS: Release2Status = {
-  message: "Sign in to use the local starter. Subscribe to enable cloud sync.",
+  message: "Your plan is saved on this device. Sign in and subscribe for cloud sync.",
   tone: "neutral",
   queued: 0,
   online: navigator.onLine
@@ -157,7 +156,7 @@ export class AccountPanel {
   private subscriptionActive: boolean | null = null;
   private billingReconciled = false;
   private billingLookupError = false;
-  private workspaceAccess: WorkspaceAccess = "signed-out";
+  private workspaceAccess: WorkspaceAccess = "free";
   private freeStarterViewed = false;
   private billingConfirmationPending = false;
   private billingSubscription: BillingSubscription | null = null;
@@ -316,6 +315,7 @@ export class AccountPanel {
     if (!this.cloud.configured) {
       this.render();
       if (shouldOpenAccount || this.authCallbackRejected) this.openAccountDialog(false);
+      else this.freeStarter.refresh(true);
       return;
     }
 
@@ -393,6 +393,9 @@ export class AccountPanel {
       dialogOpen: this.dialog.open
     })) {
       this.openAccountDialog(false);
+    }
+    if (initialSessionAccepted && !adoptedInitialSession && !this.dialog.open) {
+      await this.refreshAccount();
     }
   }
 
@@ -977,6 +980,7 @@ export class AccountPanel {
       this.billingSubscription = null;
       this.mfa = { verifiedCount: 0, currentLevel: null, nextLevel: null, enrollment: null };
       this.render();
+      this.freeStarter.refresh(!this.dialog.open && !this.cleanupBlocked);
       return;
     }
     this.resetCloudState(null);
@@ -1137,7 +1141,7 @@ export class AccountPanel {
     this.billingReconciled = false;
     this.billingLookupError = false;
     this.accountRefreshError = false;
-    this.workspaceAccess = this.state.session ? "free" : "signed-out";
+    this.workspaceAccess = "free";
     this.billingSubscription = null;
     this.googleCalendarStatus = emptyGoogleCalendarStatus();
     this.betaOperations = null;
@@ -1277,76 +1281,6 @@ export class AccountPanel {
     let gate = document.querySelector<HTMLElement>(`#${gateId}`);
     let banner = document.querySelector<HTMLElement>(`#${bannerId}`);
 
-    if (this.workspaceAccess === "signed-out") {
-      app?.setAttribute("inert", "");
-      app?.setAttribute("aria-hidden", "true");
-      banner?.remove();
-      const gateWasCreated = !gate;
-      const gateHadFocus = Boolean(gate?.contains(document.activeElement));
-      const documentNeedsGateFocus = document.activeElement === document.body;
-      if (!gate) {
-        gate = document.createElement("section");
-        gate.id = gateId;
-        gate.className = "release2-access-gate";
-        gate.setAttribute("role", "dialog");
-        gate.setAttribute("aria-modal", "true");
-        gate.setAttribute("aria-labelledby", "release2AccessGateTitle");
-        const accessGate = gate;
-        accessGate.addEventListener("keydown", (event) => {
-          if (event.key !== "Tab") return;
-          const focusable = Array.from(
-            accessGate.querySelectorAll<HTMLElement>("button:not([disabled]), a[href]")
-          );
-          if (!focusable.length) return;
-          const target = getFocusWrapTarget(
-            focusable,
-            document.activeElement instanceof HTMLElement ? document.activeElement : null,
-            event.shiftKey
-          );
-          if (!target) return;
-          event.preventDefault();
-          target.focus();
-        });
-        accessGate.addEventListener("click", (event) => {
-          const target = event.target;
-          if (!(target instanceof Element) || !target.closest("[data-action='open-account']")) return;
-          track("auth_gate_sign_in_clicked");
-          this.render();
-          if (!this.dialog.open) this.openAccountDialog();
-        });
-        document.body.append(accessGate);
-      }
-      gate.innerHTML = `
-        <div class="release2-access-gate-card">
-          <div class="release2-access-gate-brand">
-            <img src="./assets/harbourline-mark.svg" alt="" width="44" height="44" />
-            <span>
-              <span class="eyebrow">Household money planning</span>
-              <strong>Harbourline</strong>
-            </span>
-          </div>
-          <span class="eyebrow">Free Starter</span>
-          <h1 id="release2AccessGateTitle">Know what your next payday needs to cover.</h1>
-          <p>Start with a free Harbourline account, then build your local payday plan for income, bills, savings and debt. No payment is required for Free Starter.</p>
-          <div class="release2-gate-actions">
-            <a class="btn" href="https://www.harbourline.app/#early-access" target="_blank" rel="noreferrer">Create your free account</a>
-            <button class="btn secondary" type="button" data-action="open-account">Already have an account? Sign in</button>
-          </div>
-          <div class="release2-gate-facts" aria-label="Free Starter benefits">
-            <span>Local planning</span>
-            <span>Portable exports</span>
-            <span>No payment required</span>
-          </div>
-          <p class="release2-gate-note">New accounts are created on the Harbourline homepage. <a href="https://www.harbourline.app/#trust" target="_blank" rel="noreferrer">Read about privacy and access</a>.</p>
-          <a class="release2-gate-back" href="https://www.harbourline.app/">Back to Harbourline homepage</a>
-        </div>
-      `;
-      if (!this.dialog.open && (gateWasCreated || gateHadFocus || documentNeedsGateFocus)) {
-        gate.querySelector<HTMLElement>("[data-action='open-account']")?.focus();
-      }
-      return;
-    }
-
     const focusGateTarget = gate?.contains(document.activeElement) ? this.accountButton : null;
     app?.removeAttribute("inert");
     app?.removeAttribute("aria-hidden");
@@ -1378,8 +1312,8 @@ export class AccountPanel {
       <span class="eyebrow">Free Starter</span>
       <strong>Your local planner is ready.</strong>
       <span>${window.HarbourlineMobile?.isNative === true
-        ? "Plan and export on this device. Cloud access and billing are managed through your Harbourline web account."
-        : "Account required. Plan and export on this device. Secure cloud sync, household sharing and Calendar sync are included with the paid plan."}</span>
+        ? "No account needed. Plan and export on this device. Cloud access is managed through your Harbourline web account."
+        : "No account needed. Saved in this browser only; export a backup before clearing browser data. Sign in and subscribe for cloud sync and sharing."}</span>
     </div>
     ${this.cloud.configured && window.HarbourlineMobile?.isNative !== true
       ? `<button class="btn secondary" type="button" data-action="open-account">Explore cloud sync</button>`
@@ -1429,8 +1363,8 @@ export class AccountPanel {
       <section class="release2-section release2-intro">
         <span class="release2-status-dot"></span>
         <div>
-          <h3>Harbourline account required</h3>
-          <p>This hosted build uses secure Harbourline accounts for sign-in and household sync. Connect the production account settings before using the hosted experience.</p>
+          <h3>Your free local planner is available</h3>
+          <p>Plan and export on this device without an account. Account services are unavailable in this build; cloud sync and household sharing require a configured account service.</p>
         </div>
       </section>
       <section class="release2-section">
@@ -1453,19 +1387,19 @@ export class AccountPanel {
         <div>
           <h3>Sign in to Harbourline</h3>
           <p>${nativeCompanion
-            ? "Sign in with your Harbourline account to use the free companion. Billing and cloud access are managed on the Harbourline website."
-            : "Returning to Harbourline? Sign in below. New accounts start on the public homepage, where you can review the plan and early-access price first."}</p>
+            ? "Use the local planner without an account. Sign in for paid cloud access; billing is managed on the Harbourline website."
+            : "Your free local planner needs no account. Sign in below when you want cloud sync, household sharing and Calendar sync with the paid Household plan."}</p>
         </div>
       </section>
       <div class="release2-auth-grid">
         <section class="release2-section release2-account-path">
           <div class="release2-section-heading">
-            <div><span>New here?</span><h3>Create your account first</h3></div>
+            <div><span>New here?</span><h3>Ready for household sync?</h3></div>
           </div>
           <p class="release2-empty">${nativeCompanion
             ? "Create your account on the Harbourline website, confirm your email, then return here to use the companion."
-            : "Create your account on the homepage, confirm your email, then return here to sign in and continue to secure payment."}</p>
-          <a class="btn secondary release2-homepage-button" href="https://www.harbourline.app/#early-access" target="_blank" rel="noreferrer">${nativeCompanion ? "Create account on website" : "Create account on homepage"}</a>
+            : "Create an account when you are ready to upgrade. Confirm your email, then sign in here to choose paid cloud access. Your local plan stays on this device until you choose to sync it."}</p>
+          <a class="btn secondary release2-homepage-button" href="https://www.harbourline.app/#create-account" target="_blank" rel="noreferrer">${nativeCompanion ? "Create account on website" : "Create account on homepage"}</a>
         </section>
         <form class="release2-section" data-form="sign-in">
           <div class="release2-section-heading">

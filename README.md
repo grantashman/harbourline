@@ -10,7 +10,7 @@ It is designed for households anywhere that want to move beyond a record of past
 - [Open the hosted application](https://harbourline.app/)
 - [Browse the source on GitHub](https://github.com/grantashman/harbourline)
 
-The homepage is the starting point for new accounts. Existing members can sign in through the hosted application.
+Open the hosted application to try Free Starter without an account. The homepage also offers optional account registration for paid cloud access.
 
 ## What Harbourline helps with
 
@@ -33,9 +33,9 @@ The hosted early-access release also includes optional one-way Google Calendar s
 
 ## Pricing and access
 
-Harbourline starts with a free local planner. Create an account and sign in to
-build a payday plan on one browser. No payment card is required, and you can
-export your data whenever you choose.
+Harbourline starts with a free local planner. Build a payday plan on one browser
+without an account or payment card, and export your data whenever you choose.
+The plan is saved only in that browser; export a backup before clearing browser data.
 
 The paid Household plan is currently **A$2.50 per week** during introductory early
 access. It adds secure cloud sync, multi-device synchronisation, household
@@ -51,10 +51,9 @@ additional future-pilot metadata, but metadata is not availability; see
 enabled-currency contract, billing separation, support guidance and rollback
 procedure.
 
-The hosted product uses secure Supabase accounts for all application access. New
-accounts are created from the public homepage, then confirmed by email before
-signing in. The free local starter is available after sign-in; cloud household
-sync is available after the paid plan is active.
+Free Starter is available without signing in. Paid cloud features use secure
+Supabase accounts created from the public homepage and confirmed by email.
+Cloud household sync is available only after the paid plan is active.
 
 Payment details are handled by the payment provider and are not stored in Harbourline. The product is a planning tool, not financial advice.
 

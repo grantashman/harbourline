@@ -1,4 +1,4 @@
-export type WorkspaceAccess = "signed-out" | "free" | "paid";
+export type WorkspaceAccess = "free" | "paid";
 
 export interface WorkspaceAccessContext {
   signedIn: boolean;
@@ -13,6 +13,5 @@ export function isVerifiedAccountUser(
 }
 
 export function resolveWorkspaceAccess(context: WorkspaceAccessContext): WorkspaceAccess {
-  if (!context.signedIn) return "signed-out";
-  return context.billingReconciled && context.subscriptionActive === true ? "paid" : "free";
+  return context.signedIn && context.billingReconciled && context.subscriptionActive === true ? "paid" : "free";
 }
