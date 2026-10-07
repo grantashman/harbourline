@@ -50,7 +50,8 @@ export default defineConfig(({ command }) => ({
       name: "harbourline-release-2-entry",
       transformIndexHtml: {
         order: "post",
-        handler(html) {
+        handler(html, context) {
+          if (context.filename !== fileURLToPath(new URL("../../index.html", import.meta.url))) return html;
           const release2Script = command === "serve"
             ? '  <script type="module" src="/apps/web/src/release2.ts"></script>'
             : '  <script type="module" src="./assets/release2.js"></script>';
@@ -106,6 +107,7 @@ export default defineConfig(({ command }) => ({
       input: {
         index: fileURLToPath(new URL("../../index.html", import.meta.url)),
         release2: release2Entry,
+        ...(!mobileBuild ? { adEligibility: fileURLToPath(new URL("../../ad-eligibility.html", import.meta.url)) } : {}),
         ...(mobileBuild ? { mobileBootstrap: mobileBootstrapEntry } : {})
       },
       output: {

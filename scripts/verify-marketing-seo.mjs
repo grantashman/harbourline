@@ -32,6 +32,7 @@ const publicPages = [
     url: "https://www.harbourline.app/blog/early-access/",
     schemaTypes: ["BlogPosting"]
   }
+  ,{ file: "marketing/advertising/index.html", url: "https://www.harbourline.app/advertising/", schemaTypes: ["WebPage"] }
 ];
 
 function captureOne(html, pattern, label) {

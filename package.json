@@ -15,6 +15,7 @@
     "seo:verify": "node scripts/verify-marketing-seo.mjs",
     "db:test": "supabase test db",
     "deploy:verify": "node scripts/verify-beta-deployment-config.mjs",
-    "check": "pnpm typecheck && pnpm test && pnpm db:verify && pnpm multi-currency:verify && pnpm growth:verify && pnpm seo:verify && pnpm build && pnpm pdf:verify"
+    "check": "pnpm typecheck && pnpm test && pnpm db:verify && pnpm multi-currency:verify && pnpm growth:verify && pnpm seo:verify && pnpm ads:verify && pnpm build && pnpm pdf:verify",
+    "ads:verify": "node scripts/verify-advertising.mjs"
   }
 }

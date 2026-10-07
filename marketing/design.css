@@ -20,7 +20,7 @@ p { text-wrap:pretty; }
 .hero-actions { margin-top:28px; gap:12px; }
 .entry-note { display:block; color:var(--muted); margin-top:12px; font-size:.83rem; }
 .trust-row { gap:16px; margin-top:30px; }
-.trust-row > div { min-height:0; gap:10px; padding:0 0 0 14px; border:0; border-left:1px solid var(--line); border-radius:0; background:transparent; }
+.trust-row > div { display:grid; grid-template-rows:subgrid; grid-row:span 2; min-height:0; gap:16px; padding:0 0 0 14px; border:0; border-left:1px solid var(--line); border-radius:0; background:transparent; }
 .trust-row strong { font-weight:650; font-size:.85rem; }
 .trust-row span { line-height:1.6; }
 .app-card { padding:28px; border-radius:18px; background:linear-gradient(145deg,#15342a,#0c1d18); box-shadow:0 24px 70px rgba(0,0,0,.2); }
@@ -83,3 +83,10 @@ input,select { border-radius:8px; min-height:46px; }
  .journal-hero { padding-block:44px 30px; }
 }
 @media(prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } *,*::before,*::after { transition:none!important; animation:none!important; } }
+
+/* Manual ads stay below the content and disappear entirely when ineligible. */
+.advertising[hidden] { display:none !important; }
+.advertising { margin-top:40px; margin-bottom:24px; padding-top:18px; border-top:1px solid var(--line); }
+.advertising-heading { display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:12px; color:var(--muted); font-size:.75rem; }
+.advertising-heading a { color:var(--mint); }
+[data-ad-placement] { min-height:100px; }
